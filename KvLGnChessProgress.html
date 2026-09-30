@@ -854,7 +854,11 @@
   .sel-clear { font: 12px Inter, sans-serif; color: var(--fg-dim); background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; margin-left: 6px; cursor: pointer; line-height: 16px; }
   .sel-clear:hover { color: var(--fg); }
   .sel-n { color: #f3f4f6; font-weight: 700; }
-  .act-sel { font-size: 13px; color: var(--fg-mute); margin-left: 8px; white-space: nowrap; }
+  .act-sel { font-size: 13px; color: var(--fg-mute); margin-left: 6px; white-space: nowrap; }
+  /* выбор дней: «2/14 ✕» должен помещаться в панель 200px и при «2 недели» / «3 месяца» */
+  .period-pick { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; }
+  .period-pick .sel-clear { margin-left: 4px; }
+  .period-pick .period-toggle { letter-spacing: 1.5px; }
   .win-pick { display: inline-flex; align-items: center; }
   .avg-line text { display: none; }
   svg.focus .avg-line.hl text { display: inline; }
@@ -2825,7 +2829,7 @@ function renderPeriodPick() {
   var cur = PERIODS.filter(function(p) { return p.key === period; })[0];
   $('periodPick').innerHTML =
     '<button class="win-toggle period-toggle" aria-haspopup="listbox" aria-expanded="false">' + cur.label + '<span class="caret">▾</span></button>' +
-    (actSelCount() ? '<span class="act-sel" title="Сводка по выбранным столбикам. Клик — один, Ctrl+клик — добавить/убрать, Esc или ✕ — сбросить"><span class="sel-n">' + actSelCount() + '</span> из ' + actBuckets.length + '</span><button class="sel-clear" title="Сбросить выбор (Esc)">✕</button>' : '') +
+    (actSelCount() ? '<span class="act-sel" title="Сводка по выбранным столбикам. Клик — один, Ctrl+клик — добавить/убрать, Esc или ✕ — сбросить"><span class="sel-n">' + actSelCount() + '</span>/' + actBuckets.length + '</span><button class="sel-clear" title="Сбросить выбор (Esc)">✕</button>' : '') +
     '<div class="win-menu" role="listbox">' + PERIODS.map(function(p) {
       return '<button class="win-opt' + (p.key === period ? ' on' : '') + '" role="option" data-p="' + p.key + '">' + p.label + '</button>';
     }).join('') + '</div>';

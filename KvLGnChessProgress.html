@@ -549,7 +549,7 @@
   .cmp-view { padding: 12px 18px 14px 28px; }
   /* экран сравнения: без легенды снизу */
   .cmp-on .legend .legend-item { visibility: hidden; }
-  .chart-container.cmp-on .bl-legend { display: none; }   /* легенда типов зевков на экране сравнения не нужна */
+  .chart-container.cmp-on .bl-legend { visibility: hidden; }   /* легенда типов зевков на экране сравнения не нужна; место держит высоту строки (иначе обрезается «Винрейт») */
   /* «Зевки» в сравнении раскрываются по типам */
   .cmp-bl-toggle { cursor: pointer; border-radius: 6px; }
   .cmp-bl-toggle:hover { background: rgba(255,255,255,0.03); }

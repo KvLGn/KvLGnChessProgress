@@ -4156,7 +4156,13 @@ function gsIndex() {
   add('Разделы', '📖', 'Дебюты', 'изучаю, следующие, в планах', 'дебюты репертуар студии план', function() { gsCloseSide(); toggleOpeningDetail(true); gsFlash($('sideRow')); });
   add('Разделы', '🎯', 'Итоги', 'что хорошо, что плохо, что делать', 'итоги советы вердикт слабости', function() { gsCloseSide(); toggleVerdict(true); gsFlash($('sideRow')); });
   add('Разделы', '📋', 'Таблица партий', 'последние 30 партий и фильтры', 'таблица партии список фильтры', function() { gsFlash($('filters')); });
-  add('Разделы', '⏷', 'Фильтр графика', 'результат, цвет, дебют, показатели', 'фильтр графика', function() { gsChart(chartMode, false); $('cf').querySelector('.f-btn').click(); });
+  add('Разделы', '⏷', 'Фильтр графика', 'результат, цвет, дебют, показатели', 'фильтр графика', function() {
+    gsCloseSide();
+    if (showRecords) setRecords(false);
+    var btn = $('cf').querySelector('.f-btn');
+    gsFlash(btn);   // подсвечиваем саму кнопку фильтра и открываем панель
+    btn.click();
+  });
   if (games.length >= 6) {
     add('Разделы', '⏷', 'Сравнение партий', 'последние 3, 5 или 7 против стольких же до них',
       'сравнить сравнение прогресс последние предыдущие', null);
@@ -4490,7 +4496,7 @@ $('gs').addEventListener('mousedown', function(e) {
   e.preventDefault();
   if (gsShown[+b.getAttribute('data-i')] && gsShown[+b.getAttribute('data-i')].children) { gsRun(+b.getAttribute('data-i')); return; }
   // клик, который завершит это нажатие, не должен считаться «кликом мимо» и закрывать только что открытую панель
-  function swallow(ev) { ev.stopPropagation(); document.removeEventListener('click', swallow, true); }
+  function swallow(ev) { if (!ev.isTrusted) return; ev.stopPropagation(); document.removeEventListener('click', swallow, true); }
   document.addEventListener('click', swallow, true);
   setTimeout(function() { document.removeEventListener('click', swallow, true); }, 600);
   gsRun(+b.getAttribute('data-i'));

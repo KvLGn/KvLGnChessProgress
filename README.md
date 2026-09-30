@@ -13,7 +13,10 @@
 ```
 progress/
 ├── KvLGnChessProgress.html   дашборд: вся вёрстка, стили и логика в одном файле
-├── update.bat              двойной клик → скачать свежие данные с Lichess
+├── update.bat              двойной клик → git pull → данные с Lichess → git push (сайт обновится)
+├── index.html              стартовая страница сайта → перенаправляет на KvLGnChessProgress.html
+├── .github/workflows/update.yml   облачное обновление каждый час (GitHub Actions)
+├── .gitignore, .gitattributes, .nojekyll   настройки git / GitHub Pages
 ├── README.md               этот файл
 ├── data/                   данные для страницы (подключаются через <script>)
 │   ├── games.js            партии + рейтинговые партии    ← создаёт update.bat, руками не править
@@ -38,7 +41,21 @@ progress/
 
 ---
 
-## 2. Как текут данные
+## 2. Сайт и облако (GitHub)
+
+- Папка `progress/` — git-репозиторий **github.com/KvLGn/KvLGnChessProgress** (публичный).
+- Сайт: **https://kvlgn.github.io/KvLGnChessProgress/** (GitHub Pages, ветка `main`, корень). Открывается с айфона.
+- **GitHub Actions** (`.github/workflows/update.yml`) каждый час в :07 UTC запускает `scripts/update.mjs` и коммитит
+  `data/` и `scripts/cache/`, если что-то изменилось. Ручной запуск: вкладка Actions → «Run workflow».
+- Токен Lichess в облаке — секрет репозитория `LICHESS_TOKEN` (добавлен через API; через веб-форму GitHub не сохранял — ошибка).
+  В облаке нет папки `claude/`, поэтому `game-log.md` / `puzzle-rating.md` обновляются только на ПК.
+- **ПК и облако пишут в одни файлы** — поэтому `update.bat` сначала делает `git pull`, потом `git push`.
+- **Правило для Claude:** после правок страницы, скрипта или `data/openings.js` — `git add`, `git commit`, `git push`
+  (из папки `progress/`), иначе на сайте останется старая версия. Сайт обновляется ~1 мин после push.
+- В архив `archive/` и `node_modules/` в git не попадают (`.gitignore`). Коммиты — от `KvLGn@users.noreply.github.com`.
+- GitHub отключает расписание, если в репозитории 60 дней нет активности (коммиты бота считаются, только если данные менялись).
+
+## 2а. Как текут данные
 
 ```
 Lichess API ──(update.bat → scripts/update.mjs)──► data/games.js, data/puzzles.js
@@ -161,7 +178,9 @@ window.PUZZLES = { rating, total,
 
 ## 5. Частые задачи
 
-**Обновить данные** — двойной клик по `update.bat` (или `node scripts/update.mjs`), затем F5 на странице.
+**Обновить данные** — ничего не делать (облако раз в час) или двойной клик по `update.bat` (сразу + заметки claude/*.md), затем F5.
+
+**Опубликовать правки страницы** — из `progress/`: `git add -A && git commit -m "…" && git push`.
 
 **Перейти к следующему этапу** — в HTML найти `var PROFILE` и поменять `stage` и `goal`
 (`engine`, `color`, `need` из `of`). Цель используется в «Итогах» и поиске («Цель этапа»).
@@ -229,7 +248,7 @@ window.PUZZLES = { rating, total,
 ## 8. Отложено / идеи
 
 - (сделано 30.09.2026) рабочая версия: `ChessProgress_v2.html` → `KvLGnChessProgress.html`; первая версия — `archive/ChessProgress.html`.
-- Автозапуск `update.bat` через Планировщик задач Windows (обсуждалось, не настроено).
+- (сделано 30.09.2026) Автообновление — GitHub Actions каждый час; сайт на GitHub Pages. Планировщик Windows не нужен.
 - Задачи в режиме «Активность» (столбики задач по дням) — не сделано.
 - Колонка «ИР» заполнится сама, когда появятся рейтинговые партии.
 - Мобильная вёрстка (≤760px) доработана 30.09.2026 (блок `телефон (≤760px)` в конце <style>): всё в одну колонку, кнопки «Рекорды» / период / «Активность» — строкой между панелью и графиком, график прокручивается вбок (min-width 580px), на телефоне у периода только даты. Проверено на ширине 390px.

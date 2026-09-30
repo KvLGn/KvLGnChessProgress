@@ -618,6 +618,34 @@
     opacity: 0; transform: translateX(28px); pointer-events: none; visibility: hidden;
     transition: opacity 0.25s ease, transform 0.3s ease, visibility 0s linear 0.3s;
   }
+  /* раскрытые итоги накрывают всю шапку: профиль, ссылки, поиск и карточки */
+  .profile-row { position: relative; }
+  .side-row.vd-open { position: static; }
+  .vd-detail.vdx { left: 0; right: 8px; top: 0; bottom: auto; min-height: 100%; max-height: 640px; z-index: 30; padding: 14px 18px 12px; gap: 10px; border-radius: 14px;
+    background: linear-gradient(180deg, #14201a 0%, #111815 100%); box-shadow: 0 16px 40px rgba(0,0,0,0.5); }
+  .vdx-head { display: flex; align-items: center; gap: 18px; padding-bottom: 10px; border-bottom: 1px solid rgba(34,197,94,0.18); }
+  .vdx-h { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #4ade80; }
+  .vdx-stage { font-size: 13px; color: var(--fg); font-weight: 600; }
+  .vdx-goal { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--fg-dim); }
+  .vdx-goal b { color: var(--fg); }
+  .vdx-bar { display: flex; gap: 3px; }
+  .vdx-bar i { width: 18px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); }
+  .vdx-bar i.win { background: var(--green); } .vdx-bar i.lose { background: var(--red); } .vdx-bar i.draw { background: #9ca3af; }
+  .vdx-head .vd-close { margin-left: auto; }
+  .vdx-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+  .vdx-col { min-height: 0; display: flex; flex-direction: column; }
+  .vdx-title { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .vdx-title span { color: var(--fg-mute); font-weight: 400; margin-left: 4px; }
+  .vdx-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 6px;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+  .vdx-item { padding-left: 10px; border-left: 2px solid; }
+  .vdx-item.vd-bad { border-color: rgba(239,68,68,0.7); } .vdx-item.vd-good { border-color: rgba(34,197,94,0.7); } .vdx-item.vd-tip { border-color: rgba(251,191,36,0.7); }
+  .vdx-main { font-size: 13px; font-weight: 600; color: var(--fg); line-height: 1.35; }
+  .vdx-main a { font-weight: 400; font-size: 12px; color: #60a5fa; text-decoration: none; white-space: nowrap; }
+  .vdx-main a:hover { text-decoration: underline; }
+  .vdx-n { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-right: 6px; border-radius: 50%;
+    background: rgba(251,191,36,0.18); color: #fbbf24; font-size: 10px; font-weight: 700; vertical-align: 1px; }
+  .vdx-more { font-size: 11.5px; color: var(--fg-dim); line-height: 1.4; margin-top: 2px; }
   .side-row.vd-open .vd-detail { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition: opacity 0.25s ease, transform 0.3s ease; }
   .vd-tabs { display: flex; align-items: center; gap: 4px; }
   .vd-tab {
@@ -1044,6 +1072,9 @@
     /* панели карточек — в одну колонку */
     .pz-detail, .op-detail { grid-template-columns: 1fr !important; }
     .vd-list { grid-template-columns: 1fr; }
+    .vdx-cols { grid-template-columns: 1fr; }
+    .vdx-head { flex-wrap: wrap; gap: 8px 14px; }
+    .side-row.vd-open { position: relative; }
     .pz-card, .op-card, .vd-card { width: auto !important; min-height: 120px; }
     /* поиск — выпадающий список по ширине экрана */
     .gs-drop { width: auto; left: 0; right: 0; }
@@ -1100,7 +1131,7 @@
       <div class="pz-detail" id="pzDetail" aria-hidden="true"></div>
       <div class="op-detail" id="opDetail" aria-hidden="true"></div>
       <div class="vd-card" id="vdCard" role="button" tabindex="0" aria-expanded="false" aria-controls="vdDetail" title="Итоги по всей статистике"></div>
-      <div class="vd-detail" id="vdDetail" aria-hidden="true"></div>
+      <div class="vd-detail vdx" id="vdDetail" aria-hidden="true"></div>
     </div>
   </div>
 </div>
@@ -3237,22 +3268,37 @@ $('vdCard').addEventListener('mouseleave', function() { vdPaused = false; });
 
 function renderVerdictDetail() {
   var V = buildVerdicts();
-  var list = V.filter(function(v) { return v.t === vdTab; });
-  var PAGE = 6, pages = Math.max(1, Math.ceil(list.length / PAGE));
-  vdPage = Math.min(vdPage, pages - 1);
-  var shown = list.slice(vdPage * PAGE, vdPage * PAGE + PAGE);
+  // строка этапа: цель из PROFILE.goal и прогресс по последним партиям
+  var stage = '<span class="vdx-stage">' + esc(PROFILE.stage) + '</span>';
+  var G = PROFILE.goal;
+  if (G) {
+    var gl = games.filter(function(g) { return g.engine === G.engine && g.color === G.color; }).slice(-G.of);
+    var gw = gl.filter(function(g) { return g.result === 'win'; }).length;
+    stage += '<span class="vdx-goal"><span class="vdx-bar">' + gl.map(function(g) {
+        return '<i class="' + g.result + '" title="' + esc(g.date + ' · ' + RESULT[g.result].label + ' · ' + g.opening) + '"></i>';
+      }).join('') + new Array(Math.max(0, G.of - gl.length) + 1).join('<i></i>') + '</span>' +
+      '<b>' + gw + ' из ' + G.of + '</b> побед · нужно ' + G.need +
+      (gl.length >= G.of && gw >= G.need ? ' — <span style="color:var(--green)">выполнено!</span>' : '') + '</span>';
+  }
+  function col(t, title, color, empty, numbered) {
+    var items = V.filter(function(v) { return v.t === t; });
+    return '<div class="vdx-col"><div class="vdx-title" style="color:' + color + '">' + title + ' <span>' + items.length + '</span></div>' +
+      '<div class="vdx-list">' + (items.length ? items.map(function(v, i) {
+        return '<div class="vdx-item vd-' + t + '">' +
+          '<div class="vdx-main">' + (numbered ? '<span class="vdx-n">' + (i + 1) + '</span>' : '') + esc(v.text) +
+            (v.link ? ' <a href="' + v.link + '" target="_blank" rel="noopener">открыть ↗</a>' : '') + '</div>' +
+          (v.more && v.more !== v.text ? '<div class="vdx-more">' + esc(v.more) + '</div>' : '') +
+        '</div>';
+      }).join('') : '<div class="pzd-empty">' + empty + '</div>') + '</div></div>';
+  }
   $('vdDetail').innerHTML =
-    '<div class="vd-tabs">' + VD_TABS.map(function(x) {
-      var k = V.filter(function(v) { return v.t === x.t; }).length;
-      return '<button class="vd-tab' + (x.t === vdTab ? ' on' : '') + '" data-t="' + x.t + '" style="--c:' + x.color + '">' + x.label + ' <span>' + k + '</span></button>';
-    }).join('') + '<span class="vd-sp"></span>' +
-    (pages > 1 ? '<span class="vd-pager"><button data-p="-1"' + (vdPage === 0 ? ' disabled' : '') + '>‹</button>' + (vdPage + 1) + ' / ' + pages +
-      '<button data-p="1"' + (vdPage === pages - 1 ? ' disabled' : '') + '>›</button></span>' : '') +
-    '<button class="pzd-close vd-close" aria-label="Закрыть">×</button></div>' +
-    '<div class="vd-list">' + (shown.length ? shown.map(function(v) {
-      return '<div class="vd-item vd-' + v.t + '" title="' + esc(v.more || v.text) + '"><span class="vd-tx">' + esc(v.text) + '</span>' +
-        (v.link ? '<a href="' + v.link + '" target="_blank" rel="noopener">открыть ↗</a>' : '') + '</div>';
-    }).join('') : '<div class="pzd-empty">Здесь пока пусто</div>') + '</div>';
+    '<div class="vdx-head"><span class="vdx-h">🎯 Итоги</span>' + stage +
+      '<button class="pzd-close vd-close" aria-label="Закрыть">×</button></div>' +
+    '<div class="vdx-cols">' +
+      col('bad', '▼ Что улучшить', 'var(--red)', 'Слабых мест не найдено') +
+      col('good', '▲ Что идёт хорошо', 'var(--green)', 'Пока мало данных') +
+      col('tip', '💡 План', '#fbbf24', 'Пока нечего советовать', true) +
+    '</div>';
 }
 
 function toggleVerdict(open) {
@@ -3268,6 +3314,9 @@ function toggleVerdict(open) {
   $('vdDetail').setAttribute('aria-hidden', String(!open));
 }
 $('vdCard').addEventListener('click', function() { toggleVerdict(); });
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && $('sideRow').classList.contains('vd-open')) toggleVerdict(false);
+});
 $('vdCard').addEventListener('keydown', function(e) {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleVerdict(); }
 });

@@ -477,6 +477,10 @@
   .bl-on .legend .legend-item.metrics-only { display: none; }
   .bl-leg { display: inline-flex; align-items: center; gap: 6px; cursor: help; white-space: nowrap; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--c);
     padding: 1px 9px; line-height: 16px; border-radius: 999px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); }
+  .bl-leg[data-blt] { cursor: pointer; user-select: none; outline: none; transition: opacity 0.15s, background 0.15s; }
+  .bl-leg[data-blt]:hover, .bl-leg[data-blt]:focus-visible { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); }
+  .bl-leg.off { opacity: 0.3; }
+  .bl-leg.off:hover { opacity: 0.5; }
   .bl-leg i { width: 10px; height: 10px; border-radius: 2px; }
   .bl-leg b { color: var(--fg); }
   .bl-leg-x { background: none; border: 1px solid var(--border); color: var(--fg-mute); border-radius: 6px; padding: 1px 7px; cursor: pointer; font-size: 11px; }
@@ -2449,15 +2453,15 @@ function renderChart() {
   else {
     var bw = Math.min(colW * 0.42, 22), unit = H / bMax;
     list.forEach(function(g, i) {
-      var y0 = BOT, cnt = {};
-      (g.bl || []).forEach(function(b) { cnt[b.t] = (cnt[b.t] || 0) + 1; });
+      var y0 = BOT, cnt = {}, shown = 0;
+      (g.bl || []).forEach(function(b) { if (!blHidden[b.t]) { cnt[b.t] = (cnt[b.t] || 0) + 1; shown++; } });   // скрытые в легенде типы не рисуются
       BL_ORDER.forEach(function(t) {
         if (!cnt[t]) return;
         var h = Math.min(cnt[t], bMax) * unit;
         y0 -= h;
         s.push('<rect x="' + r2(cx(i) - bw / 2) + '" y="' + r2(y0) + '" width="' + r2(bw) + '" height="' + r2(Math.max(h - 1, 1)) + '" rx="2" fill="' + BL_TYPES[t].color + '" opacity="0.9"/>');
       });
-      if (g.blunders) s.push('<text x="' + cx(i) + '" y="' + r2(y0 - 4) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#f3f4f6">' + g.blunders + '</text>');
+      if (shown) s.push('<text x="' + cx(i) + '" y="' + r2(y0 - 4) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#f3f4f6">' + shown + '</text>');
     });
   }
   if (!blMode) s.push(series('end', pct('end'), 'stroke="#a78bfa" stroke-width="2" opacity="0.8"', 'r="3.5" fill="#a78bfa" opacity="0.9"', '#a78bfa'));
@@ -2670,11 +2674,27 @@ function renderBlLegend(list) {
   var cnt = {}, total = 0;
   list.forEach(function(g) { (g.bl || []).forEach(function(b) { cnt[b.t] = (cnt[b.t] || 0) + 1; total++; }); });
   el.innerHTML = BL_ORDER.filter(function(t) { return cnt[t]; }).map(function(t) {
-    return '<span class="bl-leg" style="--c:' + BL_TYPES[t].color + '" title="' + esc(BL_TYPES[t].ru + ': ' + BL_TYPES[t].tip) + ' · всего зевков в окне: ' + total + '"><i style="background:' + BL_TYPES[t].color + '"></i>' + BL_SHORT[t] + ' <b>' + cnt[t] + '</b></span>';
+    return '<span class="bl-leg' + (blHidden[t] ? ' off' : '') + '" data-blt="' + t + '" role="button" tabindex="0" style="--c:' + BL_TYPES[t].color + '" title="' + esc(BL_TYPES[t].ru + ': ' + BL_TYPES[t].tip) + ' · всего зевков в окне: ' + total +
+      '\nКлик — ' + (blHidden[t] ? 'показать' : 'скрыть') + ' на графике"><i style="background:' + BL_TYPES[t].color + '"></i>' + BL_SHORT[t] + ' <b>' + cnt[t] + '</b></span>';
   }).join('') + '<button class="bl-leg-x" type="button" title="Вернуть обычный график">✕</button>';
 }
+// клик по типу в легенде — скрыть / показать его столбики (запоминается, как скрытые линии)
+var blHidden = {};
+try { blHidden = JSON.parse(localStorage.getItem('blHidden') || '{}') || {}; } catch (e) {}
+function toggleBlType(t) {
+  if (blHidden[t]) delete blHidden[t]; else blHidden[t] = true;
+  try { localStorage.setItem('blHidden', JSON.stringify(blHidden)); } catch (e) {}
+  renderChart();
+}
 document.addEventListener('click', function(e) {
-  if (e.target.closest && e.target.closest('.bl-leg-x')) { blMode = false; renderWindow(); }
+  if (!e.target.closest) return;
+  if (e.target.closest('.bl-leg-x')) { blMode = false; renderWindow(); return; }
+  var t = e.target.closest('.bl-leg[data-blt]');
+  if (t) toggleBlType(t.getAttribute('data-blt'));
+});
+document.addEventListener('keydown', function(e) {
+  var t = e.target.closest && e.target.closest('.bl-leg[data-blt]');
+  if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleBlType(t.getAttribute('data-blt')); }
 });
 function blChips(g) {
   if (!g.bl || !g.bl.length) return '';

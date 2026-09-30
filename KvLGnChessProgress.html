@@ -4204,9 +4204,9 @@ function gsIndex() {
   }
   if (nG) {
     var byAcc = games.slice().sort(function(a, b) { return b.acc - a.acc; });
-    add('Ответы', '▲', 'Лучшая партия: #' + byAcc[0].n + ' · ' + byAcc[0].acc + '%', byAcc[0].opening + ' · ' + byAcc[0].date, 'лучшая партия', function() { gsOpenGame(byAcc[0]); });
+    add('Ответы', '<span style="color:var(--green)">▲</span>', 'Лучшая партия: #' + byAcc[0].n + ' · ' + byAcc[0].acc + '%', byAcc[0].opening + ' · ' + byAcc[0].date, 'лучшая партия', function() { gsOpenGame(byAcc[0]); });
     var wg = byAcc[byAcc.length - 1];
-    add('Ответы', '▼', 'Худшая партия: #' + wg.n + ' · ' + wg.acc + '%', wg.opening + ' · ' + wg.date, 'худшая партия', function() { gsOpenGame(wg); });
+    add('Ответы', '<span style="color:var(--red)">▼</span>', 'Худшая партия: #' + wg.n + ' · ' + wg.acc + '%', wg.opening + ' · ' + wg.date, 'худшая партия', function() { gsOpenGame(wg); });
     add('Ответы', '📋', 'Последняя партия: #' + games[nG - 1].n + ' · ' + RESULT[games[nG - 1].result].label, games[nG - 1].opening + ' · ' + games[nG - 1].date, 'последняя партия', function() { gsOpenGame(games[nG - 1]); });
   }
 

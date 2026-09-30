@@ -620,7 +620,6 @@
   }
   /* раскрытые итоги накрывают всю шапку: профиль, ссылки, поиск и карточки */
   .profile-row { position: relative; }
-  .side-row.vd-open { position: static; }
   .vd-detail.vdx { left: 0; right: 8px; top: 0; bottom: auto; min-height: 100%; max-height: 640px; z-index: 30; padding: 14px 18px 12px; gap: 10px; border-radius: 14px;
     background: linear-gradient(180deg, #14201a 0%, #111815 100%); box-shadow: 0 16px 40px rgba(0,0,0,0.5); }
   .vdx-head { display: flex; align-items: center; gap: 18px; padding-bottom: 10px; border-bottom: 1px solid rgba(34,197,94,0.18); }
@@ -646,7 +645,7 @@
   .vdx-n { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-right: 6px; border-radius: 50%;
     background: rgba(251,191,36,0.18); color: #fbbf24; font-size: 10px; font-weight: 700; vertical-align: 1px; }
   .vdx-more { font-size: 11.5px; color: var(--fg-dim); line-height: 1.4; margin-top: 2px; }
-  .side-row.vd-open .vd-detail { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition: opacity 0.25s ease, transform 0.3s ease; }
+  .side-row.vd-open .vd-detail, .vd-detail.show { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition: opacity 0.25s ease, transform 0.3s ease; }
   .vd-tabs { display: flex; align-items: center; gap: 4px; }
   .vd-tab {
     font: 600 11px Inter, sans-serif; color: var(--fg-mute);
@@ -1074,7 +1073,8 @@
     .vd-list { grid-template-columns: 1fr; }
     .vdx-cols { grid-template-columns: 1fr; }
     .vdx-head { flex-wrap: wrap; gap: 8px 14px; }
-    .side-row.vd-open { position: relative; }
+    .vd-detail.vdx { position: static !important; display: none; }
+    .vd-detail.vdx.show { display: flex; }
     .pz-card, .op-card, .vd-card { width: auto !important; min-height: 120px; }
     /* поиск — выпадающий список по ширине экрана */
     .gs-drop { width: auto; left: 0; right: 0; }
@@ -3310,12 +3310,21 @@ function toggleVerdict(open) {
     renderVerdictDetail();
   }
   row.classList.toggle('vd-open', open);
+  $('vdDetail').classList.toggle('show', open);
   $('vdCard').setAttribute('aria-expanded', String(open));
   $('vdDetail').setAttribute('aria-hidden', String(!open));
 }
 $('vdCard').addEventListener('click', function() { toggleVerdict(); });
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape' && $('sideRow').classList.contains('vd-open')) toggleVerdict(false);
+});
+// панель итогов живёт на уровне шапки (.profile-row): иначе при закрытии она на миг «прыгала» в размер ряда карточек
+document.querySelector('.profile-row').appendChild($('vdDetail'));
+// клик в любом другом месте закрывает итоги
+document.addEventListener('click', function(e) {
+  if (!$('sideRow').classList.contains('vd-open')) return;
+  if (e.target.closest('#vdDetail') || e.target.closest('#vdCard')) return;
+  toggleVerdict(false);
 });
 $('vdCard').addEventListener('keydown', function(e) {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleVerdict(); }

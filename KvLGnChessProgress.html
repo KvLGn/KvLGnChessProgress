@@ -127,11 +127,16 @@
   }
   .profile-head.eye-out .eye-btn { opacity: 1; pointer-events: auto; transform: translateX(-78px) scale(1); }
   .eye-btn:hover { color: var(--fg); border-color: #818cf8; }
+  /* зелёный глаз под ним — открыть все скрытые части (есть, только если что-то скрыто своими глазами) */
+  .eye-all { color: #4ade80; border-color: rgba(74,222,128,0.55); }
+  .eye-all:hover { color: #86efac; border-color: #4ade80; }
+  .profile-head.eye-out.can-all .eye-all { opacity: 1; pointer-events: auto; transform: translate(-78px, 44px) scale(1); }
+  .profile-head.eye-out .eye-all { opacity: 0; pointer-events: none; transform: translate(-78px, 0) scale(0.6); }
   .eye-btn svg g { transition: transform 0.25s ease, opacity 0.2s ease; transform-origin: 12px 12px; }
   .eye-btn .eye-shut { opacity: 0; }
   .eye-btn.shut .eye-open { transform: scaleY(0.1); opacity: 0; }
   .eye-btn.shut .eye-shut { opacity: 1; }
-  @media (max-width: 700px) { .profile-head.eye-out .eye-btn { transform: translate(76px, 28px) scale(0.9); } }   /* на телефоне слева нет места — выезжает вправо под ник */
+  @media (max-width: 700px) { .profile-head.eye-out .eye-btn { transform: translate(76px, 28px) scale(0.9); } .profile-head.eye-out.can-all .eye-all { transform: translate(118px, 28px) scale(0.9); } }   /* на телефоне слева нет места — выезжает вправо под ник */
   /* что показывает скрытый режим */
   .hush-na { font-size: 13px; color: var(--fg-mute); }
   /* глаза частей: шапка (у поиска), график (у «Активность»), партии (у заголовка) */
@@ -1285,6 +1290,7 @@
           <g class="eye-shut" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2.5 11c2.6 3.3 5.8 5 9.5 5s6.9-1.7 9.5-5"/><path d="M6 14.6l-1.6 2.2M12 16v2.6M18 14.6l1.6 2.2"/></g>
         </svg>
       </button>
+      <button class="eye-btn eye-all" id="eyeAll" type="button" tabindex="-1" title="Показать все скрытые части" aria-label="Показать все скрытые части"></button>
       <span class="nick">KvLGn</span>
     </div>
     <div class="wr-box" id="wrBox" role="button" tabindex="0" title="Нажми: винрейт ⇄ рейтинг ELO">
@@ -4666,6 +4672,7 @@ function applyHush() {
   ['head', 'chart', 'table'].forEach(function(k) { document.body.classList.toggle('hush-' + k, hush[k]); });
   document.body.classList.toggle('hush-all', hushAll());
   $('eyeBtn').classList.toggle('shut', hush.mode);
+  $('avatar').parentNode.classList.toggle('can-all', !hush.mode && hushAny());
   $('eyeBtn').title = hush.mode ? 'Выйти из скрытого режима' : 'Скрытый режим';
   $('eyeBtn').setAttribute('aria-label', $('eyeBtn').title);
   document.querySelectorAll('.sect-eye').forEach(function(b) {
@@ -4703,6 +4710,14 @@ function applyHush() {
 var SECT_NAME = {head: 'шапку', chart: 'график', table: 'партии'};
 function saveHush() { try { localStorage.setItem('hush', JSON.stringify(hush)); } catch (err) {} }
 var EYE_SVG = $('eyeBtn').innerHTML;
+$('eyeAll').innerHTML = EYE_SVG;
+$('eyeAll').addEventListener('click', function(e) {
+  e.stopPropagation();
+  hush = {head: false, chart: false, table: false, mode: false};
+  saveHush();
+  setEyeOut(false);
+  applyHush();
+});
 document.querySelectorAll('.sect-eye').forEach(function(b) {
   b.innerHTML = EYE_SVG;
   b.addEventListener('click', function(e) {
@@ -4738,7 +4753,7 @@ $('eyeBtn').addEventListener('click', function(e) {
   }, 350);
 });
 document.addEventListener('click', function(e) {
-  if (!e.composedPath().some(function(el) { return el === $('eyeBtn') || el === $('avatar'); })) setEyeOut(false);
+  if (!e.composedPath().some(function(el) { return el === $('eyeBtn') || el === $('eyeAll') || el === $('avatar'); })) setEyeOut(false);
 });
 
 /* ---------- go ---------- */

@@ -1175,6 +1175,7 @@
         <div class="f-list"></div>
         <button class="cf-more" aria-expanded="false">Показатели <span class="caret">▸</span></button>
         <div class="f-metrics cf-metrics"></div>
+        <div class="md-total cf-total"></div>
         <div class="f-foot"><button class="f-link" data-act="clear">Сбросить фильтр графика</button></div>
       </div>
     </div>
@@ -1984,7 +1985,8 @@ function modeLabel(grp, k) {
   return grp === 'lvl' ? 'Stockfish ' + k : it ? it.label.replace(/^\S+ /, function(m) { return /[🤖👤]/.test(m) ? '' : m; }) : k;
 }
 // кнопки-переключатели; число — сколько партий с таким значением
-function modeChipsHtml(modes) {
+// total — сколько партий проходит под ВСЕ условия фильтра (результат, цвет, режим, дебют, показатели)
+function modeChipsHtml(modes, total) {
   modes = modes || {};
   var humansOnly = !!(modes.opp && modes.opp.human && !modes.opp.ai);
   return MODE_GROUPS.map(function(G) {
@@ -1998,7 +2000,7 @@ function modeChipsHtml(modes) {
     }).join('') + '</div>';
   }).join('') +
   // итог по выбранным режимам — одной строкой под разделами
-  '<div class="md-total">Подходит <b>' + games.filter(function(g) { return modeMatch(g, modes); }).length + '</b> из ' + games.length + ' ' + plural(games.length, 'партии', 'партий', 'партий') + '</div>';
+  (typeof total === 'number' ? '<div class="md-total">Под все условия фильтра подходит <b>' + total + '</b> из ' + games.length + ' ' + plural(games.length, 'партии', 'партий', 'партий') + '</div>' : '');
 }
 function toggleMode(f, grp, k) {
   f.modes = f.modes || {};
@@ -2136,7 +2138,7 @@ function toggleDrop(id) {
   el.classList.toggle('open', open);
   el.querySelector('.f-btn').setAttribute('aria-expanded', String(open));
   if (open && id === 'fOpening') { renderOpeningList(); el.querySelector('.f-search').focus(); }
-  if (open && id === 'fMode') el.querySelector('.md-body').innerHTML = modeChipsHtml(filt.modes);
+  if (open && id === 'fMode') el.querySelector('.md-body').innerHTML = modeChipsHtml(filt.modes, filterGames(games).length);
 }
 function closeDrops() {
   ['fOpening', 'fMetrics', 'fMode'].forEach(function(id) {
@@ -2160,7 +2162,7 @@ $('fMode').addEventListener('click', function(e) {
   if (t) toggleMode(filt, t.getAttribute('data-mg'), t.getAttribute('data-mk'));
   else if (e.target.closest('[data-act="clear"]')) filt.modes = {};
   else return;
-  $('fMode').querySelector('.md-body').innerHTML = modeChipsHtml(filt.modes);
+  $('fMode').querySelector('.md-body').innerHTML = modeChipsHtml(filt.modes, filterGames(games).length);
   filtersChanged();
 });
 
@@ -2236,6 +2238,7 @@ function renderCfMenu() {
     return '<button class="f-chip' + (on ? ' on' : '') + '" data-c="' + c + '"><span class="f-knight">' + KNIGHT[c] + '</span>' + COLOR_NAME[c] + '</button>';
   }).join('');
   el.querySelector('.cf-modes').innerHTML = modeChipsHtml(cfilt.modes);
+  el.querySelector('.cf-total').innerHTML = 'Под все условия фильтра подходит <b>' + filterChart(games).length + '</b> из ' + games.length + ' ' + plural(games.length, 'партии', 'партий', 'партий');
   var q = el.querySelector('.f-search').value.trim().toLowerCase();
   var items = openingStats().filter(function(o) { return !q || o.name.toLowerCase().indexOf(q) >= 0; });
   el.querySelector('.f-list').innerHTML = items.length ? items.map(function(o) {

@@ -1626,7 +1626,7 @@ function renderCmpBtn() {
   if (!show) return;
   if (!cmpMode) b.textContent = 'Сравнить';
   else if (cmpMode === 'pick') b.innerHTML = cmpCount() ? 'Показать · ' + cmpCount() + '<span class="cmp-x" title="Отменить сравнение (Esc)">✕</span>' : 'Отмена';
-  else b.textContent = 'К выбору';
+  else b.innerHTML = 'К выбору<span class="cmp-x" title="Выйти из сравнения (снимает выделение колонок)">✕</span>';
   b.classList.toggle('on', !!cmpMode);
   h.innerHTML = cmpCount() ? 'Отмечено для сравнения: <b>' + cmpCount() + '</b> — нажми «Показать»' : 'Выбери партии для сравнения — клик по колонкам';
 }

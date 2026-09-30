@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import vm from 'node:vm';
 import { classifyBlunders } from './blunders.mjs';
+import { studyTrees, mastersForGames } from './masters.mjs';
 const { Chess } = await import('chess.js');   // позиции партий — для типов зевков
 
 const USER = 'KvLGn';
@@ -160,6 +161,14 @@ function loadWindowFile(file, ctx) {
   if (!existsSync(file)) return;
   try { vm.runInContext(readFileSync(file, 'utf8'), ctx, { filename: file }); }
   catch (e) { console.log(`  ! ${file.split(/[\\/]/).pop()}: ${e.message}`); }
+}
+
+// план из data/plan.js (для «Мастеров»: студии дебютов); null — не загрузился
+function loadPlan() {
+  const ctx = vm.createContext({});
+  ctx.window = ctx;
+  loadWindowFile(PLAN_JS, ctx);
+  return ctx.PLAN || null;
 }
 
 function updateProgress(games) {
@@ -538,6 +547,14 @@ for (const g of raw) {
     continue;
   }
   games.push(convert(g));
+}
+
+// «Мастера»: что играли мастера в позициях моих партий — студии из plan.js и база мастеров Lichess (поле ms)
+const plan = loadPlan();
+if (plan) {
+  console.log('Сверяю ходы с мастерами...');
+  const trees = await studyTrees(Chess, plan, join(CACHE_DIR, 'study-trees.json'), console.log);
+  await mastersForGames(Chess, games, plan, trees, token, join(CACHE_DIR, 'masters.json'), console.log);
 }
 
 const before = previousIds();

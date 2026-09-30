@@ -1189,6 +1189,18 @@
   .an-pick .win-menu { left: -8px; right: auto; min-width: 130px; }
   .an-pick .win-opt { display: flex; align-items: center; gap: 6px; }
   .an-pick .win-opt .an-bang { order: 1; margin-left: auto; }   /* «!» у правого края, ✓ остаётся у названия */
+  /* «Мастера»: колонки «Моменты» нет — запись ходов на её месте, таблицей «ты / мастера / соперник» */
+  .an-box.an-wide .an-mom { display: none; }
+  .an-box.an-wide .an-moves { grid-column: 2 / span 2; }
+  .an-mpick { margin-left: 10px; }
+  .an-mvs.ms-t.ms-w { grid-template-columns: 26px 1fr 1.3fr 1fr; }
+  .an-mvs.ms-t.ms-b { grid-template-columns: 26px 1fr 1fr 1.3fr; }
+  .an-th { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); padding-left: 7px; align-self: end; }
+  .an-mv.mk2 { color: var(--c); font-weight: 700; }
+  .an-mc { font: 12.5px Inter, sans-serif; color: #cbd5e1; text-align: left; background: rgba(74,222,128,0.05); border: 1px solid transparent; border-radius: 5px; height: 24px; padding: 0 6px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .an-mc small { font-size: 10.5px; color: var(--fg-mute); }
+  .an-mc:hover { background: rgba(74,222,128,0.1); }
+  .an-mc.on { border-color: rgba(34,211,238,0.45); }
   /* колонка 3: моменты выбранной линзы (клик — позиция перед ходом) */
   .an-mom { position: relative; border-right: 1px solid rgba(46,50,68,0.6); }
   .an-mom-in { position: absolute; inset: 0; display: flex; flex-direction: column; }
@@ -1569,6 +1581,7 @@
     .an-board svg { width: 100%; }
     .an-graph, .an-lock { grid-column: auto; }
     .an-graph .mr-leg { display: none; }
+    .an-box.an-wide .an-moves { grid-column: auto; }
   }
 </style>
 </head>
@@ -4317,8 +4330,8 @@ $('activityBtn').addEventListener('click', function(e) {
 //   момент: {p — полуход хода, at — полуход позиции «перед» (обычно p − 1), color, tint: 'good' | 'bad' | null,
 //            san, short — подпись в колонке, title — заголовок карточки (HTML), before / after — пояснение перед ходом / после,
 //            arrows — стрелки на доске в позиции at}
-var an = {gid: null, ply: null, lens: 'bl'};   // ply = null — при отрисовке встать на первый момент
-try { var anSaved = localStorage.getItem('anLens'); if (anSaved) an.lens = anSaved; } catch (e) {}
+var an = {gid: null, ply: null, lens: 'bl', master: 'all'};   // ply = null — при отрисовке встать на первый момент; master — чьи ходы во вкладке «Мастера»
+try { var anSaved = localStorage.getItem('anLens'); if (anSaved) an.lens = anSaved; an.master = localStorage.getItem('anMaster') || 'all'; } catch (e) {}
 var AN_COLORS = {light: '#dee3e6', dark: '#8ca2ad',                             // клетки (доска Lichess «blue»)
                  coordOnLight: '#4a6272', coordOnDark: '#f1f5f9',               // координаты a–h / 1–8 на светлой / тёмной клетке
                  last: 'rgba(155,199,0,0.41)',                                  // последний ход
@@ -4474,17 +4487,52 @@ function anCaptureMoments(g, P) {
   }
   return out;
 }
+// «Мастера»: мои ходы против ходов мастеров в тех же позициях (первые 15 своих ходов, поле ms из scripts/masters.mjs):
+//   выбран мастер из студий plan.js — его ходы (сколько раз); нет его в позиции или «Все мастера» — база мастеров Lichess
+//   (или сильные игроки Lichess 2000+, если у мастеров позиции почти нет). ✓ мой ход самый частый, ~ встречался, ✗ так не играли.
+var MASTER_RU = {Carlsen: 'Карлсен', So: 'Со', Kramnik: 'Крамник', Kasparov: 'Каспаров', Kamsky: 'Камский', Korchnoi: 'Корчной', Spassky: 'Спасский'};
+function masterName(m) { return MASTER_RU[m] || m; }
+function anMasters(g) { var set = {}; (g.ms || []).forEach(function(r) { Object.keys(r[2] || {}).forEach(function(k) { set[k] = 1; }); }); return Object.keys(set); }
+function anMasterPicked(g) { return anMasters(g).indexOf(an.master) >= 0 ? an.master : 'all'; }
+function anGamesN(n) { return n.toLocaleString('ru-RU') + ' ' + plural(n, 'партия', 'партии', 'партий'); }
+var AN_MS = {top: {c: '#4ade80', t: 'good', mark: '✓', txt: 'как чаще всего у мастеров'},
+             alt: {c: '#facc15', t: null,   mark: '~', txt: 'встречалось, но не чаще всего'},
+             off: {c: '#f87171', t: 'bad',  mark: '✗', txt: 'мастера так не играли'}};
+function anMasterMoments(g, P) {
+  var out = [], want = anMasterPicked(g);
+  (g.ms || []).forEach(function(r) {
+    var p = r[0] + 1, base = r[1], own = want !== 'all' && r[2] && r[2][want];
+    if (p > P.n) return;
+    var list = own || (base && base[1]) || [];
+    var total = own ? own.reduce(function(sum, x) { return sum + x[1]; }, 0) : base ? base[0] : 0;
+    if (!list.length || !total) return;
+    var san = P.moves[p - 1].san, i = list.map(function(x) { return x[0]; }).indexOf(san);
+    var st = i === 0 ? 'top' : i > 0 ? 'alt' : 'off', S = AN_MS[st], top = list[0][0];
+    function cnt(x) { return own ? '×' + x[1] : Math.round(x[1] / total * 100) + '%'; }
+    var src = own ? masterName(want) + ' · ' + anGamesN(total) : (base[2] === 'l' ? 'игроки Lichess 2000+' : 'база мастеров') + ' · ' + anGamesN(total) +
+      (want !== 'all' ? ' <span style="color:var(--fg-mute)">(у ' + masterName(want) + ' этой позиции нет)</span>' : '');
+    var rows = anRow('Ты', '<span style="color:' + S.c + '">' + anMoveNo(p) + esc(san) + ' ' + S.mark + '</span> — ' + S.txt) +
+      anRow('Играли', list.slice(0, 4).map(function(x) { return '<b>' + esc(x[0]) + '</b> ' + cnt(x); }).join(' · ')) +
+      anRow('Откуда', src);
+    out.push({p: p, at: p - 1, color: S.c, tint: S.t, san: san, short: st === 'top' ? 'как у мастеров' : 'мастера: ' + top, dot: st !== 'top',
+      title: '♟ ' + anMoveNo(p) + esc(san) + ' · <em>' + S.txt + '</em>', before: rows, after: rows,
+      arrows: st === 'top' ? anArrows(P, p, AN_COLORS.best) : anArrows(P, p, S.c, top),
+      ms: {st: st, top: top, topN: cnt(list[0]), src: own ? masterName(want) : base[2] === 'l' ? 'игроки 2000+' : 'мастера'}});
+  });
+  return out;
+}
 var AN_LENSES = [
   {k: 'bl',   label: 'Зевки',    hint: 'твои зевки: красная стрелка — сыграно, зелёная — лучше', moments: anBlunderMoments},
   {k: 'mate', label: 'Мат в N',  hint: 'где у тебя был форсированный мат: довёл ✓ или упустил ✗',  moments: anMateMoments},
   {k: 'cap',  label: 'Взятия',   hint: 'твои взятия: выигрыш, размен, отыгрыш или невыгодно',      moments: anCaptureMoments},
+  {k: 'ms',   label: 'Мастера',  hint: 'твои ходы против ходов мастеров, первые 15: ✓ как чаще всего, ~ встречалось, ✗ так не играли', moments: anMasterMoments, wide: true},
   {k: 'all',  label: 'Все ходы', hint: 'без выделения — просто листай ходы',                        moments: function() { return []; }}
 ];
 function anLens() { return AN_LENSES.filter(function(L) { return L.k === an.lens; })[0] || AN_LENSES[0]; }
 // моменты текущей партии для текущей линзы (кэш)
 var anMomCache = {key: null, list: []};
 function anMoments(g, P) {
-  var key = g.id + '|' + an.lens;
+  var key = g.id + '|' + an.lens + '|' + (an.lens === 'ms' ? anMasterPicked(g) : '');
   if (anMomCache.key !== key) anMomCache = {key: key, list: anLens().moments(g, P)};
   return anMomCache.list;
 }
@@ -4559,8 +4607,31 @@ function anInfoHtml(g, P, v) {
     '<div class="an-info-s">' + (mine ? 'твой ход' : 'ход соперника') +
       (typeof ev === 'number' ? ' · перевес <b>' + evText(ev) + '</b>' + (ev ? (ev > 0 ? ' у тебя' : ' у соперника') : '') : '') + '</div></div>';
 }
+// «Мастера»: таблица «ты / мастера / соперник» (за чёрных — «соперник / ты / мастера»); мои ходы с ✓ ~ ✗, в «Мастерах» — самый частый ход
+function anMasterTable(g, P, v, moments) {
+  var byP = {}, white = g.color === 'white';
+  moments.forEach(function(m) { byP[m.p] = m; });
+  var out = ['<span class="an-th"></span>'].concat((white ? ['Ты', 'Мастера', 'Соперник'] : ['Соперник', 'Ты', 'Мастера']).map(function(h) { return '<span class="an-th">' + h + '</span>'; }));
+  function mv(p) {
+    if (p > P.n) return '<span></span>';
+    var m = byP[p], cls = 'an-mv' + (anMine(g, p) ? ' me' : '') + (m ? ' mk2' : '') + (p === an.ply ? ' on' : '') + (v.at && p === v.at.p ? ' next' : '');
+    return '<button class="' + cls + '" data-p="' + p + '"' + (m ? ' style="--c:' + m.color + '"' : '') + '>' + esc(P.moves[p - 1].san) + (m ? ' ' + AN_MS[m.ms.st].mark : '') + '</button>';
+  }
+  function mc(p) {
+    var m = byP[p];
+    if (!m) return '<span class="an-mc-empty"></span>';
+    return '<button class="an-mc' + (an.ply === m.at || an.ply === m.p ? ' on' : '') + '" data-p="' + m.at + '" title="' + esc(m.ms.src + ': чаще всего ' + m.ms.top) + '">' +
+      esc(m.ms.top) + ' <small>' + m.ms.topN + '</small></button>';
+  }
+  for (var p = 1; p <= P.n; p += 2) {
+    var no = '<span class="an-no">' + (p + 1) / 2 + '.</span>';
+    out.push(white ? no + mv(p) + mc(p) + mv(p + 1) : no + mv(p) + mv(p + 1) + mc(p + 1));
+  }
+  return out.join('');
+}
 // запись партии парами «1. e4 c6»; моменты — цветом, текущий ход подсвечен, ход момента впереди — пунктиром
 function anMovesHtml(g, P, v, moments) {
+  if (an.lens === 'ms') return anMasterTable(g, P, v, moments);
   var at = {}, out = [];
   moments.forEach(function(m) { at[m.p] = m; });
   function mv(p) {
@@ -4578,14 +4649,21 @@ function anMovesCol(g, P, v, moments) {
       '<div class="win-menu">' + AN_LENSES.map(function(x) {
         var fr = anFresh(g), bang = fr && fr[x.k] ? anBang('В этой партии (последние сутки) есть ' + (x.k === 'bl' ? 'зевки' : 'мат')) : '';
         return '<button class="win-opt' + (x.k === L.k ? ' on' : '') + '" data-lens="' + x.k + '" title="' + esc(x.hint) + '">' + x.label + bang + '</button>';
-      }).join('') + '</div></span></div>' +
-    anInfoHtml(g, P, v) + '<div class="an-mvs">' + anMovesHtml(g, P, v, moments) + '</div>' +
+      }).join('') + '</div></span>' + (L.k === 'ms' ? anMasterPick(g) : '') + '</div>' +
+    anInfoHtml(g, P, v) + '<div class="an-mvs' + (L.k === 'ms' ? ' ms-t ms-' + (g.color === 'white' ? 'w' : 'b') : '') + '">' + anMovesHtml(g, P, v, moments) + '</div>' +
     '<div class="an-nav">' +
       '<button data-nav="first" title="В начало (Home)"' + (ply ? '' : ' disabled') + '>⏮</button>' +
       '<button data-nav="prev" title="Назад (←)"' + (ply ? '' : ' disabled') + '>◀</button>' +
       '<button data-nav="next" title="Вперёд (→)"' + (ply < P.n ? '' : ' disabled') + '>▶</button>' +
       '<button data-nav="last" title="В конец (End)"' + (ply < P.n ? '' : ' disabled') + '>⏭</button>' +
       '<span>' + (ply ? 'ход ' + Math.ceil(ply / 2) + ' из ' + Math.ceil(P.n / 2) : 'начало') + '</span></div></div>';
+}
+// выбор мастера во вкладке «Мастера»: «Все мастера» (база Lichess) или мастер из студий дебюта этой партии
+function anMasterPick(g) {
+  var cur = anMasterPicked(g), opts = [['all', 'Все мастера']].concat(anMasters(g).map(function(m) { return [m, masterName(m)]; }));
+  return '<span class="win-pick an-pick an-mpick"><button class="win-toggle" title="Чьи ходы сравнивать: мастер из твоих студий (plan.js) или вся база мастеров Lichess">' +
+    (cur === 'all' ? 'Все мастера' : masterName(cur)) + '<span class="caret">▾</span></button><div class="win-menu">' +
+    opts.map(function(o) { return '<button class="win-opt' + (o[0] === cur ? ' on' : '') + '" data-master="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div></span>';
 }
 // моменты текущей линзы: ход и короткая подпись; клик — позиция перед ходом
 function anMomentsCol(moments) {
@@ -4599,9 +4677,12 @@ function anMomentsCol(moments) {
 
 /* --- отрисовка --- */
 // весь режим: список, ходы, моменты, доска, график (смена партии, линзы, фильтра графика, скрытия)
+// моменты, отмеченные точками на графике и листаемые ↑ ↓ (у «Мастеров» — только отходы, совпадения без точек)
+function anMarked(moments) { return moments.filter(function(m) { return m.dot !== false; }); }
 function renderAnalysis() {
   var box = $('anBox');
   if (chartMode !== 'analysis') return;
+  box.classList.toggle('an-wide', !!anLens().wide);   // «Мастера»: без колонки «Моменты», запись ходов — на её месте
   if (hush.chart) {   // график скрыт своим глазом (в скрытом режиме у аватарки «Анализ» недоступен — см. applyHush)
     box.innerHTML = '<div class="an-list"><div class="an-head">Партии</div><div class="an-list-in"><div class="an-empty">нет данных</div></div></div><div class="an-lock">нет данных</div>';
     return;
@@ -4610,9 +4691,9 @@ function renderAnalysis() {
   var list = anList(), g = anGame();
   if (!g || list.indexOf(g) < 0) { g = list[0] || null; if (g) anSetGame(g); }
   if (!g) { box.innerHTML = '<div class="an-list">' + anListHtml(list, null) + '</div><div class="an-lock">Партий для разбора нет</div>'; return; }
-  var P = anPositions(g), moments = anMoments(g, P);
-  if (an.ply === null) an.ply = moments.length ? moments[0].at : 0;
-  var dots = moments.map(function(m) { return {p: m.p, color: m.color, title: anMoveNo(m.p) + m.san + ' — ' + m.short}; });
+  var P = anPositions(g), moments = anMoments(g, P), marked = anMarked(moments);
+  if (an.ply === null) an.ply = marked.length ? marked[0].at : moments.length ? moments[0].at : 0;
+  var dots = marked.map(function(m) { return {p: m.p, color: m.color, title: anMoveNo(m.p) + m.san + ' — ' + m.short}; });
   box.innerHTML = '<div class="an-list">' + anListHtml(list, g) + '</div><div class="an-moves"></div><div class="an-mom"></div><div class="an-board"></div>' +
     '<div class="an-graph">' + (evalGraph(g, 'an', dots) || '<div class="an-empty">Графика перевеса нет — у партии нет компьютерного анализа</div>') + '</div>';
   anUpdate();
@@ -4655,7 +4736,7 @@ function anGo(ply) { if (anGame()) { an.ply = ply; anUpdate(); } }
 function anStep(dir) {
   var g = anGame();
   if (!g) return;
-  var ps = anMoments(g, anPositions(g)).map(function(m) { return m.at; });
+  var ps = anMarked(anMoments(g, anPositions(g))).map(function(m) { return m.at; });
   if (!ps.length) { anGo(an.ply + dir); return; }
   var t = dir > 0 ? ps.filter(function(p) { return p > an.ply; })[0] : ps.filter(function(p) { return p < an.ply; }).pop();
   if (t !== undefined) anGo(t);
@@ -4664,7 +4745,12 @@ function anSetLens(k) {
   an.lens = k;
   try { localStorage.setItem('anLens', k); } catch (e) {}
   var g = anGame();
-  if (g && window.Chess) { var ms = anMoments(g, anPositions(g)); if (ms.length) an.ply = ms[0].at; }
+  if (g && window.Chess) { var ms = anMoments(g, anPositions(g)), mk = anMarked(ms); if (ms.length) an.ply = (mk[0] || ms[0]).at; }
+  renderAnalysis();
+}
+function anSetMaster(k) {
+  an.master = k;
+  try { localStorage.setItem('anMaster', k); } catch (e) {}
   renderAnalysis();
 }
 // открыть партию в анализе (клик по зевку в отчёте о матче); если её прячет фильтр графика — фильтр снимается
@@ -4678,16 +4764,17 @@ function anOpen(g, ply, lens) {
   if (was) renderAnalysis();
 }
 $('anBox').addEventListener('click', function(e) {
-  var t = e.target.closest('.an-pick .win-toggle, [data-lens], .an-g, .an-m, .an-mv, [data-nav], .an-graph svg');
+  var t = e.target.closest('.an-pick .win-toggle, [data-lens], [data-master], .an-g, .an-m, .an-mv, .an-mc, [data-nav], .an-graph svg');
   if (!t) return;
   if (t.classList.contains('win-toggle')) { e.stopPropagation(); t.parentNode.classList.toggle('open'); return; }   // выпадающий список линз
   if (t.hasAttribute('data-lens')) { e.stopPropagation(); anSetLens(t.getAttribute('data-lens')); return; }
+  if (t.hasAttribute('data-master')) { e.stopPropagation(); anSetMaster(t.getAttribute('data-master')); return; }
   var g = anGame();
   if (t.classList.contains('an-g')) {
     var ng = games.filter(function(x) { return x.id === t.getAttribute('data-id'); })[0];
     if (ng && ng.id !== an.gid) { anSetGame(ng); renderAnalysis(); }
   } else if (t.classList.contains('an-m')) anGo(anMomCache.list[+t.getAttribute('data-i')].at);
-  else if (t.classList.contains('an-mv')) anGo(+t.getAttribute('data-p'));
+  else if (t.classList.contains('an-mv') || t.classList.contains('an-mc')) anGo(+t.getAttribute('data-p'));
   else if (t.hasAttribute('data-nav')) {
     var k = t.getAttribute('data-nav');
     anGo(k === 'first' ? 0 : k === 'last' ? Infinity : an.ply + (k === 'next' ? 1 : -1));
@@ -4695,7 +4782,7 @@ $('anBox').addEventListener('click', function(e) {
     var r = t.getBoundingClientRect(), n = g.ev.length - 1;
     var p = Math.max(0, Math.min(n, Math.round((e.clientX - r.left) / r.width * n)));
     var near = null, tol = Math.max(1, Math.round(n * 0.015));
-    anMoments(g, anPositions(g)).forEach(function(m) { if (Math.abs(m.p - p) <= tol && (!near || Math.abs(m.p - p) < Math.abs(near.p - p))) near = m; });
+    anMarked(anMoments(g, anPositions(g))).forEach(function(m) { if (Math.abs(m.p - p) <= tol && (!near || Math.abs(m.p - p) < Math.abs(near.p - p))) near = m; });
     anGo(near ? near.at : p);
   }
 });

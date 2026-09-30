@@ -42,10 +42,13 @@ window.PLAN = {
   //   color   — каким цветом играю ('white' | 'black')
   //   vs      — только для чёрных: на какой первый ход бота играю этот дебют ('e4' | 'd4' | 'c4' | 'Nf3')
   //   match   — как дебют называется у Lichess (часть названия) — для галочек в таблице и статистики
-  //   studies — студии Lichess (id — из адреса lichess.org/study/<id>, parts — число частей)
+  //   studies — студии Lichess (id — из адреса lichess.org/study/<id>, parts — число частей,
+  //             ids — id всех частей по порядку, первая = id; нужны, чтобы сверять ходы с мастером.
+  //             Студия должна быть открыта хотя бы по ссылке (Unlisted), иначе скрипт её не скачает)
   openings: [
     {id: 'italian',  name: 'Итальянская',  color: 'white', match: ['Italian Game'],
-     studies: [{master: 'Carlsen', id: 'nhubKmIC', parts: 2}, {master: 'So', id: 'N67BQubO', parts: 3}]},
+     studies: [{master: 'Carlsen', id: 'nhubKmIC', parts: 2, ids: ['nhubKmIC', 'kW7SBd3P']},
+               {master: 'So', id: 'N67BQubO', parts: 3, ids: ['N67BQubO', 'KOi3OHVa', 'ihEjjoGE']}]},
     {id: 'sicilian', name: 'Сицилианская', color: 'black', vs: 'e4', match: ['Sicilian Defense'],
      studies: [{master: 'Carlsen', id: 'dax8pRRF', parts: 7}]},
     {id: 'slav',     name: 'Славянская',   color: 'black', vs: 'd4', match: ['Slav Defense'],

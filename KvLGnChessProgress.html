@@ -5557,6 +5557,7 @@ var AI_PROMPT = {
       'Не удаляй и не переставляй прошедшие этапы (новые — только после текущего). id дебютов — латиница, уникальные.',
       'Лимиты: stages[].name ≤ 50 символов, openings[].name ≤ 22, studies[].master ≤ 12. match — точная часть английского названия у Lichess.',
       'Не выдумывай id студий Lichess — если не знаешь, оставь studies: [] и скажи, что студию нужно найти.',
+      'Если у студии есть ids (id всех частей, первая = id) — сохрани список как есть: по нему сайт сверяет ходы с мастером.',
       'Правило rule меняй только по просьбе или если цифры явно показывают, что оно недостижимо/слишком лёгкое, — объясни на цифрах.'
     ]
   },
@@ -5581,7 +5582,7 @@ var AI_PROMPT = {
       'Answer: return the WHOLE new data/plan.js in one code block (keep comments), then 2–4 lines: what changed and why.',
       'Never delete or reorder completed stages (add new ones after the current). Opening ids: unique, Latin. Names stay in Russian.',
       'Limits: stages[].name ≤ 50 chars, openings[].name ≤ 22, studies[].master ≤ 12. match = exact part of the Lichess English name.',
-      'Never invent Lichess study ids — if unknown, use studies: [] and say a study is needed. Change rule only on request or when numbers clearly demand it.'
+      'Never invent Lichess study ids — if unknown, use studies: [] and say a study is needed. Keep ids (all study parts, first = id) as they are. Change rule only on request or when numbers clearly demand it.'
     ]
   }
 };
@@ -5851,7 +5852,7 @@ function humanTextInner(ask, isPlan, dataKey) {
        '   – do not delete or reorder completed stages' + (done.length ? ' (done: ' + done.map(function(d) { return 'stage ' + (d.idx + 1); }).join(', ') + ')' : '') + '; add new stages only after the current one;'),
     AL('   – engine — число 1–8 (уровень Stockfish), colors — [\'white\'], [\'black\'] или оба, openings — id дебютов из списка openings;', '   – engine is a number 1–8 (Stockfish level), colors is [\'white\'], [\'black\'] or both, openings are ids from the openings list;'),
     AL('   – id дебюта — латиница без пробелов, уникальный; match — английское название дебюта как на Lichess (например \'Italian Game\');', '   – opening id: Latin, no spaces, unique; match: English opening name as on Lichess (e.g. \'Italian Game\');'),
-    AL('   – для чёрных vs — первый ход бота, на который играется дебют (\'e4\' или \'d4\'); студии — id из адреса lichess.org/study/<id> (8 символов);', '   – for black, vs is the bot\'s first move the opening answers (\'e4\' or \'d4\'); studies: id from lichess.org/study/<id> (8 chars);'),
+    AL('   – для чёрных vs — первый ход бота, на который играется дебют (\'e4\' или \'d4\'); студии — id из адреса lichess.org/study/<id> (8 символов), ids — id всех частей (первая = id), студия открыта хотя бы по ссылке;', '   – for black, vs is the bot\'s first move the opening answers (\'e4\' or \'d4\'); studies: id from lichess.org/study/<id> (8 chars), ids — all parts (first = id), study must be at least unlisted;'),
     AL('   – длина: название этапа ≤ ' + STAGES.LIMITS.stageName + ' символов, дебюта ≤ ' + STAGES.LIMITS.openingName + ', имя мастера ≤ ' + STAGES.LIMITS.master + '. Названия пишутся по-русски.', '   – length: stage name ≤ ' + STAGES.LIMITS.stageName + ' chars, opening ≤ ' + STAGES.LIMITS.openingName + ', master ≤ ' + STAGES.LIMITS.master + '. Names are written in Russian.'),
     AL('3. Внизу нажать «Commit changes» (в ветку main).', '3. Click "Commit changes" at the bottom (to the main branch).'),
     AL('4. Через ~1 минуту открыть ' + site + ' и проверить: «Итоги» → название этапа, карточка «Дебюты».', '4. After ~1 minute open ' + site + ' and check: «Итоги» → stage name, «Дебюты» card.'),

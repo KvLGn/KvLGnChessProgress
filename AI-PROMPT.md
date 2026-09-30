@@ -60,6 +60,7 @@ Russian first, English at the end — both say the same, use either.
 5. `match` — точная часть английского названия дебюта у Lichess (например `'Italian Game'`, `'Sicilian Defense'`,
    `'Slav Defense'`). Студии: `id` — 8 символов из адреса `lichess.org/study/<id>`; не выдумывай id — если не знаешь,
    оставь `studies: []` и скажи, что студию нужно найти.
+   Если у студии есть `ids` (id всех частей, первая = `id`) — сохрани список как есть: по нему сайт сверяет ходы с мастером.
 6. Правило `rule` меняй только если человек просит или цифры в сводке явно показывают, что правило недостижимо /
    слишком лёгкое, — и объясни на цифрах.
 7. Если просят **совет** (а не изменение плана) — `plan.js` не возвращай. Дай 3 пункта, каждый — одно действие
@@ -124,6 +125,7 @@ Answer rules:
 4. Length limits: `stages[].name` ≤ **50** chars, `openings[].name` ≤ **22**, `studies[].master` ≤ **12**. Names are in Russian.
 5. `match` = exact part of the Lichess English opening name (`'Italian Game'`, `'Sicilian Defense'`, `'Slav Defense'`). Study `id` = 8 chars from
    `lichess.org/study/<id>`; never invent ids — if unknown, use `studies: []` and say a study is needed.
+   Keep `ids` (ids of all study parts, first = `id`) exactly as they are — the site compares moves with the master using them.
 6. Change `rule` only on request or when the summary numbers clearly show it is unreachable / too easy — explain with numbers.
 7. If asked for **advice** (not a plan change), don't return plan.js. Give 3 points: one action ≤ 90 chars + one "why" line citing a number from the summary. No generic phrases.
 8. Use only the summary data; if data is thin (< 5 games in a section), say so. When you cite a game, check its result and numbers against the data;

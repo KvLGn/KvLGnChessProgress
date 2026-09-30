@@ -814,7 +814,8 @@
   .ai-lang button { font: 600 11px Inter, sans-serif; color: var(--fg-mute); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
   .ai-lang button.on { color: #86efac; border-color: rgba(74,222,128,0.5); }
   .ai-note { font-size: 11px; color: var(--fg-dim); margin: 6px 0 8px; }
-  .ai-list { overflow-y: auto; min-height: 0; padding-right: 4px; }
+  .ai-list { overflow-y: auto; min-height: 0; padding-right: 4px; overscroll-behavior: contain; }
+  .ai-box, .ai-own textarea { overscroll-behavior: contain; }
   .ai-group { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #4ade80; margin: 10px 0 4px; }
   .ai-group.plan { color: #fbbf24; }
   .ai-item { display: flex; flex-direction: column; gap: 1px; width: 100%; text-align: left; background: none; border: none; border-radius: 8px; padding: 6px 8px; cursor: pointer; color: var(--fg); }
@@ -4669,6 +4670,15 @@ function renderAiMenu() {
 }
 function openAiMenu() { renderAiMenu(); $('aiMenu').classList.add('open'); }
 function closeAiMenu() { $('aiMenu').classList.remove('open'); }
+// курсор над окном — страница не прокручивается (список внутри крутится сам и не передаёт прокрутку странице); вне окна — страница крутится
+$('aiMenu').addEventListener('wheel', function(e) {
+  var box = e.target.closest('.ai-box');
+  if (!box) return;
+  var sc = e.target.closest('.ai-list, textarea');
+  if (!sc || sc.scrollHeight <= sc.clientHeight) { e.preventDefault(); return; }
+  var up = e.deltaY < 0, atTop = sc.scrollTop <= 0, atEnd = sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 1;
+  if ((up && atTop) || (!up && atEnd)) e.preventDefault();
+}, {passive: false});
 $('aiMenu').addEventListener('input', function(e) { if (e.target.id === 'aiOwn') e.target.classList.remove('sent'); });
 $('aiMenu').addEventListener('click', function(e) {
   e.stopPropagation();

@@ -52,6 +52,7 @@ const dayFmt = new Intl.DateTimeFormat('ru-RU', { timeZone: TZ, year: 'numeric',
 const stampFmt = new Intl.DateTimeFormat('ru-RU', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 // игровой день: сдвигаем на DAY_CUTOFF_HOUR назад и берём дату по Москве
+const timeFmt = new Intl.DateTimeFormat('ru-RU', { timeZone: TZ, hour: '2-digit', minute: '2-digit' });
 function gameDay(ts) {
   const [d, m, y] = dayFmt.format(new Date(ts - DAY_CUTOFF_HOUR * 3600e3)).split('.');
   return { date: `${d}.${m}`, day: `${y}-${m}-${d}` };
@@ -111,6 +112,18 @@ function convert(g) {
   if (typeof me.ratingDiff === 'number') out.ir = me.ratingDiff;
   // зевки по типам: {m: ход, s: сыгранный, t: тип, p: фаза, b: лучший, x: фигура, q: поле, d: потеря в пешках}
   if (g.analysis) out.bl = classifyBlunders(Chess, g, meColor, g.division);
+  // для «отчёта о матче»: начало (МСК), длительность, чем закончилась, границы фаз, перевес по ходам
+  out.start = timeFmt.format(new Date(g.createdAt));
+  if (g.lastMoveAt) out.dur = Math.round((g.lastMoveAt - g.createdAt) / 1000);
+  out.how = g.status;
+  out.plies = plies;
+  if (g.division) out.div = { mid: g.division.middle || null, end: g.division.end || null };
+  if (g.analysis) {
+    const sign = meColor === 'white' ? 1 : -1;
+    // перевес с моей стороны после каждого полухода, в десятых пешки, мат = ±100, обрезано до ±100
+    out.ev = [2].concat(g.analysis.map((e) => typeof e.mate === 'number' ? sign * Math.sign(e.mate) * 100
+      : Math.max(-100, Math.min(100, Math.round(sign * (e.eval || 0) / 10)))));
+  }
   return out;
 }
 

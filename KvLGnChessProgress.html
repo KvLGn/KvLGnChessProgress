@@ -1246,6 +1246,54 @@
   .detail-label { color: var(--fg-dim); }
   .detail-value { font-weight: 600; font-size: 13px; }
   .detail-d { font-size: 10.5px; color: var(--fg-dim); }
+  /* отчёт о матче */
+  .detail-inner.mr { display: block; padding: 14px 20px 12px 42px; }
+  .mr-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .mr-res { font: 800 13px Inter, sans-serif; letter-spacing: 2px; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+    background: color-mix(in srgb, var(--c) 12%, transparent); border-radius: 8px; padding: 6px 12px; white-space: nowrap; }
+  .mr-sub { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; font-size: 12px; color: var(--fg-dim); }
+  .mr-sub b { color: var(--fg); font-size: 13px; }
+  .mr-stats { display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: center; margin-bottom: 12px; }
+  .mr-acc { display: flex; flex-direction: column; }
+  .mr-acc span { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--fg-dim); }
+  .mr-acc b { font-size: 30px; line-height: 1.1; color: var(--fg-num); }
+  .mr-acc b small { font-size: 15px; color: var(--fg-dim); }
+  .mr-phs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .mr-ph-top { display: flex; align-items: baseline; gap: 6px; font-size: 12px; margin-bottom: 5px; white-space: nowrap; }
+  .mr-ph-top b { color: var(--fg); font-size: 14px; }
+  .mr-ph-bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,0.07); overflow: hidden; }
+  .mr-ph-bar i { display: block; height: 100%; border-radius: 3px; opacity: 0.85; }
+  .mr-cnts { display: flex; gap: 16px; }
+  .mr-cnt { display: flex; flex-direction: column; align-items: center; min-width: 44px; }
+  .mr-cnt b { font-size: 20px; line-height: 1.1; }
+  .mr-cnt span { font-size: 10px; color: var(--fg-dim); }
+  .mr-graph { position: relative; margin-bottom: 6px; }
+  .mr-graph-h { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 4px; }
+  .mr-leg { text-transform: none; letter-spacing: 0; display: flex; align-items: center; gap: 5px; }
+  .mr-leg i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .mr-leg i.up { background: rgba(74,222,128,0.5); } .mr-leg i.dn { background: rgba(248,113,113,0.5); margin-left: 6px; }
+  .mr-graph svg { width: 100%; height: 110px; display: block; border-radius: 8px; background: rgba(0,0,0,0.2); }
+  .mr-graph svg circle { cursor: help; }
+  .mr-z { font: 600 11px Inter, sans-serif; fill: rgba(255,255,255,0.35); }
+  .mr-ticks { position: relative; height: 14px; font-size: 10px; color: var(--fg-mute); }
+  .mr-ticks span { position: absolute; transform: translateX(-50%); top: 2px; }
+  .mr-bl { display: none; margin: 6px 0 4px; border-top: 1px solid var(--border); padding-top: 6px; }
+  .mr.bl-open .mr-bl { display: block; }
+  .mr-bl-row { display: grid; grid-template-columns: 10px 58px 64px 1fr 110px 50px 100px; align-items: center; gap: 8px; font-size: 12px; padding: 3px 0; color: var(--fg-dim); }
+  .mr-bl-row i { width: 8px; height: 8px; border-radius: 50%; }
+  .mr-bl-row b { color: var(--fg); }
+  .mr-bl-t { font-weight: 600; }
+  .mr-bl-d { color: var(--red); text-align: right; }
+  .mr .detail-links { display: flex; justify-content: flex-end; }
+  @media (max-width: 700px) {
+    .detail-inner.mr { padding: 12px; position: sticky; left: 0; width: calc(100vw - 34px); box-sizing: border-box; }   /* таблица шире экрана и крутится вбок — отчёт остаётся в видимой части */
+    .mr-phs { grid-template-columns: 1fr; gap: 10px; }
+    .mr-z { display: none; }
+    .mr-head { flex-wrap: wrap; }
+    .mr-stats { grid-template-columns: 1fr; gap: 12px; }
+    .mr-bl-row { grid-template-columns: 10px 50px 56px 1fr 60px; }
+    .mr-bl-b, .mr-bl-p { display: none; }
+  }
   .bl-row { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
   .bl-row .detail-label { font-size: 12px; margin-right: 2px; }
   .bl-chip { font-size: 11px; font-weight: 600; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
@@ -2423,6 +2471,90 @@ function blSummary(list) {
   list.forEach(function(b) { n[b.t] = (n[b.t] || 0) + 1; });
   return Object.keys(n).sort(function(x, y) { return n[y] - n[x]; }).map(function(t) { return BL_TYPES[t].ru.toLowerCase() + ' ' + n[t]; }).join(', ');
 }
+/* ---------- отчёт о матче (раскрытая строка таблицы) ---------- */
+var HOW_RU = {mate: 'мат', resign: 'сдача', outoftime: 'по времени', timeout: 'соперник покинул игру', stalemate: 'пат', draw: 'ничья', insufficientMaterialClaim: 'мало материала', variantEnd: 'конец партии', cheat: 'нарушение'};
+function howText(g) {
+  var mv = g.moves + '-м ходу';
+  if (g.result === 'draw') return (HOW_RU[g.how] || 'ничья') + ' на ' + mv;
+  var win = g.result === 'win';
+  if (g.how === 'mate') return (win ? 'мат' : 'получен мат') + ' на ' + mv;
+  if (g.how === 'resign') return (win ? 'соперник сдался' : 'сдача') + ' на ' + mv;
+  if (g.how === 'outoftime') return (win ? 'у соперника вышло время' : 'вышло время') + ' на ' + mv;
+  return (HOW_RU[g.how] || 'партия окончена') + ' на ' + mv;
+}
+function durText(sec) {
+  if (typeof sec !== 'number') return '—';
+  var m = Math.floor(sec / 60), h = Math.floor(m / 60);
+  return h ? h + ' ч ' + (m % 60) + ' мин' : m + ':' + ('0' + sec % 60).slice(-2);
+}
+function mrBar(label, v, color, delta) {
+  var has = typeof v === 'number';
+  return '<div class="mr-ph"><div class="mr-ph-top"><span style="color:' + color + '">' + label + '</span><b>' + (has ? v + '%' : '—') + '</b>' + (delta || '') + '</div>' +
+    '<div class="mr-ph-bar"><i style="width:' + (has ? v : 0) + '%;background:' + color + '"></i></div></div>';
+}
+function mrCount(label, v, color, delta) {
+  return '<div class="mr-cnt"><b style="color:' + color + '">' + v + '</b><span>' + label + '</span>' + (delta || '') + '</div>';
+}
+// график перевеса: фазы фоном, линия перевеса (выше нуля — лучше у меня), точки зевков по типам
+function evalGraph(g) {
+  if (!g.ev || g.ev.length < 3) return '';
+  var W = 1000, H = 120, mid = H / 2, cap = 50, n = g.ev.length - 1;
+  function x(p) { return (p / n * W).toFixed(1); }
+  function y(v) { return (mid - Math.max(-cap, Math.min(cap, v)) / cap * (mid - 8)).toFixed(1); }
+  var out = [];
+  var pm = g.div && g.div.mid ? Math.min(g.div.mid, n) : null, pe = g.div && g.div.end ? Math.min(g.div.end, n) : null;
+  [[0, pm || n, 'Дебют', 'rgba(96,165,250,0.07)'], [pm, pe || n, 'Миттельшпиль', 'rgba(245,158,11,0.07)'], [pe, n, 'Эндшпиль', 'rgba(167,139,250,0.08)']]
+    .forEach(function(z) {
+      if (z[0] === null || z[1] <= z[0]) return;
+      out.push('<rect x="' + x(z[0]) + '" y="0" width="' + (x(z[1]) - x(z[0])).toFixed(1) + '" height="' + H + '" fill="' + z[3] + '"/>');
+      if (x(z[1]) - x(z[0]) > 90) out.push('<text x="' + (+x(z[0]) + 8) + '" y="14" class="mr-z">' + z[2] + '</text>');
+    });
+  out.push('<line x1="0" y1="' + mid + '" x2="' + W + '" y2="' + mid + '" stroke="rgba(255,255,255,0.18)" stroke-dasharray="4,4"/>');
+  var pts = g.ev.map(function(v, i) { return x(i) + ',' + y(v); });
+  var id = 'mr' + g.id;
+  out.push('<defs><clipPath id="' + id + 'u"><rect x="0" y="0" width="' + W + '" height="' + mid + '"/></clipPath>' +
+    '<clipPath id="' + id + 'd"><rect x="0" y="' + mid + '" width="' + W + '" height="' + mid + '"/></clipPath></defs>');
+  var area = '0,' + mid + ' ' + pts.join(' ') + ' ' + W + ',' + mid;
+  out.push('<polygon points="' + area + '" fill="rgba(74,222,128,0.22)" clip-path="url(#' + id + 'u)"/>');
+  out.push('<polygon points="' + area + '" fill="rgba(248,113,113,0.22)" clip-path="url(#' + id + 'd)"/>');
+  out.push('<polyline points="' + pts.join(' ') + '" fill="none" stroke="#e4e4e7" stroke-width="1.6" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>');
+  (g.bl || []).forEach(function(b) {
+    var p = (b.m - 1) * 2 + (g.color === 'white' ? 1 : 2);
+    if (p > n) return;
+    out.push('<circle cx="' + x(p) + '" cy="' + y(g.ev[p]) + '" r="5.5" fill="' + BL_TYPES[b.t].color + '" stroke="#11131a" stroke-width="1.5"><title>' + esc(blLabel(b) + ' — ' + blTip(b)) + '</title></circle>');
+  });
+  var ticks = [];
+  for (var mv = 10; mv * 2 <= n; mv += 10) ticks.push('<span style="left:' + (mv * 2 / n * 100) + '%">' + mv + '</span>');
+  return '<div class="mr-graph"><div class="mr-graph-h"><span>Перевес по ходу партии</span><span class="mr-leg"><i class="up"></i>лучше у тебя <i class="dn"></i>у соперника</span></div>' +
+    '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + out.join('') + '</svg>' +
+    '<div class="mr-ticks">' + ticks.join('') + '</div></div>';
+}
+function matchReport(g) {
+  var R = RESULT[g.result];
+  var head = '<div class="mr-head">' +
+    '<div class="mr-res" style="--c:' + R.color + '">' + R.label.toUpperCase() + '</div>' +
+    '<div class="mr-sub"><b>' + howText(g) + '</b>' +
+      '<span>' + KNIGHT[g.color] + ' ' + COLOR_WORD[g.color] + ' vs ' + esc(g.engine) + '</span>' +
+      '<span>' + esc(g.date) + (g.start ? ', ' + g.start : '') + '</span>' +
+      '<span title="Длительность партии">⏱ ' + durText(g.dur) + '</span>' +
+      '<span>' + esc(g.opening) + '</span></div></div>';
+  var stats = '<div class="mr-stats">' +
+    '<div class="mr-acc"><span>Точность</span><b>' + g.acc + '<small>%</small></b>' + detailDelta(g, 'acc', true) + '</div>' +
+    '<div class="mr-phs">' + mrBar('Дебют', g.debut, '#60a5fa', detailDelta(g, 'debut', true)) + mrBar('Миттельшпиль', g.mid, '#f59e0b', detailDelta(g, 'mid', true)) +
+      mrBar('Эндшпиль', hasEnd(g) ? g.end : null, '#a78bfa', hasEnd(g) ? detailDelta(g, 'end', true) : '') + '</div>' +
+    '<div class="mr-cnts">' + mrCount('неточн.', g.inacc, 'var(--yellow)', detailDelta(g, 'inacc', false, true)) +
+      mrCount('ошибок', g.mistakes, '#fb923c', detailDelta(g, 'mistakes', false, true)) +
+      mrCount('зевков', g.blunders, 'var(--red)', detailDelta(g, 'blunders', false, true)) + '</div>' +
+  '</div>';
+  var list = g.bl && g.bl.length ? '<div class="mr-bl">' + g.bl.map(function(b) {
+    return '<div class="mr-bl-row"><i style="background:' + BL_TYPES[b.t].color + '"></i><span class="mr-bl-m">ход ' + b.m + '</span><b>' + esc(b.s) + '</b>' +
+      '<span class="mr-bl-t" style="color:' + BL_TYPES[b.t].color + '">' + esc(blLabel(b)) + '</span>' +
+      '<span class="mr-bl-b">' + (b.b ? 'лучше ' + esc(b.b) : '') + '</span>' +
+      '<span class="mr-bl-d">' + (typeof b.d === 'number' ? '−' + b.d : 'мат') + '</span>' +
+      '<span class="mr-bl-p">' + (b.p ? PHASE_RU[b.p] : '') + '</span></div>';
+  }).join('') + '</div>' : '';
+  return head + stats + evalGraph(g) + list;
+}
 function blChips(g) {
   if (!g.bl || !g.bl.length) return '';
   return '<div class="bl-row"><span class="detail-label">Зевки по типам</span>' + g.bl.map(function(b) {
@@ -3033,23 +3165,21 @@ function renderGames() {
 
     var detail = document.createElement('tr');
     detail.className = 'game-detail';
-    detail.innerHTML = '<td colspan="7"><div class="detail-inner">' +
-      detailItem('Ходы', g.moves) +
-      detailItem('Точность', g.acc + '%', null, detailDelta(g, 'acc', true)) +
-      detailItem('Дебют', g.debut + '%', '#60a5fa', detailDelta(g, 'debut', true)) +
-      detailItem('Миттельшпиль', g.mid + '%', '#f59e0b', detailDelta(g, 'mid', true)) +
-      detailItem('Эндшпиль', hasEnd(g) ? g.end + '%' : '—', null, hasEnd(g) ? detailDelta(g, 'end', true) : '') +
-      detailItem('Неточности', g.inacc, 'var(--yellow)', detailDelta(g, 'inacc', false, true)) +
-      detailItem('Ошибки', g.mistakes, '#fb923c', detailDelta(g, 'mistakes', false, true)) +
-      detailItem('Зевки', g.blunders, 'var(--red)', detailDelta(g, 'blunders', false, true)) +
-      blChips(g) +
+    detail.innerHTML = '<td colspan="7"><div class="detail-inner mr">' + matchReport(g) +
       '<span class="detail-links">' +
+      (g.bl && g.bl.length ? '<button class="detail-link mr-bl-btn" type="button">Список зевков (' + g.bl.length + ') ▾</button>' : '') +
       (chartReach(g) ? '<button class="detail-link detail-chart" type="button" title="Переключить на график и выделить колонку этой партии">Показать на графике</button>' : '') +
       (g.id ? '<a class="detail-link" href="https://lichess.org/' + g.id + '" target="_blank" rel="noopener">Партия на Lichess ↗</a>' : '') +
       '</span>' +
       '</div></td>';
 
     function toggle() { row.classList.toggle('open'); }
+    var blBtn = detail.querySelector('.mr-bl-btn');
+    if (blBtn) blBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var on = detail.querySelector('.mr').classList.toggle('bl-open');
+      blBtn.textContent = 'Список зевков (' + g.bl.length + ') ' + (on ? '▴' : '▾');
+    });
     var chBtn = detail.querySelector('.detail-chart');
     if (chBtn) chBtn.addEventListener('click', function(e) { e.stopPropagation(); showOnChart(g); });
     row.addEventListener('click', toggle);

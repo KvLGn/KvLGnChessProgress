@@ -797,7 +797,7 @@
   .gs-empty { font-size: 13px; color: var(--fg-mute); padding: 14px 10px; }
   /* подсветка найденного */
   .gs-flash { animation: gsFlash 1.4s ease; }
-  @keyframes gsFlash { 0%, 40% { box-shadow: 0 0 0 2px #818cf8, 0 0 24px rgba(129,140,248,0.45); } 100% { box-shadow: 0 0 0 0 transparent; } }
+  @keyframes gsFlash { 0%, 40% { box-shadow: inset 0 0 0 1px rgba(129,140,248,0.7); } 100% { box-shadow: inset 0 0 0 1px transparent; } }
 
   /* ---------- освежённый блок графика ---------- */
   .stat { position: relative; transition: background 0.15s; }
@@ -4148,7 +4148,7 @@ function gsIndex() {
   var nW = games.filter(function(g) { return g.result === 'win'; }).length;
   add('Ответы', '📊', 'Винрейт: ' + (wrAll === null ? '—' : wrAll + '%'),
     nW + 'W / ' + (nG - nW) + 'L' + (wrTr !== null ? ' · ' + (wrTr >= 0 ? '▲ +' : '▼ −') + Math.abs(Math.round(wrTr)) + '% за ' + TREND_N + ' игр' : ''),
-    'винрейт процент побед статистика', function() { gsFlash($('wrBox')); });
+    'винрейт процент побед статистика', function() { gsFlash($('wrBox').closest('.profile-card')); });
   var P2 = window.PUZZLES, RG2 = window.RATING_GAMES || [];
   add('Ответы', '📈', 'Рейтинг: задачи ' + (P2 && P2.rating !== null ? P2.rating : '—') + ' · ELO ' + (RG2.length ? RG2[RG2.length - 1].after : '?'),
     RG2.length ? 'по последней рейтинговой партии' : 'рейтинговых партий пока нет', 'рейтинг эло elo задачи', function() { gsFlash($('pzCard')); });
@@ -4444,7 +4444,13 @@ $('gsInput').addEventListener('keydown', function(e) {
 });
 $('gs').addEventListener('mousedown', function(e) {
   var b = e.target.closest('.gs-item');
-  if (b) { e.preventDefault(); gsRun(+b.getAttribute('data-i')); }
+  if (!b) return;
+  e.preventDefault();
+  // клик, который завершит это нажатие, не должен считаться «кликом мимо» и закрывать только что открытую панель
+  function swallow(ev) { ev.stopPropagation(); document.removeEventListener('click', swallow, true); }
+  document.addEventListener('click', swallow, true);
+  setTimeout(function() { document.removeEventListener('click', swallow, true); }, 600);
+  gsRun(+b.getAttribute('data-i'));
 });
 $('gs').addEventListener('click', function(e) { e.stopPropagation(); });
 document.addEventListener('click', gsClose);

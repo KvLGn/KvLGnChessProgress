@@ -7,13 +7,11 @@ Russian first, English at the end — both say the same, use either.
 
 ## 🇷🇺 Как пользоваться (для человека)
 
-1. На сайте https://kvlgn.github.io/KvLGnChessProgress/ открой **«Итоги»** → кнопка **«📋 Сводка для ИИ»**
-   (или поиск → «Скопировать сводку для ИИ»). Текущая картина скопируется в буфер.
-2. Открой любую нейросеть и вставь по порядку:
-   - весь блок **«ПРОМПТ»** ниже (от строки «ПРОМПТ — начало» до «ПРОМПТ — конец»);
-   - сводку с сайта;
-   - свою просьбу, например: «добавь этап против Stockfish 6», «поменяй Славянскую на Каро-Канн»,
-     «пора ли смягчить правило перехода?», «дай совет, над чем работать на этой неделе».
+1. **Проще всего:** на сайте https://kvlgn.github.io/KvLGnChessProgress/ открой **«Итоги»** → **«📋 Запрос для ИИ»**
+   (или поиск → «Запрос для ИИ») и нажми нужную просьбу — скопируется всё сразу (промпт + сводка + просьба,
+   для правки плана ещё и полный plan.js). Вставь в любую нейросеть и отправь. Этот файл тогда не нужен.
+2. **Если сайт недоступен:** вставь в нейросеть блок **«ПРОМПТ»** ниже, затем цифры (что знаешь) и свою просьбу,
+   например: «добавь этап против Stockfish 6», «поменяй Славянскую на Каро-Канн», «дай совет на эту неделю».
 3. Если нейросеть вернула новый `data/plan.js` — открой https://github.com/KvLGn/KvLGnChessProgress/blob/main/data/plan.js,
    нажми ✏️ (Edit), замени содержимое, **Commit changes**. Сайт обновится сам через ~1 минуту.
    С компьютера можно так же поправить файл `progress/data/plan.js` и запустить `update.bat`.
@@ -94,8 +92,8 @@ Russian first, English at the end — both say the same, use either.
 
 ## 🇬🇧 How to use (for a human)
 
-1. On the site open **«Итоги»** → button **«📋 Сводка для ИИ»** (or search → «Скопировать сводку для ИИ»). It copies the current state.
-2. In any AI chat paste: the **PROMPT** block below, then the summary, then your request.
+1. Easiest: on the site open **«Итоги»** → **«📋 Запрос для ИИ»** → click a request (EN switch at the top). Prompt + summary + request are copied at once — paste into any AI chat.
+2. If the site is down: paste the **PROMPT** block below, then whatever numbers you know, then your request.
 3. If the AI returns a new `data/plan.js`, edit https://github.com/KvLGn/KvLGnChessProgress/blob/main/data/plan.js (✏️ → paste → Commit). The site updates in ~1 min.
 4. If the site breaks — GitHub → the file → History → restore the previous version.
 

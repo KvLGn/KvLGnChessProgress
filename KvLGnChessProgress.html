@@ -796,6 +796,37 @@
   .vdx-head .vd-ai:hover { border-color: #4ade80; color: #bbf7d0; }
   .vdx-head .vd-ai + .vd-close { margin-left: 0; }
   .vdx-head .vd-close { margin-left: auto; }
+  .ai-menu { position: fixed; inset: 0; z-index: 90; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(5,6,10,0.6); }
+  .ai-menu.open { display: flex; }
+  .ai-menu { box-sizing: border-box; }
+  .ai-box { box-sizing: border-box; min-width: 0; }
+  .ai-head { flex-wrap: nowrap; min-width: 0; }
+  .ai-own-btns { flex-wrap: wrap; }
+  @media (max-width: 700px) { .ai-menu { padding: 8px; align-items: stretch; } .ai-box { width: 100%; max-height: none; padding: 12px; } .ai-own-btns button { flex: 1 1 auto; } }
+  .ai-box { width: 600px; max-width: 100%; max-height: 86vh; display: flex; flex-direction: column; background: linear-gradient(180deg, #14201a 0%, #111815 100%);
+    border: 1px solid rgba(74,222,128,0.3); border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.5); padding: 14px 16px 12px; }
+  .ai-head { display: flex; align-items: center; gap: 12px; }
+  .ai-head b { font-size: 14px; color: #bbf7d0; }
+  .ai-head .ai-close { position: static; margin: 0; }
+  .ai-item { line-height: 1.35; }
+  .ai-list { scrollbar-width: thin; scrollbar-color: rgba(74,222,128,0.3) transparent; }
+  .ai-lang { display: flex; gap: 4px; margin-left: auto; }
+  .ai-lang button { font: 600 11px Inter, sans-serif; color: var(--fg-mute); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+  .ai-lang button.on { color: #86efac; border-color: rgba(74,222,128,0.5); }
+  .ai-note { font-size: 11px; color: var(--fg-dim); margin: 6px 0 8px; }
+  .ai-list { overflow-y: auto; min-height: 0; padding-right: 4px; }
+  .ai-group { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #4ade80; margin: 10px 0 4px; }
+  .ai-group.plan { color: #fbbf24; }
+  .ai-item { display: flex; flex-direction: column; gap: 1px; width: 100%; text-align: left; background: none; border: none; border-radius: 8px; padding: 6px 8px; cursor: pointer; color: var(--fg); }
+  .ai-item:hover { background: rgba(255,255,255,0.05); }
+  .ai-item.done { background: rgba(74,222,128,0.12); }
+  .ai-t { font: 600 13px Inter, sans-serif; }
+  .ai-s { font: 11px Inter, sans-serif; color: var(--fg-dim); }
+  .ai-own { border-top: 1px solid rgba(74,222,128,0.18); margin-top: 8px; padding-top: 8px; }
+  .ai-own textarea { width: 100%; box-sizing: border-box; resize: vertical; font: 13px Inter, sans-serif; color: var(--fg); background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
+  .ai-own-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+  .ai-own-btns button { font: 600 11px Inter, sans-serif; color: #86efac; background: none; border: 1px solid rgba(74,222,128,0.35); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+  .ai-own-btns button[data-own="plan"] { color: #fcd34d; border-color: rgba(251,191,36,0.35); }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); z-index: 100; max-width: calc(100% - 32px);
     padding: 10px 16px; border-radius: 10px; background: #14201a; border: 1px solid rgba(74,222,128,0.4); color: var(--fg); font-size: 13px;
     opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
@@ -1529,6 +1560,7 @@
 
 <div class="footer" id="footer"></div>
 
+<div class="ai-menu" id="aiMenu"></div>
 <script src="data/games.js"></script>
 <script src="data/puzzles.js"></script>
 <script src="data/plan.js"></script>
@@ -4348,7 +4380,7 @@ function renderVerdictDetail() {
   }
   $('vdDetail').innerHTML =
     '<div class="vdx-head"><span class="vdx-h">🎯 Итоги</span>' + stage +
-      '<button class="vd-ai" type="button" title="Скопировать текущую картину для другой нейросети (промпт — в AI-PROMPT.md)">📋 Сводка для ИИ</button>' +
+      '<button class="vd-ai" type="button" title="Готовые просьбы для любой нейросети: клик — копия промпта, сводки и просьбы">📋 Запрос для ИИ</button>' +
       '<button class="pzd-close vd-close" aria-label="Закрыть">×</button></div>' +
     '<div class="vdx-cols">' +
       col('bad', '▼ Что улучшить', 'var(--red)', 'Слабых мест не найдено') +
@@ -4491,8 +4523,6 @@ function aiSummary() {
     if (it.length) L.push(k[1] + ': ' + it.map(function(v) { return v.text; }).join('; '));
   });
   L.push('');
-  L.push('## Текущий data/plan.js (stages / openings / rule)');
-  L.push(JSON.stringify({start: PLAN.start, rule: PLAN.rule, stages: PLAN.stages, openings: (PLAN.openings || []).map(function(o) { return {id: o.id, name: o.name, color: o.color, vs: o.vs}; })}));
   return L.join('\n');
 }
 function copyText(t) {
@@ -4511,10 +4541,154 @@ function toast(msg) {
   el.textContent = msg; el.classList.add('show');
   clearTimeout(el._t); el._t = setTimeout(function() { el.classList.remove('show'); }, 3500);
 }
-function copySummary() {
-  copyText(aiSummary());
-  toast('Сводка скопирована — вставь в чат с ИИ вместе с промптом из AI-PROMPT.md');
+/* ---------- запрос для ИИ: окно со списком просьб; клик по пункту — копия «промпт + сводка + просьба» ---------- */
+// полный текст data/plan.js — для режима «Изменить план» (на сайте берётся файлом; открыто с диска — из памяти)
+var PLAN_SRC = null;
+try { fetch('data/plan.js', {cache: 'no-store'}).then(function(r) { return r.ok ? r.text() : null; }).then(function(t) { PLAN_SRC = t; }).catch(function() {}); } catch (e) {}
+function planSource() { return PLAN_SRC || '// (файл не прочитан — ниже содержимое window.PLAN)\nwindow.PLAN = ' + JSON.stringify(PLAN, null, 2) + ';'; }
+
+// промпты — те же, что в AI-PROMPT.md (при правке менять в обоих местах)
+var AI_PROMPT = {
+  ru: {
+    base: [
+      'Ты помогаешь шахматисту-новичку (ник на Lichess — KvLGn) расти в игре. У него личный сайт-дашборд, который сам забирает с Lichess',
+      'партии (с компьютерным анализом) и задачи и сам считает статистику и автоматические выводы. Ниже — сводка с этого сайта и просьба.',
+      'Правила: опирайся только на цифры из сводки и называй их; никаких общих фраз вроде «больше тренируйся»; давай конкретные действия',
+      '(что делать, сколько, как понять, что получилось); учитывай, что игрок новичок и играет против Stockfish; если данных мало — так и скажи.',
+      'Отвечай по-русски, коротко, списком.'
+    ],
+    plan: [
+      'Сейчас просьба — изменить план. План хранится в файле data/plan.js (полный текст — в конце). Как сайт его использует:',
+      '• текущий этап находится сам: этап выполнен, когда для каждого цвета из colors выполнено правило rule на партиях против Stockfish уровня',
+      '  engine, сыгранных после окончания предыдущего этапа; тогда автоматически начинается следующий;',
+      '• rule: последние blocks×games партий делятся на пятёрки; в каждой — побед ≥ wins, медиана точности ≥ medianAcc, каждая невыигранная',
+      '  партия «честная»: точность ≥ lossMinAcc и зевков ≤ lossMaxBlunders;',
+      '• статус дебюта считается сам: этап начался → «Изучаю» (изученные остаются там), этап позже → «Далее», без этапа → «В планах»;',
+      '• за чёрных дебют из плана определяется по первому ходу бота (vs: e4 | d4 | …), за белых — по названию Lichess (match).',
+      'Правила ответа: верни ЦЕЛИКОМ новый data/plan.js одним блоком кода (комментарии сохрани), затем 2–4 строки: что изменил и почему.',
+      'Не удаляй и не переставляй прошедшие этапы (новые — только после текущего). id дебютов — латиница, уникальные.',
+      'Лимиты: stages[].name ≤ 50 символов, openings[].name ≤ 22, studies[].master ≤ 12. match — точная часть английского названия у Lichess.',
+      'Не выдумывай id студий Lichess — если не знаешь, оставь studies: [] и скажи, что студию нужно найти.',
+      'Правило rule меняй только по просьбе или если цифры явно показывают, что оно недостижимо/слишком лёгкое, — объясни на цифрах.'
+    ]
+  },
+  en: {
+    base: [
+      'You help a beginner chess player (Lichess: KvLGn) improve. His dashboard automatically pulls games (with computer analysis) and puzzles',
+      'from Lichess and computes stats and automatic conclusions. Below: the site summary (in Russian) and a request.',
+      'Rules: rely only on the numbers in the summary and cite them; no generic phrases like "train more"; give concrete actions',
+      '(what, how much, how to know it worked); he is a beginner playing Stockfish; if data is thin, say so. Answer briefly, as a list.'
+    ],
+    plan: [
+      'The request is a PLAN CHANGE. The plan lives in data/plan.js (full text at the end). How the site uses it:',
+      '• the current stage is found automatically: a stage is done when rule holds for every colour in colors on games vs Stockfish level engine',
+      '  played after the previous stage ended; then the next stage starts;',
+      '• rule: the last blocks×games games split into fives; each five — wins ≥ wins, median accuracy ≥ medianAcc, every non-won game is',
+      '  "honest": accuracy ≥ lossMinAcc and blunders ≤ lossMaxBlunders;',
+      '• opening status is derived: stage started → «Изучаю» (studied ones stay), later stage → «Далее», no stage → «В планах»;',
+      '• for black the plan opening is detected by the bot\'s first move (vs: e4 | d4 | …), for white by the Lichess name (match).',
+      'Answer: return the WHOLE new data/plan.js in one code block (keep comments), then 2–4 lines: what changed and why.',
+      'Never delete or reorder completed stages (add new ones after the current). Opening ids: unique, Latin. Names stay in Russian.',
+      'Limits: stages[].name ≤ 50 chars, openings[].name ≤ 22, studies[].master ≤ 12. match = exact part of the Lichess English name.',
+      'Never invent Lichess study ids — if unknown, use studies: [] and say a study is needed. Change rule only on request or when numbers clearly demand it.'
+    ]
+  }
+};
+
+// что подставлять в просьбы: слабая фаза, слабые темы, дебют, бот этапа
+function aiCtx() {
+  var last = games.slice(-10), PH = [['debut', 'дебют', 'opening'], ['mid', 'миттельшпиль', 'middlegame'], ['end', 'эндшпиль', 'endgame']];
+  var ph = PH.map(function(p) { return {ru: p[1], en: p[2], v: avg(last, p[0])}; }).filter(function(x) { return x.v !== null; }).sort(function(a, b) { return a.v - b.v; })[0] || {ru: 'миттельшпиль', en: 'middlegame'};
+  var P = window.PUZZLES, th = [];
+  if (P && P.themeStats) th = Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k] && P.themeStats[k].nb >= PZ_MIN_THEME; })
+    .sort(function(a, b) { return P.themeStats[a].perf - P.themeStats[b].perf; }).slice(0, 3).map(function(k) { return (P.themeNames || {})[k] || PZ_NAMES[k] || k; });
+  var op = ((window.OPENINGS || {}).current || [])[0];
+  return {phase: ph, themes: th.join(', ') || '—', op: op ? op.name : 'мой дебют', opEn: op ? (op.match || [op.name])[0] : 'my opening',
+          engine: CUR.stage ? CUR.stage.engine : 5};
 }
+var AI_ASKS = [
+  {g: 'Разбор игры', gEn: 'Game review', items: [
+    {t: 'Главная слабость сейчас', ru: 'Что больше всего мешает мне выигрывать? Назови одну главную проблему и как её лечить.', en: 'What hurts my results most? Name one main problem and how to fix it.'},
+    {t: 'Разбор последних поражений', ru: 'Что общего у моих поражений: фаза, зевки, дебют? Что из этого исправить первым?', en: 'What do my losses have in common (phase, blunders, opening)? What to fix first?'},
+    {t: function(c) { return 'Почему слабый ' + c.phase.ru; }, ru: function(c) { return 'Почему у меня слабая фаза «' + c.phase.ru + '» и что именно тренировать?'; }, en: function(c) { return 'Why is my ' + c.phase.en + ' weak and what exactly should I train?'; }},
+    {t: 'Победы против поражений', ru: 'Чем мои выигранные партии отличаются от проигранных? Что повторять, чего избегать?', en: 'How do my wins differ from my losses? What to repeat, what to avoid?'}
+  ]},
+  {g: 'Тренировки', gEn: 'Training', items: [
+    {t: 'План на неделю', ru: 'Составь план тренировок на 7 дней по 30–60 минут: задачи, партии, дебют. По дням.', en: 'Make a 7-day training plan, 30–60 min a day: puzzles, games, opening. Day by day.'},
+    {t: 'Задачи под слабые темы', ru: function(c) { return 'Какие темы задач решать и сколько в день? Мои слабые темы: ' + c.themes + '.'; }, en: function(c) { return 'Which puzzle themes to solve and how many per day? My weak themes: ' + c.themes + '.'; }},
+    {t: 'Чек-лист перед партией', ru: 'Дай короткий чек-лист из 5 пунктов, который мне проходить перед каждой партией и во время неё.', en: 'Give a short 5-point checklist to go through before and during each game.'},
+    {t: 'Как разбирать свою партию', ru: 'Пошагово: как мне самому разбирать партию после игры с движком Lichess, чтобы был толк.', en: 'Step by step: how should I review my own game afterwards with the Lichess engine?'}
+  ]},
+  {g: 'Дебюты', gEn: 'Openings', items: [
+    {t: function(c) { return 'Что учить в дебюте «' + c.op + '»'; }, ru: function(c) { return 'Какие линии дебюта «' + c.op + '» мне важнее всего понять на моём уровне и в каком порядке?'; }, en: function(c) { return 'Which lines of the ' + c.opEn + ' matter most at my level, and in what order?'; }},
+    {t: 'Типичные планы после дебюта', ru: function(c) { return 'Главные идеи и планы в миттельшпиле после дебюта «' + c.op + '» — простыми словами, 5 пунктов.'; }, en: function(c) { return 'Main middlegame ideas and plans after the ' + c.opEn + ' — in simple words, 5 points.'; }}
+  ]},
+  {g: 'Прогресс', gEn: 'Progress', items: [
+    {t: 'Сколько до цели этапа', ru: 'Реально ли выполнить цель этапа за неделю при моих цифрах? Что ускорит?', en: 'Can I reach the stage goal within a week with my numbers? What would speed it up?'},
+    {t: 'Честная оценка прогресса', ru: 'Оцени мой прогресс с начала занятий: что стало лучше, что нет, на что обратить внимание.', en: 'Assess my progress since I started: what improved, what did not, what to watch.'}
+  ]},
+  {g: 'План (вернёт новый plan.js)', gEn: 'Plan (returns a new plan.js)', plan: true, items: [
+    {t: 'Пора ли менять правило перехода', ru: 'Не слишком ли жёсткое или мягкое правило перехода для моих цифр? Если нужно — поправь rule.', en: 'Is the stage transition rule too strict or too easy for my numbers? Adjust rule if needed.'},
+    {t: 'Добавить следующий этап', ru: function(c) { return 'Добавь следующий этап после последнего (например, оба цвета против Stockfish ' + (c.engine + 1) + ').'; }, en: function(c) { return 'Add the next stage after the last one (e.g. both colours vs Stockfish ' + (c.engine + 1) + ').'; }},
+    {t: 'Сменить или добавить дебют', ru: 'Помоги сменить или добавить дебют в план (я допишу какой): ', en: 'Help me change or add an opening in the plan (I will specify which): '},
+    {t: 'Пересобрать дорожную карту', ru: 'Предложи этапы после текущей дорожной карты с учётом моего темпа.', en: 'Propose stages after the current roadmap, considering my pace.'}
+  ]}
+];
+var aiLang = 'ru';
+try { if (localStorage.getItem('aiLang') === 'en') aiLang = 'en'; } catch (e) {}
+function aiText(ask, isPlan) {
+  var P = AI_PROMPT[aiLang], out = P.base.slice();
+  if (isPlan) out = out.concat([''], P.plan);
+  out.push('', aiLang === 'en' ? '=== SUMMARY FROM THE SITE ===' : '=== СВОДКА С САЙТА ===', aiSummary());
+  if (isPlan) out.push('', aiLang === 'en' ? '=== CURRENT data/plan.js ===' : '=== ТЕКУЩИЙ data/plan.js ===', planSource());
+  out.push('', aiLang === 'en' ? '=== REQUEST ===' : '=== ПРОСЬБА ===', ask);
+  return out.join('\n');
+}
+function renderAiMenu() {
+  var c = aiCtx();
+  function v(x) { return typeof x === 'function' ? x(c) : x; }
+  $('aiMenu').innerHTML = '<div class="ai-box" role="dialog" aria-label="Запрос для ИИ">' +
+    '<div class="ai-head"><b>📋 Запрос для ИИ</b>' +
+      '<span class="ai-lang"><button data-lang="ru" class="' + (aiLang === 'ru' ? 'on' : '') + '">RU</button><button data-lang="en" class="' + (aiLang === 'en' ? 'on' : '') + '">EN</button></span>' +
+      '<button class="pzd-close ai-close" aria-label="Закрыть">×</button></div>' +
+    '<div class="ai-note">Нажми на пункт — скопируется промпт + сводка + просьба. Вставь в любую нейросеть и отправь.</div>' +
+    '<div class="ai-list">' + AI_ASKS.map(function(G, gi) {
+      return '<div class="ai-group' + (G.plan ? ' plan' : '') + '">' + (aiLang === 'en' ? G.gEn : G.g) + '</div>' +
+        G.items.map(function(it, ii) {
+          return '<button class="ai-item" data-g="' + gi + '" data-i="' + ii + '"><span class="ai-t">' + esc(v(it.t)) + '</span><span class="ai-s">' + esc(v(it[aiLang])) + '</span></button>';
+        }).join('');
+    }).join('') + '</div>' +
+    '<div class="ai-own"><textarea id="aiOwn" rows="2" placeholder="' + (aiLang === 'en' ? 'Your own question…' : 'Свой вопрос…') + '"></textarea>' +
+      '<div class="ai-own-btns"><button data-own="advice">' + (aiLang === 'en' ? 'Copy · advice' : 'Скопировать · совет') + '</button>' +
+      '<button data-own="plan">' + (aiLang === 'en' ? 'Copy · change plan' : 'Скопировать · изменить план') + '</button></div></div>' +
+  '</div>';
+}
+function openAiMenu() { renderAiMenu(); $('aiMenu').classList.add('open'); }
+function closeAiMenu() { $('aiMenu').classList.remove('open'); }
+$('aiMenu').addEventListener('click', function(e) {
+  e.stopPropagation();
+  if (e.target === $('aiMenu') || e.target.closest('.ai-close')) { closeAiMenu(); return; }
+  var b = e.target.closest('[data-lang]');
+  if (b) { aiLang = b.getAttribute('data-lang'); try { localStorage.setItem('aiLang', aiLang); } catch (err) {} renderAiMenu(); return; }
+  var it = e.target.closest('.ai-item');
+  if (it) {
+    var G = AI_ASKS[+it.getAttribute('data-g')], I = G.items[+it.getAttribute('data-i')], c = aiCtx();
+    var ask = typeof I[aiLang] === 'function' ? I[aiLang](c) : I[aiLang];
+    copyText(aiText(ask, !!G.plan));
+    it.classList.add('done'); setTimeout(function() { it.classList.remove('done'); }, 1500);
+    toast((aiLang === 'en' ? 'Copied: ' : 'Скопировано: ') + (typeof I.t === 'function' ? I.t(c) : I.t) + (aiLang === 'en' ? ' — paste into any AI chat' : ' — вставь в чат с нейросетью'));
+    return;
+  }
+  var own = e.target.closest('[data-own]');
+  if (own) {
+    var q = $('aiOwn').value.trim();
+    if (!q) { $('aiOwn').focus(); return; }
+    copyText(aiText(q, own.getAttribute('data-own') === 'plan'));
+    toast(aiLang === 'en' ? 'Copied — paste into any AI chat' : 'Скопировано — вставь в чат с нейросетью');
+  }
+});
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && $('aiMenu').classList.contains('open')) closeAiMenu(); });
+function copySummary() { openAiMenu(); }
 
 /* ---------- глобальный поиск: разделы, партии, дебюты, темы задач, итоги ---------- */
 function gsNorm(t) { return String(t || '').toLowerCase().replace(/ё/g, 'е'); }
@@ -4849,7 +5023,7 @@ function gsIndex() {
   ext('Мой профиль на Lichess', 'lichess.org/@/KvLGn', 'профиль аккаунт', 'https://lichess.org/@/KvLGn');
 
   /* --- сервисные --- */
-  add('Сервис', '📋', 'Скопировать сводку для ИИ', 'этап, партии, дебюты, задачи, выводы — вставить в чат с нейросетью', 'сводка ии ai нейросеть chatgpt промпт копировать', copySummary);
+  add('Сервис', '📋', 'Запрос для ИИ', 'список готовых просьб: совет, план на неделю, разбор поражений, правка плана', 'сводка ии ai нейросеть chatgpt промпт копировать', copySummary);
   add('Сервис', '⟳', 'Как обновить данные', 'запусти progress/update.bat · обновлено: ' + (window.GAMES_UPDATED || '—'), 'обновить данные update bat', function() { gsFlash($('footer')); });
   add('Сервис', '↑', 'Наверх', 'к началу страницы', 'наверх начало вверх', function() { window.scrollTo({top: 0, behavior: 'smooth'}); });
   add('Сервис', '↓', 'К таблице партий', 'список партий и фильтры', 'таблица вниз партии', function() { gsFlash($('filters')); });
@@ -4897,7 +5071,7 @@ function gsIndex() {
 // к какой части страницы относится пункт поиска: что он показывает или открывает
 function gsSections(it) {
   var g = it.group, t = it.title;
-  if (t === 'Скопировать сводку для ИИ') return ['head', 'chart', 'table'];
+  if (t === 'Запрос для ИИ') return ['head', 'chart', 'table'];
   if (g === 'Разделы') {
     if (/^(Задачи|Дебюты|Итоги)$/.test(t)) return ['head'];
     if (t === 'Таблица партий') return ['table'];

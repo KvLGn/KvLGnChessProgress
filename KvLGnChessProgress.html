@@ -2752,7 +2752,8 @@ function renderActivity() {
   var colW = W / n;
   var dense = n > 20;
   var maxC = Math.max.apply(null, list.map(function(b) { return b.games.length; }));
-  var need = Math.max(maxC, 4);
+  // столбик не выше ~70% колонки: сверху всегда остаётся место, чтобы кликнуть по дню, а не по столбику
+  var need = Math.max(Math.round(maxC / 0.7), 4);   // столбик ≈ до 70% высоты
   var step = [1, 2, 5, 10, 20, 50].filter(function(st) { return Math.ceil(need / st) <= 5; })[0];
   var yMax = Math.ceil(need / step) * step;
   function colX(i) { return r2(X0 + i * colW); }
@@ -2804,20 +2805,20 @@ function renderActivity() {
     var lblColor = b.today ? '#eab308' : '#9ca3af';
     var op = b.future ? ' opacity="0.4"' : '';
     if (b.top) {
-      s.push('<text x="' + cx(i) + '" y="196" text-anchor="middle" font-size="10" font-weight="600" fill="' + lblColor + '"' + op + '>' + b.top + '</text>');
-      s.push('<text x="' + cx(i) + '" y="210" text-anchor="middle" font-size="9" fill="' + lblColor + '"' + op + '>' + b.bottom + '</text>');
+      s.push('<text x="' + cx(i) + '" y="200" text-anchor="middle" font-size="10" font-weight="600" fill="' + lblColor + '"' + op + '>' + b.top + '</text>');
+      s.push('<text x="' + cx(i) + '" y="214" text-anchor="middle" font-size="9" fill="' + lblColor + '"' + op + '>' + b.bottom + '</text>');
     } else {
-      s.push('<text x="' + cx(i) + '" y="198" text-anchor="middle" font-size="' + (dense ? 8 : 9) + '" fill="' + lblColor + '"' + op + '>' + b.bottom + '</text>');
+      s.push('<text x="' + cx(i) + '" y="202" text-anchor="middle" font-size="' + (dense ? 8 : 9) + '" fill="' + lblColor + '"' + op + '>' + b.bottom + '</text>');
     }
   });
   if (actSelCount()) list.forEach(function(b, i) {
-    if (aCmpMode && aCmpSet[i]) { s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="219" fill="rgba(52,211,153,0.08)" stroke="#34d399" stroke-opacity="0.8" stroke-width="1.2" rx="2"/>'); return; }
-    if (selDays[i]) s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="219" fill="rgba(255,255,255,0.04)" stroke="#e4e4e7" stroke-opacity="0.55" stroke-width="1.2" rx="2"/>');
-    else s.push('<rect x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="220" fill="#0d0f17" opacity="0.62"/>');
+    if (aCmpMode && aCmpSet[i]) { s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="226" fill="rgba(52,211,153,0.08)" stroke="#34d399" stroke-opacity="0.8" stroke-width="1.2" rx="2"/>'); return; }
+    if (selDays[i]) s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="226" fill="rgba(255,255,255,0.04)" stroke="#e4e4e7" stroke-opacity="0.55" stroke-width="1.2" rx="2"/>');
+    else s.push('<rect x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="227" fill="#0d0f17" opacity="0.62"/>');
   });
   // области наведения
   list.forEach(function(b, i) {
-    s.push('<rect class="hit" data-b="' + i + '" x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="200" fill="rgba(0,0,0,0)"/>');
+    s.push('<rect class="hit" data-b="' + i + '" x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="227" fill="rgba(0,0,0,0)"/>');
   });
   segs.forEach(function(g) {
     s.push('<rect class="hit seg" data-b="' + g.i + '" data-res="' + g.res + '" x="' + g.x + '" y="' + g.y + '" width="' + g.w + '" height="' + g.h + '" fill="rgba(0,0,0,0)"/>');

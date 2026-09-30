@@ -824,6 +824,7 @@
   .ai-s { font: 11px Inter, sans-serif; color: var(--fg-dim); }
   .ai-own { border-top: 1px solid rgba(74,222,128,0.18); margin-top: 8px; padding-top: 8px; }
   .ai-own textarea { width: 100%; box-sizing: border-box; resize: vertical; font: 13px Inter, sans-serif; color: var(--fg); background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
+  .ai-own textarea.sent::placeholder { color: #86efac; }
   .ai-own-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
   .ai-own-hint { flex: 1 1 200px; font-size: 11px; color: var(--fg-mute); }
   .ai-own-btns { display: flex; gap: 8px; justify-content: flex-end; }
@@ -4668,6 +4669,7 @@ function renderAiMenu() {
 }
 function openAiMenu() { renderAiMenu(); $('aiMenu').classList.add('open'); }
 function closeAiMenu() { $('aiMenu').classList.remove('open'); }
+$('aiMenu').addEventListener('input', function(e) { if (e.target.id === 'aiOwn') e.target.classList.remove('sent'); });
 $('aiMenu').addEventListener('click', function(e) {
   e.stopPropagation();
   if (e.target === $('aiMenu') || e.target.closest('.ai-close')) { closeAiMenu(); return; }
@@ -4687,6 +4689,9 @@ $('aiMenu').addEventListener('click', function(e) {
     var q = $('aiOwn').value.trim();
     if (!q) { $('aiOwn').focus(); return; }
     copyText(aiText(q, own.getAttribute('data-own') === 'plan'));
+    $('aiOwn').value = '';
+    $('aiOwn').placeholder = aiLang === 'en' ? 'Question copied ✓ — want to ask something else?' : 'Вопрос скопирован ✓ — хотите спросить что-то ещё?';
+    $('aiOwn').classList.add('sent');
     toast(aiLang === 'en' ? 'Copied — paste into any AI chat' : 'Скопировано — вставь в чат с нейросетью');
   }
 });

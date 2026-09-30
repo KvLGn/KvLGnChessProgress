@@ -897,7 +897,8 @@
   .records-on .act-range { display: none !important; }
   .day-range { display: flex; align-items: center; gap: 8px; }
   .day-range .pr-nav { font-size: 12px; }
-  .cmp-picking .day-range { visibility: hidden; }
+  .cmp-picking .day-range, .cmp-on .day-range { visibility: hidden; }
+  #winRangeTxt.past { cursor: pointer; }
   .act-range b { color: #f3f4f6; font-size: 13px; letter-spacing: 0.3px; }
   .act-range { padding: 0 4px !important; }
   .pr-nav { font: 16px/1 Inter, sans-serif; color: var(--fg-dim); background: none; border: none; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; }
@@ -1400,6 +1401,7 @@
     <button class="cmp-btn" id="cmpBtn" title="Сравнить выбранную партию с другими"></button>
     <div class="cmp-hint" id="cmpHint"></div>
     <div class="rec-scope" id="recScope"></div>
+    <div class="act-range day-range metrics-only" id="winRange" style="display:none"><button class="pr-nav" id="wrPrev" title="Предыдущие партии">‹</button>ПЕРИОД <b id="winRangeTxt"></b><button class="pr-nav" id="wrNext" title="Следующие партии">›</button></div>
     <div class="act-range day-range metrics-only" id="dayRange" style="display:none">ДЕНЬ <b id="dayRangeTxt"></b><button class="pr-nav" id="dayClose" title="Вернуть последние партии (Esc)">✕</button></div>
     <div class="act-range activity-only"><button class="pr-nav" id="prPrev" title="Предыдущий период">‹</button>ПЕРИОД <b id="actRange" title=""></b><button class="pr-nav" id="prNext" title="Следующий период">›</button></div>
     <button class="sect-eye" id="eyeChart" type="button" data-sec="chart"></button>
@@ -1738,7 +1740,16 @@ try {
 function windowGames() {
   if (hush.chart) return [];
   if (dayView) return cgAll.filter(inDayView);
-  return cgAll.slice(-avgWindow);
+  var end = winEnd();
+  return cgAll.slice(Math.max(0, end - avgWindow), end);
+}
+var winPage = 0;   // листание стрелками над графиком показателей
+function winEnd() { return Math.max(0, cgAll.length - winPage * avgWindow); }
+function winPages() { return Math.max(1, Math.ceil(cgAll.length / avgWindow)); }
+function shiftWin(d) {
+  winPage = Math.max(0, Math.min(winPages() - 1, winPage + d));
+  selCols = {}; cmpMode = null; cmpSet = {};
+  renderWindow();
 }
 // дни, выбранные в «Активности», при переходе в «Показатели» — график показывает все их партии (сколько бы ни было)
 var dayView = null;   // null | {ranges: [{from, to}], label}
@@ -1766,7 +1777,7 @@ function renderCmpBtn() {
   var show = !hush.chart && !showRecords && (base > 0 || mode);
   b.style.display = show ? '' : 'none';
   h.style.display = mode === 'pick' ? '' : 'none';
-  $('chartBox').classList.toggle('cmp-picking', !!mode && (act || !!dayView));   // в активности подсказка заменяет «Период»
+  $('chartBox').classList.toggle('cmp-picking', !!mode);   // в активности подсказка заменяет «Период»
   if (!show) return;
   if (!mode) b.textContent = 'Сравнить';
   else if (mode === 'pick') b.innerHTML = cnt ? 'Показать · ' + cnt + '<span class="cmp-x" title="Отменить сравнение (Esc)">✕</span>' : 'Отмена';
@@ -1858,7 +1869,7 @@ function winActualLabel() {
     return selCount() ? '<span class="sel-n">' + selCount() + '</span> из ' + n : n + ' ' + plural(n, 'игра', 'игры', 'игр') + ' дня';
   }
   if (selCount()) return '<span class="sel-n">' + selCount() + '</span> из ' + Math.min(avgWindow, cgAll.length);
-  var k = Math.min(avgWindow, cgAll.length);
+  var k = windowGames().length;
   return k < avgWindow ? k + ' из ' + avgWindow + LOCK : winLabel(avgWindow);
 }
 
@@ -1888,7 +1899,7 @@ $('winPick').addEventListener('click', function(e) {
   var opt = e.target.closest('.win-opt');
   if (opt) {
     avgWindow = +opt.getAttribute('data-w');
-    dayView = null;
+    dayView = null; winPage = 0;
     selCols = {}; cmpMode = null; cmpSet = {};
     try { localStorage.setItem('avgWindow', String(avgWindow)); } catch (err) {}
     setWinMenu(false);
@@ -1913,9 +1924,9 @@ function renderStats() {
   var list = statsGames();
   // прирост = вторая половина окна против первой: 10 → 5 vs 5, 20 → 10 vs 10; при окне 5 не показываем
   // если партий пока мало — сравниваем по максимуму доступного (приписка покажет, сколько игр)
-  var half = Math.min(avgWindow / 2, Math.floor(cgAll.length / 2));
+  var half = Math.min(avgWindow / 2, Math.floor(winEnd() / 2));
   var withTrend = !hush.chart && !dayView && avgWindow >= 10 && half >= 2 && !selCount();   // при выбранных колонках прирост не считаем
-  function tr(fn) { return withTrend ? trend(fn, half) : null; }
+  function tr(fn) { return withTrend ? trend(fn, half, cgAll.slice(0, winEnd())) : null; }
   // без прироста строка остаётся пустой, чтобы высота блока не прыгала при переключении
   function th(diff, isPct, lowerIsBetter) {
     // пусто и когда партий пока меньше, чем нужно для сравнения
@@ -2061,6 +2072,17 @@ function renderTitle() {
 
 function renderChart() {
   renderCmpBtn();
+  var wv = !dayView && !hush.chart && !showRecords && cgAll.length > 0;
+  $('winRange').style.display = wv ? '' : 'none';
+  if (wv) {
+    var wg = cgAll.slice(Math.max(0, winEnd() - avgWindow), winEnd());
+    var d1 = wg.length ? wg[0].date : '', d2 = wg.length ? wg[wg.length - 1].date : '';
+    $('winRangeTxt').textContent = d1 === d2 ? d1 : d1 + ' – ' + d2;
+    $('winRangeTxt').classList.toggle('past', winPage > 0);
+    $('winRangeTxt').title = winPage > 0 ? 'Нажми, чтобы вернуться к последним партиям' : '';
+    $('wrPrev').disabled = winPage >= winPages() - 1;
+    $('wrNext').disabled = winPage === 0;
+  }
   var dv = dayView && !hush.chart && !showRecords;
   $('dayRange').style.display = dv ? '' : 'none';
   if (dv) {
@@ -2093,6 +2115,9 @@ function renderChart() {
   var colW = W / n;
   // режим дня с парой партий: колонки обычной ширины (как при 10), по центру графика
   if (dayView && n < 10) { colW = W / 10; X0 = 40 + (W - colW * n) / 2; }
+  // обычный режим: окно всегда N колонок; партий меньше — слева пустые
+  var padN = dayView ? 0 : Math.max(0, avgWindow - n);
+  if (padN) { colW = W / avgWindow; X0 = 40 + padN * colW; }
   var badgeW = Math.min(38, colW - 8);
   var narrow = colW < 24, tiny = colW < 14;   // 20+ колонок (режим дня) — значки мельче / только цвет
   var maxB = Math.max.apply(null, list.map(function(g) { return g.blunders; }));
@@ -2104,6 +2129,14 @@ function renderChart() {
   function yBl(v) { return r2(BOT - Math.min(v, bMax) / bMax * H); }
 
   var s = [];
+
+  // пустые колонки (партий в окне меньше N)
+  for (var pi = 0; pi < padN; pi++) {
+    s.push('<rect x="' + r2(40 + pi * colW) + '" y="-5" width="' + r2(colW) + '" height="200" fill="rgba(255,255,255,0.025)"/>');
+    if (pi) s.push('<line x1="' + r2(40 + pi * colW) + '" y1="-5" x2="' + r2(40 + pi * colW) + '" y2="195" stroke="#0f1119" stroke-width="1.5" stroke-opacity="0.9"/>');
+    s.push('<circle cx="' + r2(40 + pi * colW + colW / 2) + '" cy="192" r="1.6" fill="#4b5063"/>');
+  }
+  if (padN) s.push('<line x1="' + r2(X0) + '" y1="-5" x2="' + r2(X0) + '" y2="195" stroke="#0f1119" stroke-width="1.5" stroke-opacity="0.9"/>');
 
   // column tint
   list.forEach(function(g, i) {
@@ -2581,6 +2614,7 @@ function cfActive() { return modeCount(cfilt.modes) > 0 || hasKeys(cfilt.results
 
 function chartFilterChanged() {
   cgAll = filterChart(games);
+  winPage = 0;
   selCols = {}; cmpMode = null; cmpSet = {};
   selDays = {}; aCmpMode = null; aCmpSet = {};
   renderChartFilter();
@@ -2639,6 +2673,7 @@ $('cf').querySelector('.cf-metrics').addEventListener('input', function(e) {
   r[b] = isNaN(v) ? null : v;
   if (r.min === null && r.max === null) delete cfilt.ranges[k]; else cfilt.ranges[k] = r;
   cgAll = filterChart(games);
+  winPage = 0;
   renderChartFilter(true);
   renderWindow();
   if (chartMode === 'activity') renderActivity();
@@ -2736,7 +2771,7 @@ function chartReach(g) {
   return i >= 0 && games.length - i <= WINDOWS[WINDOWS.length - 1];
 }
 function showOnChart(g) {
-  dayView = null;
+  dayView = null; winPage = 0;
   if (cgAll.indexOf(g) < 0) {   // партию скрывает фильтр графика — снимаем его
     cfilt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}};
     renderCfInputs();
@@ -3555,6 +3590,9 @@ function setMode(m) {
   if (m === 'activity') { renderPeriodPick(); renderActivity(); }
   else renderWindow();   // средние, подпись окна и график — режим дня мог включиться
 }
+$('wrPrev').addEventListener('click', function(e) { e.stopPropagation(); shiftWin(1); });
+$('wrNext').addEventListener('click', function(e) { e.stopPropagation(); shiftWin(-1); });
+$('winRangeTxt').addEventListener('click', function(e) { e.stopPropagation(); if (winPage) shiftWin(-winPage); });
 $('dayClose').addEventListener('click', function(e) { e.stopPropagation(); exitDayView(); });
 $('activityBtn').addEventListener('click', function(e) {
   e.stopPropagation();
@@ -4287,7 +4325,7 @@ function gsCompareGames(A, B) {
   if (cfActive()) { cfilt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}}; renderCfInputs(); chartFilterChanged(); }
   var need = Math.max.apply(null, A.concat(B).map(function(g) { return cgAll.length - cgAll.indexOf(g); }));
   avgWindow = WINDOWS.filter(function(w) { return w >= need; })[0] || WINDOWS[WINDOWS.length - 1];
-  dayView = null;
+  dayView = null; winPage = 0;
   try { localStorage.setItem('avgWindow', String(avgWindow)); } catch (e) {}
   gsChart('metrics', false);
   selCols = {}; cmpSet = {};
@@ -4409,7 +4447,7 @@ function gsIndex() {
   });
   WINDOWS.forEach(function(w) {
     add('Виды графика', '📈', 'Средние за ' + w + ' ' + plural(w, 'игру', 'игры', 'игр'), 'график показателей', 'средние окно игр ' + w, function() {
-      avgWindow = w; dayView = null;
+      avgWindow = w; dayView = null; winPage = 0;
       try { localStorage.setItem('avgWindow', String(w)); } catch (e) {}
       gsChart('metrics', false);
       renderWindow();

@@ -4083,6 +4083,48 @@ function gsTableOpening(name) {
 }
 
 // всё, что можно найти
+// готовое сравнение партий: A — «Выбрано», B — «Сравнение»; снимает фильтр графика и расширяет окно, чтобы все попали
+function gsCompareGames(A, B) {
+  if (cfActive()) { cfilt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}}; renderCfInputs(); chartFilterChanged(); }
+  var need = Math.max.apply(null, A.concat(B).map(function(g) { return cgAll.length - cgAll.indexOf(g); }));
+  avgWindow = WINDOWS.filter(function(w) { return w >= need; })[0] || WINDOWS[WINDOWS.length - 1];
+  try { localStorage.setItem('avgWindow', String(avgWindow)); } catch (e) {}
+  gsChart('metrics', false);
+  selCols = {}; cmpSet = {};
+  A.forEach(function(g) { selCols[g.id] = true; });
+  B.forEach(function(g) { cmpSet[g.id] = true; });
+  cmpMode = 'view';
+  selDays = {}; aCmpMode = null; aCmpSet = {};
+  renderWindow();
+}
+// готовое сравнение дней: ищет период (неделя / 2 недели / месяц), где видны оба набора дней
+function gsCompareDays(daysA, daysB) {
+  if (cfActive()) { cfilt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}}; renderCfInputs(); chartFilterChanged(); }
+  var all = daysA.concat(daysB).sort(), lo = all[0], hi = all[all.length - 1], keep = [period, periodOffset];
+  var found = ['week', '2weeks', 'month'].some(function(p) {
+    for (var o = 0; o > -60; o--) {
+      period = p; periodOffset = o;
+      var bs = activityBuckets(), idx = bs.map(function(b) { return isoDay(b.from); });
+      if (all.every(function(d) { return idx.indexOf(d) >= 0; })) return true;
+      if (idx[idx.length - 1] < hi) break;   // ушли слишком далеко назад
+    }
+    return false;
+  });
+  if (!found) { period = keep[0]; periodOffset = keep[1]; return; }
+  try { localStorage.setItem('activityPeriod', period); } catch (e) {}
+  gsChart('activity', false);
+  var bs = activityBuckets();
+  selDays = {}; aCmpSet = {};
+  bs.forEach(function(b, i) {
+    var d = isoDay(b.from);
+    if (daysA.indexOf(d) >= 0) selDays[i] = true;
+    if (daysB.indexOf(d) >= 0) aCmpSet[i] = true;
+  });
+  aCmpMode = 'view';
+  selCols = {}; cmpMode = null; cmpSet = {};
+  renderActivity();
+}
+
 function gsIndex() {
   var items = [];
   function add(group, icon, title, sub, keys, run) { items.push({group: group, icon: icon, title: title, sub: sub || '', keys: gsNorm(title + ' ' + (sub || '') + ' ' + (keys || '')), run: run}); }
@@ -4187,6 +4229,38 @@ function gsIndex() {
     chartFilterChanged(); filtersChanged();
   });
 
+  /* --- готовые сравнения (экран «Сравнить» одним нажатием) --- */
+  function gN(n) { return n + ' ' + plural(n, 'партия', 'партии', 'партий'); }
+  [5, 10].forEach(function(k) {
+    if (games.length < 2 * k) return;
+    add('Сравнения', '⚖', 'Последние ' + k + ' vs предыдущие ' + k, 'растёт ли уровень · график показателей',
+      'сравнить сравнение прогресс последние предыдущие', function() { gsCompareGames(games.slice(-k), games.slice(-2 * k, -k)); });
+  });
+  var last20 = games.slice(-20);
+  [['win', 'lose', 'Победы vs поражения', 'чем отличаются выигранные партии'],
+   ['white', 'black', 'Белыми vs чёрными', 'разница по цвету фигур']].forEach(function(p) {
+    var byColor = p[0] === 'white';
+    var A = last20.filter(function(g) { return byColor ? g.color === p[0] : g.result === p[0]; });
+    var B = last20.filter(function(g) { return byColor ? g.color === p[1] : g.result === p[1]; });
+    if (!A.length || !B.length) return;
+    add('Сравнения', '⚖', p[2], p[3] + ' · ' + gN(A.length) + ' и ' + gN(B.length) + ' из последних ' + last20.length,
+      'сравнить сравнение ' + p[2], function() { gsCompareGames(A, B); });
+  });
+  var playDays = games.map(function(g) { return g.day; }).filter(function(d, k, a) { return a.indexOf(d) === k; }).sort();
+  if (playDays.length >= 2) {
+    var dA = playDays[playDays.length - 1], dB = playDays[playDays.length - 2];
+    var dl = function(d) { var x = fromIso(d); return DOW[x.getDay()] + ' ' + ddmm(x); };
+    add('Сравнения', '⚖', 'Последний игровой день vs предыдущий', dl(dA) + ' против ' + dl(dB) + ' · график активности',
+      'сравнить сравнение день вчера сегодня', function() { gsCompareDays([dA], [dB]); });
+  }
+  var mon = mondayOf(gameToday()), wk = function(from) { var r = []; for (var i = 0; i < 7; i++) r.push(isoDay(addDays(from, i))); return r; };
+  var tdIso = isoDay(gameToday()), thisW = wk(mon).filter(function(d) { return d <= tdIso; }), prevW = wk(addDays(mon, -7));
+  var inW = function(w) { return games.some(function(g) { return w.indexOf(g.day) >= 0; }); };
+  if (inW(thisW) && inW(prevW)) {
+    add('Сравнения', '⚖', 'Эта неделя vs прошлая', ddmm(mon) + ' – сегодня против ' + ddmm(addDays(mon, -7)) + ' – ' + ddmm(addDays(mon, -1)) + ' · график активности',
+      'сравнить сравнение неделя прошлая', function() { gsCompareDays(thisW, prevW); });
+  }
+
   /* --- режимы партии (как на Lichess) — только те, что реально встречаются --- */
   MODE_GROUPS.forEach(function(G) {
     G.items.forEach(function(it) {
@@ -4248,6 +4322,17 @@ function gsIndex() {
         'задачи тренировка ' + name + ' ' + (t.a.tr || ''), function() { gsCloseSide(); togglePuzzleDetail(true); gsFlash($('sideRow')); });
     });
   }
+
+  /* --- студии мастеров по дебютам из плана --- */
+  var O2 = window.OPENINGS || {};
+  [['current', 'изучаю'], ['next', 'следующий'], ['planned', 'в планах']].forEach(function(p) {
+    (O2[p[0]] || []).forEach(function(o) {
+      (o.studies || []).forEach(function(st) {
+        add('Студии', '🎓', st.master + ' — ' + o.name, 'студия на Lichess · ' + p[1] + (st.parts > 1 ? ' · ' + st.parts + ' ' + plural(st.parts, 'часть', 'части', 'частей') : ''),
+          'студия мастер ' + st.master + ' ' + o.name + ' ' + (o.match || []).join(' '), function() { window.open('https://lichess.org/study/' + st.id, '_blank'); });
+      });
+    });
+  });
 
   /* --- действия на Lichess --- */
   function ext(title, sub, keys, url) { add('Lichess', '↗', title, sub, keys, function() { window.open(url, '_blank'); }); }

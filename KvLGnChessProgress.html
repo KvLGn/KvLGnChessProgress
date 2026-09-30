@@ -549,6 +549,18 @@
   .cmp-view { padding: 12px 18px 14px 28px; }
   /* экран сравнения: без легенды снизу */
   .cmp-on .legend .legend-item { visibility: hidden; }
+  .chart-container.cmp-on .bl-legend { display: none; }   /* легенда типов зевков на экране сравнения не нужна */
+  /* «Зевки» в сравнении раскрываются по типам */
+  .cmp-bl-toggle { cursor: pointer; border-radius: 6px; }
+  .cmp-bl-toggle:hover { background: rgba(255,255,255,0.03); }
+  .cmp-caret { display: inline-block; margin-left: 4px; font-size: 10px; color: var(--fg-mute); transition: transform 0.15s; }
+  .cmp-bl-toggle.open .cmp-caret { transform: rotate(180deg); }
+  .cmp-row.cmp-sub { font-size: 11.5px; }
+  .cmp-sub .cmp-lbl { font-weight: 500; padding-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cmp-sub .cmp-lbl i { display: inline-block; width: 7px; height: 7px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
+  .cmp-sub .cmp-a, .cmp-sub .cmp-b { font-weight: 600; }
+  .cmp-sub .cmp-bar { height: 4px; }
+  .cmp-sub .cmp-d { font-size: 10.5px; }
   .cmp-head { display: grid; grid-template-columns: 1fr 40px 1fr; align-items: stretch; gap: 8px; margin-bottom: 8px; }
   .cmp-side { min-width: 0; padding: 7px 12px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-top: 2px solid; }
   .cmp-side.a { border-top-color: #e4e4e7; } .cmp-side.b { border-top-color: #34d399; }
@@ -2072,6 +2084,32 @@ function cmpSide(list, cls, title) {
       '<div class="cmp-side-m">#' + list.map(function(g) { return g.n; }).join(', #') + ' · ' + w + '<span class="green">W</span> / ' + l + '<span class="red">L</span></div>') +
     '</div>';
 }
+// «Зевки» в сравнении: клик раскрывает разбивку по типам (среднее на партию, как в остальных строках)
+var cmpBlOpen = false;
+function cmpBlLabel(label) { return label + '<span class="cmp-caret">▾</span>'; }
+function cmpBlRows(A, B) {
+  if (!cmpBlOpen) return '';
+  function per(list, t) { return list.length ? list.reduce(function(s, g) { return s + (g.bl || []).filter(function(b) { return b.t === t; }).length; }, 0) / list.length : null; }
+  var types = BL_ORDER.filter(function(t) { return per(A, t) || per(B, t); });
+  if (!types.length) return '<div class="cmp-row cmp-sub"><span class="cmp-lbl" style="color:var(--fg-mute)">зевков нет</span></div>';
+  var max = Math.max.apply(null, [1].concat(types.map(function(t) { return Math.max(per(A, t) || 0, per(B, t) || 0); })));
+  function fmt(v) { return v === null ? '—' : String(Math.round(v * 10) / 10); }
+  function bar(v, c, side) { return '<span class="cmp-bar' + (side ? ' ' + side : '') + '"><i style="width:' + (v === null ? 0 : Math.min(100, v / max * 100)) + '%;background:' + c + '"></i></span>'; }
+  return types.map(function(t) {
+    var a = per(A, t), b = per(B, t), d = a === null || b === null ? null : a - b, cls = '', dTxt = '—';
+    if (d !== null && Math.abs(d) >= 0.05) { cls = d < 0 ? 'up' : 'down'; dTxt = (d > 0 ? '+' : '−') + (Math.round(Math.abs(d) * 10) / 10); }
+    return '<div class="cmp-row cmp-sub" title="' + esc(BL_TYPES[t].ru + ': ' + BL_TYPES[t].tip + ' · в среднем за партию') + '">' +
+      '<span class="cmp-lbl" style="color:' + BL_TYPES[t].color + '"><i style="background:' + BL_TYPES[t].color + '"></i>' + BL_SHORT[t] + '</span>' +
+      '<span class="cmp-a">' + fmt(a) + '</span>' + bar(a, '#e4e4e7', 'l') +
+      '<span class="cmp-d ' + cls + '">' + dTxt + '</span>' +
+      bar(b, '#34d399') + '<span class="cmp-b">' + fmt(b) + '</span></div>';
+  }).join('');
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest || !e.target.closest('.cmp-bl-toggle')) return;
+  cmpBlOpen = !cmpBlOpen;
+  if (chartMode === 'activity') renderActivity(); else renderChart();
+});
 function cmpHtml() {
   var A = statsGames(), B = cmpGames();
   var rows = CMP_ROWS.map(function(r) {
@@ -2085,10 +2123,11 @@ function cmpHtml() {
     }
     var max = r.pct ? 100 : Math.max(a || 0, b || 0, 1);
     function bar(v, c, side) { return '<span class="cmp-bar' + (side ? ' ' + side : '') + '"><i style="width:' + (v === null ? 0 : Math.min(100, v / max * 100)) + '%;background:' + c + '"></i></span>'; }
-    return '<div class="cmp-row"><span class="cmp-lbl" style="color:' + r.color + '">' + r.label + '</span>' +
+    var isBl = r.k === 'blunders';
+    return '<div class="cmp-row' + (isBl ? ' cmp-bl-toggle' + (cmpBlOpen ? ' open' : '') : '') + '"' + (isBl ? ' title="Клик — зевки по типам"' : '') + '><span class="cmp-lbl" style="color:' + r.color + '">' + (isBl ? cmpBlLabel(r.label) : r.label) + '</span>' +
       '<span class="cmp-a">' + fmt(a) + '</span>' + bar(a, '#e4e4e7', 'l') +
       '<span class="cmp-d ' + cls + '">' + (dTxt || '—') + '</span>' +
-      bar(b, '#34d399') + '<span class="cmp-b">' + fmt(b) + '</span></div>';
+      bar(b, '#34d399') + '<span class="cmp-b">' + fmt(b) + '</span></div>' + (isBl ? cmpBlRows(A, B) : '');
   }).join('');
   return '<div class="cmp-view">' +
     '<div class="cmp-head">' + cmpSide(A, 'a', 'Выбранная') + '<div class="cmp-vs">vs</div>' + cmpSide(B, 'b', 'Сравнение') + '</div>' +
@@ -3656,10 +3695,11 @@ function actCmpHtml() {
     }
     var max = r.pct ? 100 : Math.max(a || 0, b || 0, 1);
     function bar(v, c, side) { return '<span class="cmp-bar' + (side ? ' ' + side : '') + '"><i style="width:' + (v === null ? 0 : Math.min(100, v / max * 100)) + '%;background:' + c + '"></i></span>'; }
-    return '<div class="cmp-row"><span class="cmp-lbl" style="color:' + r.color + '">' + r.label + '</span>' +
+    var isBl = r.label === 'Зевки';
+    return '<div class="cmp-row' + (isBl ? ' cmp-bl-toggle' + (cmpBlOpen ? ' open' : '') : '') + '"' + (isBl ? ' title="Клик — зевки по типам"' : '') + '><span class="cmp-lbl" style="color:' + r.color + '">' + (isBl ? cmpBlLabel(r.label) : r.label) + '</span>' +
       '<span class="cmp-a">' + fmt(a) + '</span>' + bar(a, '#e4e4e7', 'l') +
       '<span class="cmp-d ' + cls + '">' + (dTxt || '—') + '</span>' +
-      bar(b, '#34d399') + '<span class="cmp-b">' + fmt(b) + '</span></div>';
+      bar(b, '#34d399') + '<span class="cmp-b">' + fmt(b) + '</span></div>' + (isBl ? cmpBlRows(ga, gb) : '');
   }).join('');
   return '<div class="cmp-view">' +
     '<div class="cmp-head">' + actCmpSide(A, 'a', 'Выбрано') + '<div class="cmp-vs">vs</div>' + actCmpSide(B, 'b', 'Сравнение') + '</div>' +

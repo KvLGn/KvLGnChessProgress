@@ -2574,7 +2574,7 @@ function blBreakdown(list) {
   var n = {};
   list.forEach(function(b) { n[b.t] = (n[b.t] || 0) + 1; });
   return BL_ORDER.filter(function(t) { return n[t]; }).map(function(t) {
-    return '<div style="color:' + BL_TYPES[t].color + '">● ' + BL_TYPES[t].ru + ' ' + n[t] + '</div>';
+    return '<div style="color:' + BL_TYPES[t].color + (blHidden[t] ? ';opacity:0.4" title="скрыт в легенде' : '') + '">● ' + BL_TYPES[t].ru + ' ' + n[t] + '</div>';
   }).join('');
 }
 // «под боем 7, упущен выигрыш 2, …» — по типам, самый частый первым
@@ -2750,13 +2750,18 @@ function blChips(g) {
 function tooltipHtml(g) {
   var R = RESULT[g.result];
   $('tt-title').innerHTML = '#' + g.n + ' — ' + esc(g.date) + ' <span style="color:' + R.color + ';font-weight:700">' + R.label + '</span>';
+  // режим зевков: только зевки — всего и по типам (скрытые в легенде типы притушены)
+  if (blMode) {
+    $('tt-body').innerHTML = '<div style="color:#ef4444">Зевки: ' + g.blunders + '</div>' +
+      (g.bl && g.bl.length ? '<div style="font-size:11px;margin-top:2px">' + blBreakdown(g.bl) + '</div>' : '');
+    return;
+  }
   var rows = [
     {k: 'acc', html: '<span style="color:#9ca3af">Точность: <span style="color:#e4e4e7;font-weight:600">' + g.acc + '%</span></span>'},
     {k: 'debut', html: '<span style="color:#60a5fa">Дебют: ' + g.debut + '%</span>'},
     {k: 'mid', html: '<span style="color:#f59e0b">Миттельшпиль: ' + (typeof g.mid === 'number' ? g.mid + '%' : '—') + '</span>'},
     {k: 'end', html: '<span style="color:#a78bfa">Эндшпиль: <span style="color:#e4e4e7">' + (hasEnd(g) ? g.end + '%' : '—') + '</span></span>'},
-    {k: 'blunders', html: '<span style="color:#ef4444">Зевки: ' + g.blunders + '</span>' +
-      (blMode && g.bl && g.bl.length ? '<div style="font-size:11px;margin-top:2px">' + blBreakdown(g.bl) + '</div>' : '')}
+    {k: 'blunders', html: '<span style="color:#ef4444">Зевки: ' + g.blunders + '</span>'}
   ];
   // выделенный слева показатель — первым строкой и крупнее
   if (pinnedSeries) rows.sort(function(a, b) { return (b.k === pinnedSeries) - (a.k === pinnedSeries); });

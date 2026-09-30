@@ -695,7 +695,7 @@
   .md-disabled { opacity: 0.25; pointer-events: none; }
   .md-off-note { text-transform: none; letter-spacing: 0; }
   .md-zero.on { opacity: 1; }
-  .f-menu.f-menu-mode { width: 640px; padding: 10px 12px; left: auto; right: 0; }   /* две колонки, раскрывается влево от кнопки (селектор точнее общего .f-menu ниже) */
+  .f-menu.f-menu-mode { width: 640px; padding: 10px 12px; left: auto; right: -130px; }   /* две колонки; сдвинуто к центру — выходит за кнопку в обе стороны (селектор точнее общего .f-menu ниже) */
   .md-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
   .md-col { min-width: 0; }
   .md-col + .md-col { padding-left: 18px; border-left: 1px solid var(--border); }
@@ -715,15 +715,15 @@
   .cf .f-list { max-height: 180px; }
   /* широкая панель: раскрывается влево тремя колонками, без длинной прокрутки вниз */
   .cf .f-menu { width: min(1052px, calc(100vw - 48px)); padding: 14px 16px 10px; }
-  .cf-grid { display: grid; grid-template-columns: 1.1fr 1fr 1fr 1fr; gap: 0 22px; }
+  .cf-grid { display: grid; grid-template-columns: 1.15fr 0.95fr 0.85fr 1.1fr; gap: 0 22px; }   /* показателям — больше места: подпись + два поля */
   .cf-col { min-width: 0; }
   .cf-col + .cf-col { padding-left: 22px; border-left: 1px solid var(--border); }
   .cf .cf-col .f-list { max-height: 440px; }
   .cf .cf-more { border-top: none; margin-top: 0; padding: 4px 2px 6px; font-size: 10px; font-weight: 400; color: var(--fg-mute); text-transform: uppercase; letter-spacing: 0.5px; pointer-events: none; }
   .cf .cf-more .caret { display: none; }
-  .cf .cf-metrics { display: grid; grid-template-columns: 1fr 58px 10px 58px; }
-  .cf .cf-metrics label { white-space: nowrap; font-size: 12.5px; }
-  .cf .cf-metrics .f-num { width: 58px; }
+  .cf .cf-metrics { display: grid; grid-template-columns: minmax(0, 1fr) 50px 10px 50px; }
+  .cf .cf-metrics label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; }   /* длинная подпись не выталкивает поля */
+  .cf .cf-metrics .f-num { width: 50px; }
 
   /* карточка «Дебюты» — синий акцент, как линия «Дебют» на графике */
   .op-card {
@@ -3327,7 +3327,7 @@ function renderCfInputs() {
   box.innerHTML = F_METRICS.map(function(m) {
     var r = cfilt.ranges[m.key] || {min: null, max: null};
     function val(v) { return v === null ? '' : v; }
-    return '<label style="color:' + m.color + '">' + m.label + '</label>' +
+    return '<label style="color:' + m.color + '" title="' + m.label + '">' + m.label + '</label>' +
       '<input class="f-num" type="number" min="0" placeholder="от" data-k="' + m.key + '" data-b="min" value="' + val(r.min) + '" aria-label="' + m.label + ' от">' +
       '<span class="dash">–</span>' +
       '<input class="f-num" type="number" min="0" placeholder="до" data-k="' + m.key + '" data-b="max" value="' + val(r.max) + '" aria-label="' + m.label + ' до">';

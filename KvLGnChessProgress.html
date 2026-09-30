@@ -1693,6 +1693,7 @@ function pinSeries(key) {
   pinnedSeries = pinnedSeries === key ? null : key;
   markPinned();
   focusSeries(pinnedSeries);
+  if (showRecords && chartMode !== 'activity') renderRecords();
 }
 
 function applySeries() {
@@ -1706,6 +1707,7 @@ function toggleSeries(key) {
   if (hiddenSeries[key]) delete hiddenSeries[key]; else hiddenSeries[key] = true;
   try { localStorage.setItem('hiddenSeries.v2', JSON.stringify(hiddenSeries)); } catch (e) {}
   applySeries();
+  if (showRecords && chartMode !== 'activity') renderRecords();
 }
 
 // делегирование: панель и легенда перерисовываются, обработчик один
@@ -2953,37 +2955,51 @@ function emptyCard(best, head, text) {
 }
 
 /* --- показатели: лучшая и худшая партия по точности --- */
+// показатель, по которому ищутся лучшая / худшая партия: выделенный слева (клик),
+// иначе первый видимый в легенде по порядку точность → дебют → миттельшпиль → эндшпиль → зевки
+var REC_METRICS = [
+  {k: 'acc', label: 'точность', pct: true, color: '#c8c9cd'}, {k: 'debut', label: 'дебют', pct: true, color: '#60a5fa'},
+  {k: 'mid', label: 'миттельшпиль', pct: true, color: '#f59e0b'}, {k: 'end', label: 'эндшпиль', pct: true, color: '#a78bfa'},
+  {k: 'blunders', label: 'зевков', pct: false, color: '#f87171', lowerBetter: true}
+];
+function recMetric() {
+  var byKey = function(k) { return REC_METRICS.filter(function(m) { return m.k === k; })[0]; };
+  if (pinnedSeries && !hiddenSeries[pinnedSeries]) return byKey(pinnedSeries);
+  return REC_METRICS.filter(function(m) { return !hiddenSeries[m.k]; })[0] || REC_METRICS[0];
+}
 function metricsRecordsHtml() {
   // выбранные колонки графика — рекорды только среди них (кроме «за всё время»)
   var list = recScope === 'all' ? cgAll : statsGames();
+  var M = recMetric();
+  list = list.filter(function(g) { return typeof g[M.k] === 'number'; });   // например, без эндшпиля — не участвуют
   if (!list.length) {
     return '<div class="rec-view"><div class="rec-grid">' +
-      emptyCard(true, '▲ Лучшая партия', 'сыграй партию, чтобы появилась') +
-      emptyCard(false, '▼ Худшая партия', 'сыграй партию, чтобы появилась') +
+      emptyCard(true, '▲ Лучшая партия', 'нет партий с показателем «' + M.label + '»') +
+      emptyCard(false, '▼ Худшая партия', 'нет партий с показателем «' + M.label + '»') +
       '</div></div>';
   }
-  var byAcc = list.slice().sort(function(a, b) { return (b.acc - a.acc) || (b.n - a.n); });
-  var best = byAcc[0], worst = byAcc[byAcc.length - 1];
+  var sorted = list.slice().sort(function(a, b) { return (M.lowerBetter ? a[M.k] - b[M.k] : b[M.k] - a[M.k]) || (b.n - a.n); });
+  var best = sorted[0], worst = sorted[sorted.length - 1];
   return '<div class="rec-view"><div class="rec-grid">' +
-    gameCard(best, true) +
-    (list.length > 1 ? gameCard(worst, false) : emptyCard(false, '▼ Худшая партия', 'нужно хотя бы 2 партии')) +
+    gameCard(best, true, M) +
+    (list.length > 1 ? gameCard(worst, false, M) : emptyCard(false, '▼ Худшая партия', 'нужно хотя бы 2 партии')) +
     '</div></div>';
 }
-
-function gameCard(g, best) {
+function gameCard(g, best, M) {
   var R = RESULT[g.result];
+  M = M || REC_METRICS[0];
   function ph(v) { return typeof v === 'number' ? v + '%' : '—'; }
+  // в строке фаз — только видимые в легенде и не главный показатель
+  var phases = [['debut', 'Дебют', '#60a5fa'], ['mid', 'Миттельшпиль', '#f59e0b'], ['end', 'Эндшпиль', '#a78bfa'], ['acc', 'Точность', '#9ca3af']]
+    .filter(function(p) { return !hiddenSeries[p[0]] && p[0] !== M.k; })
+    .map(function(p) { return '<span style="color:' + p[2] + '">' + p[1] + ' ' + ph(g[p[0]]) + '</span>'; }).join('');
   return '<div class="rec-card ' + (best ? 'best' : 'worst') + '">' +
     '<div class="rec-head">' + (best ? '▲ Лучшая партия' : '▼ Худшая партия') + '</div>' +
     '<div class="rec-meta">#' + g.n + ' · ' + esc(g.date) + ' · <span style="color:' + R.color + '">' + R.label + '</span> · ' + esc(g.engine) + '</div>' +
     '<div class="rec-title" title="' + esc(g.opening) + '">' + esc(g.opening) + '</div>' +
-    '<div class="rec-big">' + g.acc + '<small>%</small><span>точность</span></div>' +
-    '<div class="rec-row">' +
-      '<span style="color:#60a5fa">Дебют ' + ph(g.debut) + '</span>' +
-      '<span style="color:#f59e0b">Миттельшпиль ' + ph(g.mid) + '</span>' +
-      '<span style="color:#a78bfa">Эндшпиль ' + ph(g.end) + '</span>' +
-    '</div>' +
-    '<div class="rec-row dim">Зевки ' + g.blunders + ' · Ошибки ' + g.mistakes + ' · Неточности ' + g.inacc +
+    '<div class="rec-big" style="color:' + M.color + '">' + g[M.k] + (M.pct ? '<small>%</small>' : '') + '<span>' + M.label + '</span></div>' +
+    (phases ? '<div class="rec-row">' + phases + '</div>' : '') +
+    '<div class="rec-row dim">' + (hiddenSeries.blunders || M.k === 'blunders' ? '' : 'Зевки ' + g.blunders + ' · ') + 'Ошибки ' + g.mistakes + ' · Неточности ' + g.inacc +
       ' · ' + g.moves + ' ' + plural(g.moves, 'ход', 'хода', 'ходов') + '</div>' +
     (g.id ? '<a class="rec-link" href="https://lichess.org/' + g.id + '" target="_blank" rel="noopener">Открыть на Lichess ↗</a>' : '') +
   '</div>';

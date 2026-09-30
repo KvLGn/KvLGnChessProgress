@@ -3320,10 +3320,18 @@ document.addEventListener('keydown', function(e) {
 });
 // панель итогов живёт на уровне шапки (.profile-row): иначе при закрытии она на миг «прыгала» в размер ряда карточек
 document.querySelector('.profile-row').appendChild($('vdDetail'));
+// был ли клик внутри элемента (путь клика запоминается сразу — работает, даже если панель успела перерисоваться)
+function clickedIn(e, id) { return e.composedPath().indexOf($(id)) >= 0; }
+// клик в любом другом месте закрывает задачи и дебюты
+document.addEventListener('click', function(e) {
+  var row = $('sideRow');
+  if (row.classList.contains('open') && !clickedIn(e, 'pzDetail') && !clickedIn(e, 'pzCard')) togglePuzzleDetail(false);
+  if (row.classList.contains('op-open') && !clickedIn(e, 'opDetail') && !clickedIn(e, 'opCard')) toggleOpeningDetail(false);
+});
 // клик в любом другом месте закрывает итоги
 document.addEventListener('click', function(e) {
   if (!$('sideRow').classList.contains('vd-open')) return;
-  if (e.target.closest('#vdDetail') || e.target.closest('#vdCard')) return;
+  if (clickedIn(e, 'vdDetail') || clickedIn(e, 'vdCard')) return;
   toggleVerdict(false);
 });
 $('vdCard').addEventListener('keydown', function(e) {

@@ -4728,7 +4728,35 @@ document.addEventListener('keydown', function(e) {
 });
 
 /* ---------- скрытый режим: клик по аватарке → глаз; глаз закрыт — данные спрятаны ---------- */
+// что было выбрано / открыто в части перед скрытием — после показа возвращается как было
+var hushPrev = {head: false, chart: false, table: false}, hushSnap = {};
+function snapHush(k) {
+  if (k === 'chart') hushSnap.chart = {selCols: selCols, cmpMode: cmpMode, cmpSet: cmpSet, selDays: selDays, aCmpMode: aCmpMode, aCmpSet: aCmpSet,
+    pinnedSeries: pinnedSeries, actRes: actRes, showRecords: showRecords, dayView: dayView, cfOpen: $('cf').classList.contains('open')};
+  if (k === 'table') hushSnap.table = {page: currentPage, open: [].map.call($('gameRows').querySelectorAll('tr.game-row.open'), function(r) { return r.firstChild.textContent; })};
+  if (k === 'head') { var row = $('sideRow'); hushSnap.head = {pz: row.classList.contains('open'), pzFull: $('pzDetail').classList.contains('expanded'), op: row.classList.contains('op-open'), vd: row.classList.contains('vd-open')}; }
+}
+function restoreHush(k) {
+  var S = hushSnap[k]; if (!S) return;
+  delete hushSnap[k];
+  if (k === 'chart') {
+    selCols = S.selCols; cmpMode = S.cmpMode; cmpSet = S.cmpSet; selDays = S.selDays; aCmpMode = S.aCmpMode; aCmpSet = S.aCmpSet;
+    pinnedSeries = S.pinnedSeries; actRes = S.actRes; dayView = S.dayView;
+    document.querySelectorAll('.res-toggle').forEach(function(el) {
+      var on = !!(actRes && actRes[el.getAttribute('data-res')]);
+      el.classList.toggle('pinned', on); el.classList.toggle('dim', !!actRes && !on);
+    });
+    if (S.showRecords) setRecords(true);
+    if (S.cfOpen) setTimeout(function() { $('cf').querySelector('.f-btn').click(); }, 0);
+  }
+  if (k === 'head') {
+    if (S.pz) { togglePuzzleDetail(true); if (S.pzFull) { $('pzDetail').classList.add('expanded'); $('sideRow').classList.add('expanded'); renderPuzzleDetail(); } }
+    else if (S.op) toggleOpeningDetail(true);
+    else if (S.vd) toggleVerdict(true);
+  }
+}
 function applyHush() {
+  ['head', 'chart', 'table'].forEach(function(k) { if (hush[k] && !hushPrev[k]) snapHush(k); });
   ['head', 'chart', 'table'].forEach(function(k) { document.body.classList.toggle('hush-' + k, hush[k]); });
   document.body.classList.toggle('hush-all', hushAll());
   $('eyeBtn').classList.toggle('shut', hush.mode);
@@ -4759,7 +4787,14 @@ function applyHush() {
   }
   $('tableTitle').textContent = hush.table ? 'Последние партии' : 'Последние 30 партий';
   if (hush.table) closeDrops();
+  var T = !hush.table && hushPrev.table && hushSnap.table;
+  if (T) currentPage = T.page;
   renderGames();
+  if (T) {
+    $('gameRows').querySelectorAll('tr.game-row').forEach(function(r) { if (T.open.indexOf(r.firstChild.textContent) >= 0) r.classList.add('open'); });
+    delete hushSnap.table;
+  }
+  if (!hush.chart && hushPrev.chart) restoreHush('chart');
   renderTitle();
   renderWindow();
   if (chartMode === 'activity') renderActivity();
@@ -4767,6 +4802,8 @@ function applyHush() {
   renderPuzzleCard();
   renderOpeningCard();
   renderVerdictCard();
+  if (!hush.head && hushPrev.head) restoreHush('head');
+  hushPrev = {head: hush.head, chart: hush.chart, table: hush.table};
 }
 var SECT_NAME = {head: 'шапку', chart: 'график', table: 'партии'};
 function saveHush() { try { localStorage.setItem('hush', JSON.stringify(hush)); } catch (err) {} }

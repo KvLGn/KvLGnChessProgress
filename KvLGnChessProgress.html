@@ -369,7 +369,9 @@
   .stat { margin: 0 -20px; padding: 0 20px 5px; border-bottom: 1px solid rgba(46,50,68,0.4); }
   .stat:last-child { border-bottom: none; }
   .stat-line { display: flex; align-items: center; }
-  .stat-name { display: flex; align-items: center; gap: 5px; font-size: 15px; white-space: nowrap; }
+  .stat-name { display: flex; align-items: center; gap: 5px; font-size: 15px; white-space: nowrap; min-width: 0; flex-shrink: 1; }
+  .stat-name > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+  .stat-val { flex-shrink: 0; }
   .stat-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
   .stat-fill { flex: 1; border-bottom: 1px dashed rgba(100,110,130,0.3); margin: 0 6px; height: 0; }
   .stat-val { font-size: 18px; font-weight: 600; color: var(--fg-num); }
@@ -2721,7 +2723,10 @@ var RES_COLORS = {win: '#4ade80', lose: '#f87171', draw: '#9ca3af'};
 function resRowMeta() {
   if (!actRes || Object.keys(actRes).length === 3) return {label: 'Винрейт', color: '#4ade80', share: false};
   var ks = ['win', 'lose', 'draw'].filter(function(k) { return actRes[k]; });
-  var label = ks.map(function(k, i) { return i ? RES_NAMES[k].toLowerCase() : RES_NAMES[k]; }).join(' + ');
+  // два результата = «без» третьего: короче и не вылезает из панели
+  var NOT = {win: 'Без побед', lose: 'Без поражений', draw: 'Без ничьих'};
+  var missing = ['win', 'lose', 'draw'].filter(function(k) { return !actRes[k]; });
+  var label = ks.length === 1 ? RES_NAMES[ks[0]] : NOT[missing[0]];
   return {label: label, color: ks.length === 1 ? RES_COLORS[ks[0]] : '#c4b5fd', share: true};
 }
 function resShare(all) { return all.length ? byRes(all).length / all.length * 100 : null; }

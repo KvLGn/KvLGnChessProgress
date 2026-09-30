@@ -1643,6 +1643,16 @@ function toGoalText(c, lang) {
     ? 'To reach the goal: at least ' + k + ' more game' + (k === 1 ? '' : 's') + ' vs this engine, and all of them must be good (wins or decent losses, accuracy around ' + RULE.medianAcc + '%+, at most ' + RULE.lossMaxBlunders + ' blunders). A weak loss blocks the goal while it is among the last ' + RULE.blocks * RULE.games + ' games.'
     : 'Чтобы выполнить цель: минимум ещё ' + k + ' ' + plural(k, 'партия', 'партии', 'партий') + ' против этого бота, и все должны быть хорошими (победы или достойные поражения, точность около ' + RULE.medianAcc + '%+, не больше ' + RULE.lossMaxBlunders + ' зевков). Слабое поражение не даёт выполнить цель, пока оно среди последних ' + RULE.blocks * RULE.games + ' партий.';
 }
+var SPEED_RU = {correspondence: 'без часов (переписка)', classical: 'классика', rapid: 'рапид', blitz: 'блиц', bullet: 'пуля', ultraBullet: 'ультрапуля'};
+var SPEED_EN = {correspondence: 'no clock (correspondence)', classical: 'classical', rapid: 'rapid', blitz: 'blitz', bullet: 'bullet', ultraBullet: 'ultrabullet'};
+function speedLine(lang) {   // «все партии без часов (переписка)» — чтобы ИИ не придумывал цейтнот
+  var by = {};
+  games.forEach(function(g) { var k = g.speed || '?'; by[k] = (by[k] || 0) + 1; });
+  var ks = Object.keys(by), M = lang === 'en' ? SPEED_EN : SPEED_RU;
+  if (!ks.length) return '';
+  if (ks.length === 1) return lang === 'en' ? 'Time control: all games ' + (M[ks[0]] || ks[0]) + (ks[0] === 'correspondence' ? ' — no time pressure possible.' : '.') : 'Контроль времени: все партии ' + (M[ks[0]] || ks[0]) + (ks[0] === 'correspondence' ? ' — цейтнота быть не может.' : '.');
+  return (lang === 'en' ? 'Time control: ' : 'Контроль времени: ') + ks.map(function(k) { return (M[k] || k) + ' — ' + by[k]; }).join(', ') + '.';
+}
 function stageRuleText() {
   return 'Переход на следующий этап: ' + RULE.blocks + ' пятёрки партий подряд против бота этапа (каждым цветом этапа). В каждой: ' +
     RULE.wins + '+ побед, медиана точности ≥ ' + RULE.medianAcc + '%, проигрыш — точность ≥ ' + RULE.lossMinAcc + '% и зевков ≤ ' + RULE.lossMaxBlunders + '.';
@@ -4476,6 +4486,7 @@ function aiSummary() {
   L.push('Всего ' + games.length + ' (' + wl(games) + '); последние 10 партий: ' + wl(games.slice(-10)) + ', последние 5: ' + wl(games.slice(-5)));
   var byOpp = {};
   games.forEach(function(g) { (byOpp[g.engine] = byOpp[g.engine] || []).push(g); });
+  L.push(speedLine('ru'));
   L.push('Соперники: ' + Object.keys(byOpp).map(function(k) { return k + ' — ' + byOpp[k].length + ' (' + wl(byOpp[k]) + ')'; }).join('; '));
   ['white', 'black'].forEach(function(c) {
     var gl = games.filter(function(g) { return g.color === c; });
@@ -4557,6 +4568,7 @@ var AI_PROMPT = {
       '(что делать, сколько, как понять, что получилось); учитывай, что игрок новичок и играет против Stockfish; если данных мало — так и скажи.',
       'Когда ссылаешься на партию, сверяй её результат и цифры с данными; не обобщай («все три — поражения»), если это верно не для всех. Перфоманс темы задач — не рейтинг.',
       'Отделяй факты из данных от предположений: всё, чего нет в цифрах (например, какого типа были зевки), помечай словом «возможно».',
+      'Обращайся на «ты» и не указывай пол игрока — формулируй нейтрально (не «ты дошла/дошёл», а «ты доводишь партию»).',
       'Отвечай по-русски, коротко, списком.'
     ],
     plan: [
@@ -4581,7 +4593,8 @@ var AI_PROMPT = {
       'Rules: rely only on the numbers in the summary and cite them; no generic phrases like "train more"; give concrete actions',
       '(what, how much, how to know it worked); he is a beginner playing Stockfish; if data is thin, say so. Answer briefly, as a list.',
       'When you cite a game, check its result and numbers against the data; do not generalise ("all three were losses") unless it is true for all of them. A puzzle theme performance is not a rating.',
-      'Separate facts from the data and assumptions: mark anything not in the numbers (e.g. what kind of blunders they were) with "possibly".'
+      'Separate facts from the data and assumptions: mark anything not in the numbers (e.g. what kind of blunders they were) with "possibly".',
+      'Do not assume the player\'s gender — keep the wording neutral.'
     ],
     plan: [
       'The request is a PLAN CHANGE. The plan lives in data/plan.js (full text at the end). How the site uses it:',
@@ -4706,10 +4719,14 @@ var AI_DATA = {
       .concat([AL('Средние по фазам за эти 10: дебют ', 'Phase averages over these 10: opening ') + aiPct(avg(last, 'debut')) + AL(', миттельшпиль ', ', middlegame ') + aiPct(avg(last, 'mid')) + AL(', эндшпиль ', ', endgame ') + aiPct(avg(last, 'end'))]);
   },
   winloss: function() {
-    var W = games.filter(function(g) { return g.result === 'win'; }), L = games.filter(function(g) { return g.result === 'lose'; }), fam = {};
-    games.forEach(function(g) { var k = g.opening.split(':')[0]; fam[k] = fam[k] || {w: 0, l: 0}; if (g.result === 'win') fam[k].w++; if (g.result === 'lose') fam[k].l++; });
+    var W = games.filter(function(g) { return g.result === 'win'; }), L = games.filter(function(g) { return g.result === 'lose'; }), fam = {}, order = [];
+    games.forEach(function(g) { var k = g.opening.split(':')[0]; if (!fam[k]) { fam[k] = []; order.push(k); } fam[k].push(g); });
     return [AL('Победы — ', 'Wins — ') + aiAvgLine(W), AL('Поражения — ', 'Losses — ') + aiAvgLine(L),
-      AL('По дебютам (побед/поражений): ', 'By opening (wins/losses): ') + Object.keys(fam).map(function(k) { return k + ' ' + fam[k].w + '/' + fam[k].l; }).join('; ')];
+      AL('По дебютам (название Lichess; каждая партия с результатом):', 'By opening (Lichess name; every game with its result):')]
+      .concat(order.map(function(k) {
+        var gl = fam[k], w = gl.filter(function(g) { return g.result === 'win'; }).length, l = gl.filter(function(g) { return g.result === 'lose'; }).length;
+        return '- ' + k + ' (' + w + 'W/' + l + 'L): ' + gl.map(function(g) { return (PLAIN ? g.date : '#' + g.n) + ' ' + AL(RESULT[g.result].label.toLowerCase(), RES_EN[g.result]); }).join(', ');
+      }));
   },
   week: function() {
     var att = (window.PUZZLES || {}).attempts || [], out = [AL('Активность за последние 14 дней (день: партий / задач):', 'Activity over the last 14 days (day: games / puzzles):')];
@@ -4792,6 +4809,7 @@ function humanBrief() {   // коротко о текущей игре — бе�
     out = out.concat(plainStudy());
     if (games.length) {
       var w0 = games.filter(function(g) { return g.result === 'win'; }).length, l0 = games.filter(function(g) { return g.result === 'lose'; }).length;
+      out.push(speedLine(aiLang));
       out.push(AL('Сыграно партий: ', 'Games played: ') + games.length + ' (' + w0 + AL(' побед, ', ' wins, ') + l0 + AL(' поражений), все с компьютерным анализом Lichess.', ' losses), all with Lichess computer analysis.'));
       var t10 = games.slice(-10), w10 = t10.filter(function(g) { return g.result === 'win'; }).length, l10 = t10.filter(function(g) { return g.result === 'lose'; }).length, d10 = t10.length - w10 - l10;
       out.push(AL('Из последних 10 партий: ' + w10 + ' ' + plural(w10, 'победа', 'победы', 'побед') + ', ' + l10 + ' ' + plural(l10, 'поражение', 'поражения', 'поражений') + (d10 ? ', ' + d10 + ' ' + plural(d10, 'ничья', 'ничьи', 'ничьих') : '') + '.', 'Last 10 games: ' + w10 + ' wins, ' + l10 + ' losses' + (d10 ? ', ' + d10 + ' draws' : '') + '.'));

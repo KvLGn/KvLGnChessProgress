@@ -538,6 +538,17 @@
   .cf-metrics { display: none; }
   .cf.more .cf-metrics { display: grid; }
   .cf .f-list { max-height: 180px; }
+  /* широкая панель: раскрывается влево тремя колонками, без длинной прокрутки вниз */
+  .cf .f-menu { width: min(940px, calc(100vw - 48px)); padding: 14px 16px 10px; }
+  .cf-grid { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 0 22px; }
+  .cf-col { min-width: 0; }
+  .cf-col + .cf-col { padding-left: 22px; border-left: 1px solid var(--border); }
+  .cf .cf-col .f-list { max-height: 440px; }
+  .cf .cf-more { border-top: none; margin-top: 0; padding: 4px 2px 6px; font-size: 10px; font-weight: 400; color: var(--fg-mute); text-transform: uppercase; letter-spacing: 0.5px; pointer-events: none; }
+  .cf .cf-more .caret { display: none; }
+  .cf .cf-metrics { display: grid; grid-template-columns: 1fr 58px 10px 58px; }
+  .cf .cf-metrics label { white-space: nowrap; font-size: 12.5px; }
+  .cf .cf-metrics .f-num { width: 58px; }
 
   /* карточка «Дебюты» — синий акцент, как линия «Дебют» на графике */
   .op-card {
@@ -1097,6 +1108,8 @@
     .cf-pills { margin-left: 0; justify-content: flex-start; }
     .cf-pills:empty + .cf { margin-left: 0; }
     .cf .f-menu { left: 0; right: auto; width: min(340px, calc(100vw - 40px)); }
+    .cf-grid { grid-template-columns: 1fr; }
+    .cf-col + .cf-col { padding-left: 0; border-left: none; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; }
     /* кнопки «Рекорды» / период / «Активность» — строкой между панелью и графиком */
     .panel-stack { order: 1; }
     .records-btn, .act-range, .activity-btn, .rec-scope { position: static; transform: none; order: 2; margin: 10px 0 0; }
@@ -1193,14 +1206,23 @@
     <div class="f-drop cf" id="cf">
       <button class="f-btn" aria-haspopup="true" aria-expanded="false" title="Фильтр для графика показателей и активности"></button>
       <div class="f-menu">
-        <div class="cf-sec">Результат</div><div class="cf-results"></div>
-        <div class="cf-sec">Цвет</div><div class="cf-colors"></div>
-        <div class="cf-modes"></div>
-        <div class="cf-sec">Дебют</div>
-        <input class="f-search" type="search" placeholder="Поиск дебюта…" autocomplete="off">
-        <div class="f-list"></div>
-        <button class="cf-more" aria-expanded="false">Показатели <span class="caret">▸</span></button>
-        <div class="f-metrics cf-metrics"></div>
+        <!-- три колонки: партия и режим · дебют · показатели -->
+        <div class="cf-grid">
+          <div class="cf-col">
+            <div class="cf-sec">Результат</div><div class="cf-results"></div>
+            <div class="cf-sec">Цвет</div><div class="cf-colors"></div>
+            <div class="cf-modes"></div>
+          </div>
+          <div class="cf-col">
+            <div class="cf-sec">Дебют</div>
+            <input class="f-search" type="search" placeholder="Поиск дебюта…" autocomplete="off">
+            <div class="f-list"></div>
+          </div>
+          <div class="cf-col">
+            <button class="cf-more" aria-expanded="false">Показатели <span class="caret">▸</span></button>
+            <div class="f-metrics cf-metrics"></div>
+          </div>
+        </div>
                 <div class="f-foot"><button class="f-link" data-act="clear">Сбросить фильтр графика</button></div>
       </div>
     </div>

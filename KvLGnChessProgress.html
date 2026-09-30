@@ -4143,6 +4143,8 @@ function gsWr(elo) {
   gsFlash($('wrBox'));
 }
 
+// значок фильтра (воронка) для пунктов поиска
+var GS_FUNNEL = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" style="vertical-align:-2px"><path fill="#a1a1aa" d="M1.5 2h13l-5 6v5l-3 1.5V8z"/></svg>';
 function gsIndex() {
   var items = [], RG0 = window.RATING_GAMES || [];
   function add(group, icon, title, sub, keys, run) { items.push({group: group, icon: icon, title: title, sub: sub || '', keys: gsNorm(title + ' ' + (sub || '') + ' ' + (keys || '')), run: run}); }
@@ -4156,7 +4158,7 @@ function gsIndex() {
   add('Разделы', '📖', 'Дебюты', 'изучаю, следующие, в планах', 'дебюты репертуар студии план', function() { gsCloseSide(); toggleOpeningDetail(true); gsFlash($('sideRow')); });
   add('Разделы', '🎯', 'Итоги', 'что хорошо, что плохо, что делать', 'итоги советы вердикт слабости', function() { gsCloseSide(); toggleVerdict(true); gsFlash($('sideRow')); });
   add('Разделы', '📋', 'Таблица партий', 'последние 30 партий и фильтры', 'таблица партии список фильтры', function() { gsFlash($('filters')); });
-  add('Разделы', '⏷', 'Фильтр графика', 'результат, цвет, дебют, показатели', 'фильтр графика', function() {
+  add('Разделы', GS_FUNNEL, 'Фильтр графика', 'результат, цвет, дебют, показатели', 'фильтр графика', function() {
     gsCloseSide();
     if (showRecords) setRecords(false);
     var btn = $('cf').querySelector('.f-btn');
@@ -4244,7 +4246,7 @@ function gsIndex() {
 
   /* --- готовые фильтры (график и таблица сразу) --- */
   function preset(title, sub, keys, fn) {
-    add('Фильтры', '⏷', title, sub + ' · график и таблица', keys, function() {
+    add('Фильтры', GS_FUNNEL, title, sub + ' · график и таблица', keys, function() {
       cfilt = {results: {}, colors: {}, openings: {}, ranges: {}};
       filt = {results: {}, colors: {}, openings: {}, ranges: {}};
       fn(cfilt); fn(filt);

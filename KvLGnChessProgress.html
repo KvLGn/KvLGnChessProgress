@@ -466,7 +466,23 @@
   .stat-val small { font-size: 12px; color: var(--fg-dim); }
   .stat-trend { font-size: 11px; margin-left: 13px; }
   .stat-trend .trend-n { font-size: 9px; }
-  .stat-blunders { padding-top: 5px; }
+  .stat-blunders { padding-top: 5px; position: relative; }
+  .bl-info { position: absolute; right: -2px; top: 50%; transform: translateY(-50%); z-index: 2; width: 18px; height: 18px; border-radius: 50%; padding: 0;
+    font: 700 11px Georgia, serif; font-style: italic; color: var(--fg-mute); background: none; border: 1px solid var(--border); cursor: pointer; line-height: 1; }
+  .bl-info:hover { color: #f87171; border-color: rgba(248,113,113,0.6); }
+  .bl-info.on { color: #11131a; background: #f87171; border-color: #f87171; }
+  .stat-blunders .stat-line { padding-right: 22px; }
+  .bl-legend { display: none; }
+  .bl-on .bl-legend { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 11px; font-size: 11px; color: var(--fg-dim); }
+  .bl-on .legend-wr { visibility: hidden; }
+  .bl-on .legend .legend-item.metrics-only { display: none; }
+  .bl-leg-h { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #f87171; }
+  .bl-leg { display: inline-flex; align-items: center; gap: 5px; cursor: help; }
+  .bl-leg i { width: 10px; height: 10px; border-radius: 2px; }
+  .bl-leg b { color: var(--fg); }
+  .bl-leg-x { background: none; border: 1px solid var(--border); color: var(--fg-mute); border-radius: 6px; padding: 1px 7px; cursor: pointer; font-size: 11px; }
+  .bl-leg-x:hover { color: var(--fg); }
+  svg.bl-mode .series:not([data-s="blunders"]) { opacity: 0.25; }
   .stat-blunders .stat-name { font-size: 16px; }
 
   .chart-area { flex: 1; min-width: 0; padding: 46px 8px 6px; }
@@ -1533,6 +1549,7 @@
     <div class="chart-area" id="chart"></div>
     <div class="legend-rule"></div>
     <div class="legend">
+      <div class="bl-legend metrics-only" id="blLegend"></div>
       <div class="legend-wr metrics-only"><span class="legend-wr-label">Винрейт</span><span class="legend-wr-val" id="legendWr"></span></div>
       <!-- легенда режима «Активность» -->
       <div class="legend-item activity-only res-toggle" data-res="win" role="button" tabindex="0" style="color:var(--green)"><span class="legend-sq" style="background:var(--green)"></span>ПОБЕДЫ</div>
@@ -1934,6 +1951,15 @@ var STATS = [
   {key:'end',   label:'Эндшпиль',   color:'var(--c-end)'}
 ];
 
+// режим «типы зевков» на графике показателей (кнопка «i» у зевков)
+var blMode = false;
+document.addEventListener('click', function(e) {
+  var b = e.target.closest && e.target.closest('.bl-info');
+  if (!b) return;
+  e.stopPropagation();
+  blMode = !blMode;
+  renderWindow();
+}, true);
 function statLine(label, color, value, dotOpacity) {
   return '<div class="stat-line"><div class="stat-name">' +
     '<span class="stat-dot" style="background:' + color + (dotOpacity ? ';opacity:' + dotOpacity : '') + '"></span>' +
@@ -2154,7 +2180,8 @@ function renderStats() {
   }).join('');
 
   var b = avg(list, 'blunders');
-  $('statsBlunders').innerHTML = statLine('Зевки', 'var(--c-blunder)', b === null ? '—' : b.toFixed(1)) +
+  $('statsBlunders').innerHTML = '<button class="bl-info' + (blMode ? ' on' : '') + '" type="button" title="' + (blMode ? 'Вернуть обычный график' : 'Показать на графике типы зевков') + '">i</button>' +
+    statLine('Зевки', 'var(--c-blunder)', b === null ? '—' : b.toFixed(1)) +
     '<div class="stat-trend">' +
     th(tr(function(l) { return avg(l, 'blunders'); }), false, true) + '</div>';
 }
@@ -2419,14 +2446,28 @@ function renderChart() {
 
   // порядок = слои: нижние первыми
   s.push(series('acc', pct('acc'), 'stroke="#9ca3af" stroke-width="2" stroke-dasharray="6,4" opacity="0.7"', 'r="3" fill="#9ca3af" opacity="0.5"', '#9ca3af'));
-  s.push(series('blunders', function(g) { return yBl(g.blunders); }, 'stroke="#f87171" stroke-width="2" stroke-dasharray="3,3" opacity="0.7"', 'r="3" fill="#f87171" opacity="0.85"', '#f87171'));
+  if (!blMode) s.push(series('blunders', function(g) { return yBl(g.blunders); }, 'stroke="#f87171" stroke-width="2" stroke-dasharray="3,3" opacity="0.7"', 'r="3" fill="#f87171" opacity="0.85"', '#f87171'));
+  else {
+    var bw = Math.min(colW * 0.42, 22), unit = H / bMax;
+    list.forEach(function(g, i) {
+      var y0 = BOT, cnt = {};
+      (g.bl || []).forEach(function(b) { cnt[b.t] = (cnt[b.t] || 0) + 1; });
+      BL_ORDER.forEach(function(t) {
+        if (!cnt[t]) return;
+        var h = Math.min(cnt[t], bMax) * unit;
+        y0 -= h;
+        s.push('<rect x="' + r2(cx(i) - bw / 2) + '" y="' + r2(y0) + '" width="' + r2(bw) + '" height="' + r2(Math.max(h - 1, 1)) + '" rx="2" fill="' + BL_TYPES[t].color + '" opacity="0.9"/>');
+      });
+      if (g.blunders) s.push('<text x="' + cx(i) + '" y="' + r2(y0 - 4) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#f3f4f6">' + g.blunders + '</text>');
+    });
+  }
   s.push(series('end', pct('end'), 'stroke="#a78bfa" stroke-width="2" opacity="0.8"', 'r="3.5" fill="#a78bfa" opacity="0.9"', '#a78bfa'));
   s.push(series('debut', pct('debut'), 'stroke="#60a5fa" stroke-width="2.5" opacity="0.8"', 'r="4" fill="#60a5fa" opacity="0.9"', '#60a5fa'));
   s.push(series('mid', pct('mid'), 'stroke="#f59e0b" stroke-width="2.5" opacity="0.8"', 'r="4" fill="#f59e0b" opacity="0.9"', '#f59e0b'));
 
   // линии средних: ровно по тем партиям, что на графике (= число в панели слева)
   [['acc', '#9ca3af', yPct, '%'], ['debut', '#60a5fa', yPct, '%'], ['mid', '#f59e0b', yPct, '%'],
-   ['end', '#a78bfa', yPct, '%'], ['blunders', '#f87171', yBl, '']].forEach(function(a) {
+   ['end', '#a78bfa', yPct, '%'], ['blunders', '#f87171', yBl, '']].filter(function(a) { return !blMode || a[0] !== 'blunders'; }).forEach(function(a) {
     var v = avg(selCount() ? list.filter(function(g) { return selCols[g.id]; }) : list, a[0]);
     if (v === null) return;
     var yy = a[2](v);
@@ -2453,7 +2494,9 @@ function renderChart() {
     [['win', '#2f7a4a', '#1d4a2f'], ['lose', '#7a2f36', '#4a1d22'], ['draw', '#4b5063', '#2c3040']].map(function(a) {
       return '<linearGradient id="gb-' + a[0] + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + a[1] + '"/><stop offset="1" stop-color="' + a[2] + '"/></linearGradient>';
     }).join('') + '</defs>';
-  $('chart').innerHTML = '<svg viewBox="10 -10 600 245" role="img" aria-label="График последних партий">' + defs + s.join('') + '</svg>';
+  $('chart').innerHTML = '<svg viewBox="10 -10 600 245" role="img" aria-label="График последних партий"' + (blMode ? ' class="bl-mode"' : '') + '>' + defs + s.join('') + '</svg>';
+  $('chartBox').classList.toggle('bl-on', blMode);
+  renderBlLegend(list);
   bindTooltip();
 }
 
@@ -2478,6 +2521,14 @@ function blLabel(b) {
 function blTip(b) {
   return 'Ход ' + b.m + ': ' + b.s + (b.b ? ' — лучше было ' + b.b : '') + (typeof b.d === 'number' ? ' (−' + b.d + ' пешки)' : '') +
     (b.p ? ' · ' + PHASE_RU[b.p] : '') + '. ' + BL_TYPES[b.t].tip.replace(/^./, function(c) { return c.toUpperCase(); });
+}
+// разбивка для подсказки в режиме зевков: цветные строки «● Под боем 7»
+function blBreakdown(list) {
+  var n = {};
+  list.forEach(function(b) { n[b.t] = (n[b.t] || 0) + 1; });
+  return BL_ORDER.filter(function(t) { return n[t]; }).map(function(t) {
+    return '<div style="color:' + BL_TYPES[t].color + '">● ' + BL_TYPES[t].ru + ' ' + n[t] + '</div>';
+  }).join('');
 }
 // «под боем 7, упущен выигрыш 2, …» — по типам, самый частый первым
 function blSummary(list) {
@@ -2611,6 +2662,20 @@ document.addEventListener('pointermove', function(e) { if (e.target.closest && e
 document.addEventListener('pointerout', function(e) {
   if (e.target.closest && e.target.closest('.mr-graph svg') && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.mr-graph svg'))) mrLeave(e);
 });
+var BL_ORDER = ['mateAllowed', 'hang', 'tactic', 'missedWin', 'mateMissed', 'other'];
+function renderBlLegend(list) {
+  var el = $('blLegend');
+  if (!el) return;
+  if (!blMode) { el.innerHTML = ''; return; }
+  var cnt = {}, total = 0;
+  list.forEach(function(g) { (g.bl || []).forEach(function(b) { cnt[b.t] = (cnt[b.t] || 0) + 1; total++; }); });
+  el.innerHTML = '<span class="bl-leg-h">Зевки по типам · ' + total + '</span>' + BL_ORDER.filter(function(t) { return cnt[t]; }).map(function(t) {
+    return '<span class="bl-leg" title="' + esc(BL_TYPES[t].tip) + '"><i style="background:' + BL_TYPES[t].color + '"></i>' + BL_TYPES[t].ru + ' <b>' + cnt[t] + '</b></span>';
+  }).join('') + '<button class="bl-leg-x" type="button" title="Вернуть обычный график">✕</button>';
+}
+document.addEventListener('click', function(e) {
+  if (e.target.closest && e.target.closest('.bl-leg-x')) { blMode = false; renderWindow(); }
+});
 function blChips(g) {
   if (!g.bl || !g.bl.length) return '';
   return '<div class="bl-row"><span class="detail-label">Зевки по типам</span>' + g.bl.map(function(b) {
@@ -2626,7 +2691,7 @@ function tooltipHtml(g) {
     {k: 'mid', html: '<span style="color:#f59e0b">Миттельшпиль: ' + (typeof g.mid === 'number' ? g.mid + '%' : '—') + '</span>'},
     {k: 'end', html: '<span style="color:#a78bfa">Эндшпиль: <span style="color:#e4e4e7">' + (hasEnd(g) ? g.end + '%' : '—') + '</span></span>'},
     {k: 'blunders', html: '<span style="color:#ef4444">Зевки: ' + g.blunders + '</span>' +
-      (g.bl && g.bl.length ? '<span style="color:#9ca3af;font-size:11px"> — ' + blSummary(g.bl) + '</span>' : '')}
+      (blMode && g.bl && g.bl.length ? '<div style="font-size:11px;margin-top:2px">' + blBreakdown(g.bl) + '</div>' : '')}
   ];
   // выделенный слева показатель — первым строкой и крупнее
   if (pinnedSeries) rows.sort(function(a, b) { return (b.k === pinnedSeries) - (a.k === pinnedSeries); });

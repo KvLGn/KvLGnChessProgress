@@ -148,8 +148,13 @@
   .sect-eye.shut .eye-shut { opacity: 1; }
   .sect-eye.shut { color: #a5b4fc; border-color: rgba(129,140,248,0.5); }
   #eyeChart { position: absolute; top: 9px; z-index: 2; }
-  #eyeHead { margin-left: auto; align-self: flex-start; }   /* справа от карточки «Итоги», в свободном месте */
-  .tbl-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  #eyeHead { margin-left: 2px; width: 32px; height: 32px; }
+  #eyeHead svg { width: 18px; height: 18px; }
+  .links { gap: 8px; padding-right: 14px; }
+  .links .link { padding-right: 10px; }   /* место для глаза шапки, чтобы поиск не обрезался */
+  .links .gs-box { padding: 0 10px; gap: 6px; }
+  #eyeHead + .gs { margin-left: 0; }
+  .tbl-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
   .tbl-head .chart-title { margin: 0; }
   .hush-q { color: var(--fg-mute) !important; letter-spacing: 2px; }
   body.hush-head .vd-card { cursor: default; }
@@ -1237,7 +1242,6 @@
     .act-range { margin-left: auto; margin-right: auto; height: 39px; }
     .activity-btn { margin-left: 8px; margin-right: 10px; }
     #eyeChart { position: static; order: 2; margin: 10px 0 0 auto; }
-    #eyeHead { align-self: flex-end; margin: 0; }
     .records-btn, .activity-btn { padding: 0 10px; letter-spacing: 0.5px; }
     .act-range { padding: 0 10px; font-size: 0; gap: 0; }   /* на телефоне только даты, без слова «Период» */
     .act-range b { font-size: 13px; }
@@ -1305,6 +1309,7 @@
         <div class="link-glyph">♝</div>
         <div><div class="link-name">PGN Mentor</div><div class="link-sub">партии мастеров</div></div><span class="link-go">↗</span>
       </a>
+      <button class="sect-eye" id="eyeHead" type="button" data-sec="head"></button>
       <div class="gs" id="gs">
         <label class="gs-box"><span class="gs-lens">🔍</span>
           <input id="gsInput" type="search" autocomplete="off" placeholder="Поиск по всему…" title="Партии, дебюты, разделы, темы задач, итоги" aria-label="Поиск по дашборду">
@@ -1320,7 +1325,6 @@
       <div class="op-detail" id="opDetail" aria-hidden="true"></div>
       <div class="vd-card" id="vdCard" role="button" tabindex="0" aria-expanded="false" aria-controls="vdDetail" title="Итоги по всей статистике"></div>
       <div class="vd-detail vdx" id="vdDetail" aria-hidden="true"></div>
-      <button class="sect-eye" id="eyeHead" type="button" data-sec="head"></button>
     </div>
   </div>
 </div>
@@ -4639,12 +4643,13 @@ document.addEventListener('keydown', function(e) {
 function applyHush() {
   ['head', 'chart', 'table'].forEach(function(k) { document.body.classList.toggle('hush-' + k, hush[k]); });
   document.body.classList.toggle('hush-any', hushAny());
-  $('eyeBtn').classList.toggle('shut', hushAll());
-  $('eyeBtn').title = hushAll() ? 'Показать всё' : 'Скрыть всё';
+  $('eyeBtn').classList.toggle('shut', hushAny());
+  $('eyeBtn').title = hushAny() ? 'Показать всё' : 'Скрыть всё';
   $('eyeBtn').setAttribute('aria-label', $('eyeBtn').title);
   document.querySelectorAll('.sect-eye').forEach(function(b) {
     var on = hush[b.getAttribute('data-sec')];
     b.classList.toggle('shut', on);
+    b.style.display = on ? 'none' : '';   // скрытую часть открывает только глаз у аватарки
     b.title = (on ? 'Показать ' : 'Скрыть ') + SECT_NAME[b.getAttribute('data-sec')];
     b.setAttribute('aria-label', b.title);
   });
@@ -4700,7 +4705,7 @@ $('avatar').addEventListener('click', function(e) {
 $('eyeBtn').addEventListener('click', function(e) {
   e.stopPropagation();
   var btn = this;
-  var all = !hushAll();                   // что-то видно — скрыть всё; всё скрыто — показать всё
+  var all = !hushAny();                   // что-то скрыто — показать всё; ничего не скрыто — скрыть всё
   btn.classList.toggle('shut', all);     // глаз закрывается / открывается
   setTimeout(function() {
     hush = {head: all, chart: all, table: all};

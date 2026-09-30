@@ -516,6 +516,7 @@
   .md-zero { opacity: 0.45; }
   .md-total { font-size: 12px; color: var(--fg-mute); margin: 0 2px 10px; }
   .md-total b { color: var(--fg); }
+  .cf-n { color: #fff; }
   .md-disabled { opacity: 0.25; pointer-events: none; }
   .md-off-note { text-transform: none; letter-spacing: 0; }
   .md-zero.on { opacity: 1; }
@@ -1175,8 +1176,7 @@
         <div class="f-list"></div>
         <button class="cf-more" aria-expanded="false">Показатели <span class="caret">▸</span></button>
         <div class="f-metrics cf-metrics"></div>
-        <div class="md-total cf-total"></div>
-        <div class="f-foot"><button class="f-link" data-act="clear">Сбросить фильтр графика</button></div>
+                <div class="f-foot"><button class="f-link" data-act="clear">Сбросить фильтр графика</button></div>
       </div>
     </div>
   </div>
@@ -2138,7 +2138,7 @@ function toggleDrop(id) {
   el.classList.toggle('open', open);
   el.querySelector('.f-btn').setAttribute('aria-expanded', String(open));
   if (open && id === 'fOpening') { renderOpeningList(); el.querySelector('.f-search').focus(); }
-  if (open && id === 'fMode') el.querySelector('.md-body').innerHTML = modeChipsHtml(filt.modes, filterGames(games).length);
+  if (open && id === 'fMode') el.querySelector('.md-body').innerHTML = modeChipsHtml(filt.modes);
 }
 function closeDrops() {
   ['fOpening', 'fMetrics', 'fMode'].forEach(function(id) {
@@ -2162,7 +2162,7 @@ $('fMode').addEventListener('click', function(e) {
   if (t) toggleMode(filt, t.getAttribute('data-mg'), t.getAttribute('data-mk'));
   else if (e.target.closest('[data-act="clear"]')) filt.modes = {};
   else return;
-  $('fMode').querySelector('.md-body').innerHTML = modeChipsHtml(filt.modes, filterGames(games).length);
+  $('fMode').querySelector('.md-body').innerHTML = modeChipsHtml(filt.modes);
   filtersChanged();
 });
 
@@ -2238,7 +2238,6 @@ function renderCfMenu() {
     return '<button class="f-chip' + (on ? ' on' : '') + '" data-c="' + c + '"><span class="f-knight">' + KNIGHT[c] + '</span>' + COLOR_NAME[c] + '</button>';
   }).join('');
   el.querySelector('.cf-modes').innerHTML = modeChipsHtml(cfilt.modes);
-  el.querySelector('.cf-total').innerHTML = 'Под все условия фильтра подходит <b>' + filterChart(games).length + '</b> из ' + games.length + ' ' + plural(games.length, 'партии', 'партий', 'партий');
   var q = el.querySelector('.f-search').value.trim().toLowerCase();
   var items = openingStats().filter(function(o) { return !q || o.name.toLowerCase().indexOf(q) >= 0; });
   el.querySelector('.f-list').innerHTML = items.length ? items.map(function(o) {
@@ -2304,7 +2303,9 @@ function renderChartFilter(keepMenu) {
   }).join('');
   var btn = $('cf').querySelector('.f-btn');
   btn.classList.toggle('active', cfActive());
-  btn.innerHTML = '⏷ Фильтр графика' + (cfActive() ? ' · ' + pills.length : '');
+  // на кнопке — сколько партий осталось под фильтром
+  btn.innerHTML = '⏷ Фильтр графика' + (cfActive() ? ' · <b class="cf-n">' + cgAll.length + '</b> из ' + games.length : '');
+  btn.title = cfActive() ? 'Под фильтр подходит ' + cgAll.length + ' из ' + games.length + ' партий · условий: ' + pills.length : 'Фильтр для графика показателей и активности';
   if (!keepMenu && $('cf').classList.contains('open')) renderCfMenu();
 }
 

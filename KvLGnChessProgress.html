@@ -4605,37 +4605,39 @@ function aiCtx() {
   var ph = PH.map(function(p) { return {ru: p[1], en: p[2], v: avg(last, p[0])}; }).filter(function(x) { return x.v !== null; }).sort(function(a, b) { return a.v - b.v; })[0] || {ru: 'миттельшпиль', en: 'middlegame'};
   var P = window.PUZZLES, th = [];
   if (P && P.themeStats) th = Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k] && P.themeStats[k].nb >= PZ_MIN_THEME; })
-    .sort(function(a, b) { return P.themeStats[a].perf - P.themeStats[b].perf; }).slice(0, 3).map(function(k) { return (P.themeNames || {})[k] || PZ_NAMES[k] || k; });
+    .sort(function(a, b) { return P.themeStats[a].perf - P.themeStats[b].perf; }).slice(0, 3);
+  var thEn = th.map(function(k) { return k.replace(/([a-z])([A-Z0-9])/g, '$1 $2').toLowerCase(); });   // discoveredAttack → discovered attack
+  th = th.map(function(k) { return (P.themeNames || {})[k] || PZ_NAMES[k] || k; });
   var op = ((window.OPENINGS || {}).current || [])[0];
-  return {phase: ph, themes: th.join(', ') || '—', op: op ? op.name : 'мой дебют', opEn: op ? (op.match || [op.name])[0] : 'my opening',
+  return {phase: ph, themes: th.join(', ') || '—', themesEn: (typeof thEn !== 'undefined' && thEn.join(', ')) || '—', op: op ? op.name : 'мой дебют', opEn: op ? (op.match || [op.name])[0] : 'my opening',
           engine: CUR.stage ? CUR.stage.engine : 5};
 }
 var AI_ASKS = [
   {g: 'Разбор игры', gEn: 'Game review', items: [
-    {t: 'Главная слабость сейчас', ru: 'Что больше всего мешает мне выигрывать? Назови одну главную проблему и как её лечить.', en: 'What hurts my results most? Name one main problem and how to fix it.'},
-    {t: 'Разбор последних поражений', ru: 'Что общего у моих поражений: фаза, зевки, дебют? Что из этого исправить первым?', en: 'What do my losses have in common (phase, blunders, opening)? What to fix first?'},
-    {t: function(c) { return 'Почему слабый ' + c.phase.ru; }, ru: function(c) { return 'Почему у меня слабая фаза «' + c.phase.ru + '» и что именно тренировать?'; }, en: function(c) { return 'Why is my ' + c.phase.en + ' weak and what exactly should I train?'; }},
-    {t: 'Победы против поражений', ru: 'Чем мои выигранные партии отличаются от проигранных? Что повторять, чего избегать?', en: 'How do my wins differ from my losses? What to repeat, what to avoid?'}
+    {t: 'Главная слабость сейчас', tEn: 'Main weakness right now', ru: 'Что больше всего мешает мне выигрывать? Назови одну главную проблему и как её лечить.', en: 'What hurts my results most? Name one main problem and how to fix it.'},
+    {t: 'Разбор последних поражений', tEn: 'Review of my recent losses', ru: 'Что общего у моих поражений: фаза, зевки, дебют? Что из этого исправить первым?', en: 'What do my losses have in common (phase, blunders, opening)? What to fix first?'},
+    {t: function(c) { return 'Почему слабый ' + c.phase.ru; }, tEn: function(c) { return 'Why my ' + c.phase.en + ' is weak'; }, ru: function(c) { return 'Почему у меня слабая фаза «' + c.phase.ru + '» и что именно тренировать?'; }, en: function(c) { return 'Why is my ' + c.phase.en + ' weak and what exactly should I train?'; }},
+    {t: 'Победы против поражений', tEn: 'Wins vs losses', ru: 'Чем мои выигранные партии отличаются от проигранных? Что повторять, чего избегать?', en: 'How do my wins differ from my losses? What to repeat, what to avoid?'}
   ]},
   {g: 'Тренировки', gEn: 'Training', items: [
-    {t: 'План на неделю', ru: 'Составь план тренировок на 7 дней по 30–60 минут: задачи, партии, дебют. По дням.', en: 'Make a 7-day training plan, 30–60 min a day: puzzles, games, opening. Day by day.'},
-    {t: 'Задачи под слабые темы', ru: function(c) { return 'Какие темы задач решать и сколько в день? Мои слабые темы: ' + c.themes + '.'; }, en: function(c) { return 'Which puzzle themes to solve and how many per day? My weak themes: ' + c.themes + '.'; }},
-    {t: 'Чек-лист перед партией', ru: 'Дай короткий чек-лист из 5 пунктов, который мне проходить перед каждой партией и во время неё.', en: 'Give a short 5-point checklist to go through before and during each game.'},
-    {t: 'Как разбирать свою партию', ru: 'Пошагово: как мне самому разбирать партию после игры с движком Lichess, чтобы был толк.', en: 'Step by step: how should I review my own game afterwards with the Lichess engine?'}
+    {t: 'План на неделю', tEn: 'Weekly plan', ru: 'Составь план тренировок на 7 дней по 30–60 минут: задачи, партии, дебют. По дням.', en: 'Make a 7-day training plan, 30–60 min a day: puzzles, games, opening. Day by day.'},
+    {t: 'Задачи под слабые темы', tEn: 'Puzzles for weak themes', ru: function(c) { return 'Какие темы задач решать и сколько в день? Мои слабые темы: ' + c.themes + '.'; }, en: function(c) { return 'Which puzzle themes to solve and how many per day? My weak themes: ' + c.themesEn + '.'; }},
+    {t: 'Чек-лист перед партией', tEn: 'Pre-game checklist', ru: 'Дай короткий чек-лист из 5 пунктов, который мне проходить перед каждой партией и во время неё.', en: 'Give a short 5-point checklist to go through before and during each game.'},
+    {t: 'Как разбирать свою партию', tEn: 'How to review my own game', ru: 'Пошагово: как мне самому разбирать партию после игры с движком Lichess, чтобы был толк.', en: 'Step by step: how should I review my own game afterwards with the Lichess engine?'}
   ]},
   {g: 'Дебюты', gEn: 'Openings', items: [
-    {t: function(c) { return 'Что учить в дебюте «' + c.op + '»'; }, ru: function(c) { return 'Какие линии дебюта «' + c.op + '» мне важнее всего понять на моём уровне и в каком порядке?'; }, en: function(c) { return 'Which lines of the ' + c.opEn + ' matter most at my level, and in what order?'; }},
-    {t: 'Типичные планы после дебюта', ru: function(c) { return 'Главные идеи и планы в миттельшпиле после дебюта «' + c.op + '» — простыми словами, 5 пунктов.'; }, en: function(c) { return 'Main middlegame ideas and plans after the ' + c.opEn + ' — in simple words, 5 points.'; }}
+    {t: function(c) { return 'Что учить в дебюте «' + c.op + '»'; }, tEn: function(c) { return 'What to learn in the ' + c.opEn; }, ru: function(c) { return 'Какие линии дебюта «' + c.op + '» мне важнее всего понять на моём уровне и в каком порядке?'; }, en: function(c) { return 'Which lines of the ' + c.opEn + ' matter most at my level, and in what order?'; }},
+    {t: 'Типичные планы после дебюта', tEn: 'Typical plans after the opening', ru: function(c) { return 'Главные идеи и планы в миттельшпиле после дебюта «' + c.op + '» — простыми словами, 5 пунктов.'; }, en: function(c) { return 'Main middlegame ideas and plans after the ' + c.opEn + ' — in simple words, 5 points.'; }}
   ]},
   {g: 'Прогресс', gEn: 'Progress', items: [
-    {t: 'Сколько до цели этапа', ru: 'Реально ли выполнить цель этапа за неделю при моих цифрах? Что ускорит?', en: 'Can I reach the stage goal within a week with my numbers? What would speed it up?'},
-    {t: 'Честная оценка прогресса', ru: 'Оцени мой прогресс с начала занятий: что стало лучше, что нет, на что обратить внимание.', en: 'Assess my progress since I started: what improved, what did not, what to watch.'}
+    {t: 'Сколько до цели этапа', tEn: 'How far to the stage goal', ru: 'Реально ли выполнить цель этапа за неделю при моих цифрах? Что ускорит?', en: 'Can I reach the stage goal within a week with my numbers? What would speed it up?'},
+    {t: 'Честная оценка прогресса', tEn: 'Honest progress review', ru: 'Оцени мой прогресс с начала занятий: что стало лучше, что нет, на что обратить внимание.', en: 'Assess my progress since I started: what improved, what did not, what to watch.'}
   ]},
   {g: 'План (вернёт новый plan.js)', gEn: 'Plan (returns a new plan.js)', plan: true, items: [
-    {t: 'Пора ли менять правило перехода', ru: 'Не слишком ли жёсткое или мягкое правило перехода для моих цифр? Если нужно — поправь rule.', en: 'Is the stage transition rule too strict or too easy for my numbers? Adjust rule if needed.'},
-    {t: 'Добавить следующий этап', ru: function(c) { return 'Добавь следующий этап после последнего (например, оба цвета против Stockfish ' + (c.engine + 1) + ').'; }, en: function(c) { return 'Add the next stage after the last one (e.g. both colours vs Stockfish ' + (c.engine + 1) + ').'; }},
-    {t: 'Сменить или добавить дебют', ru: 'Помоги сменить или добавить дебют в план (я допишу какой): ', en: 'Help me change or add an opening in the plan (I will specify which): '},
-    {t: 'Пересобрать дорожную карту', ru: 'Предложи этапы после текущей дорожной карты с учётом моего темпа.', en: 'Propose stages after the current roadmap, considering my pace.'}
+    {t: 'Пора ли менять правило перехода', tEn: 'Should the transition rule change', ru: 'Не слишком ли жёсткое или мягкое правило перехода для моих цифр? Если нужно — поправь rule.', en: 'Is the stage transition rule too strict or too easy for my numbers? Adjust rule if needed.'},
+    {t: 'Добавить следующий этап', tEn: 'Add the next stage', ru: function(c) { return 'Добавь следующий этап после последнего (например, оба цвета против Stockfish ' + (c.engine + 1) + ').'; }, en: function(c) { return 'Add the next stage after the last one (e.g. both colours vs Stockfish ' + (c.engine + 1) + ').'; }},
+    {t: 'Сменить или добавить дебют', tEn: 'Change or add an opening', ru: 'Помоги сменить или добавить дебют в план (я допишу какой): ', en: 'Help me change or add an opening in the plan (I will specify which): '},
+    {t: 'Пересобрать дорожную карту', tEn: 'Rebuild the roadmap', ru: 'Предложи этапы после текущей дорожной карты с учётом моего темпа.', en: 'Propose stages after the current roadmap, considering my pace.'}
   ]}
 ];
 var aiLang = 'ru';
@@ -4652,14 +4654,14 @@ function renderAiMenu() {
   var c = aiCtx();
   function v(x) { return typeof x === 'function' ? x(c) : x; }
   $('aiMenu').innerHTML = '<div class="ai-box" role="dialog" aria-label="Запрос для ИИ">' +
-    '<div class="ai-head"><b>📋 Запрос для ИИ</b>' +
+    '<div class="ai-head"><b>📋 ' + (aiLang === 'en' ? 'AI request' : 'Запрос для ИИ') + '</b>' +
       '<span class="ai-lang"><button data-lang="ru" class="' + (aiLang === 'ru' ? 'on' : '') + '">RU</button><button data-lang="en" class="' + (aiLang === 'en' ? 'on' : '') + '">EN</button></span>' +
       '<button class="pzd-close ai-close" aria-label="Закрыть">×</button></div>' +
-    '<div class="ai-note">Нажми на пункт — скопируется промпт + сводка + просьба. Вставь в любую нейросеть и отправь.</div>' +
+    '<div class="ai-note">' + (aiLang === 'en' ? 'Click an item — prompt + summary + request are copied. Paste into any AI chat and send.' : 'Нажми на пункт — скопируется промпт + сводка + просьба. Вставь в любую нейросеть и отправь.') + '</div>' +
     '<div class="ai-list">' + AI_ASKS.map(function(G, gi) {
       return '<div class="ai-group' + (G.plan ? ' plan' : '') + '">' + (aiLang === 'en' ? G.gEn : G.g) + '</div>' +
         G.items.map(function(it, ii) {
-          return '<button class="ai-item" data-g="' + gi + '" data-i="' + ii + '"><span class="ai-t">' + esc(v(it.t)) + '</span><span class="ai-s">' + esc(v(it[aiLang])) + '</span></button>';
+          return '<button class="ai-item" data-g="' + gi + '" data-i="' + ii + '"><span class="ai-t">' + esc(v(aiLang === 'en' && it.tEn ? it.tEn : it.t)) + '</span><span class="ai-s">' + esc(v(it[aiLang])) + '</span></button>';
         }).join('');
     }).join('') + '</div>' +
     '<div class="ai-own"><textarea id="aiOwn" rows="2" placeholder="' + (aiLang === 'en' ? 'Your own question…' : 'Свой вопрос…') + '"></textarea>' +
@@ -4691,7 +4693,8 @@ $('aiMenu').addEventListener('click', function(e) {
     var ask = typeof I[aiLang] === 'function' ? I[aiLang](c) : I[aiLang];
     copyText(aiText(ask, !!G.plan));
     it.classList.add('done'); setTimeout(function() { it.classList.remove('done'); }, 1500);
-    toast((aiLang === 'en' ? 'Copied: ' : 'Скопировано: ') + (typeof I.t === 'function' ? I.t(c) : I.t) + (aiLang === 'en' ? ' — paste into any AI chat' : ' — вставь в чат с нейросетью'));
+    var tt = aiLang === 'en' && I.tEn ? I.tEn : I.t;
+    toast((aiLang === 'en' ? 'Copied: ' : 'Скопировано: ') + (typeof tt === 'function' ? tt(c) : tt) + (aiLang === 'en' ? ' — paste into any AI chat' : ' — вставь в чат с нейросетью'));
     return;
   }
   var own = e.target.closest('[data-own]');

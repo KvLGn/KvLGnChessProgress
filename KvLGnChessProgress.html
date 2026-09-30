@@ -432,14 +432,16 @@
   .cmp-x { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin: 0 -6px 0 10px; border-radius: 4px; font-size: 11px; letter-spacing: 0; color: #6ee7b7; background: rgba(52,211,153,0.12); vertical-align: 1px; }
   .cmp-x:hover { color: #fff; background: rgba(239,68,68,0.5); }
   .cmp-btn.on { color: #34d399; border-color: #34d399; background: rgba(52,211,153,0.12); }
-  .records-on .cmp-btn, .mode-activity .cmp-btn, .records-on .cmp-hint, .mode-activity .cmp-hint { display: none !important; }
+  .records-on .cmp-btn, .records-on .cmp-hint { display: none !important; }
+  .chart-container.mode-activity .cmp-hint { left: auto; right: 150px; transform: none; }
+  .cmp-picking .act-range { visibility: hidden; }
   /* подсказка — по центру над графиком, на высоте кнопок */
   .cmp-hint { position: absolute; top: 7px; height: 39px; display: flex; align-items: center; left: calc(200px + (100% - 200px) / 2 + 60px); transform: translateX(-50%); z-index: 2;
     font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
   .cmp-hint b { color: var(--fg); margin: 0 3px; }
   .cmp-view { padding: 12px 18px 14px 28px; }
   /* экран сравнения: без легенды снизу */
-  .cmp-on .legend .legend-item.metrics-only { visibility: hidden; }
+  .cmp-on .legend .legend-item { visibility: hidden; }
   .cmp-head { display: grid; grid-template-columns: 1fr 40px 1fr; align-items: stretch; gap: 8px; margin-bottom: 8px; }
   .cmp-side { min-width: 0; padding: 7px 12px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-top: 2px solid; }
   .cmp-side.a { border-top-color: #e4e4e7; } .cmp-side.b { border-top-color: #34d399; }
@@ -1619,19 +1621,31 @@ var cmpSet = {};      // id партии → true (группа B)
 function cmpCount() { return Object.keys(cmpSet).length; }
 function cmpGames() { return windowGames().filter(function(g) { return cmpSet[g.id]; }); }
 function renderCmpBtn() {
-  var b = $('cmpBtn'), h = $('cmpHint');
-  var show = chartMode !== 'activity' && !showRecords && (selCount() > 0 || cmpMode);
+  var b = $('cmpBtn'), h = $('cmpHint'), act = chartMode === 'activity';
+  var mode = act ? aCmpMode : cmpMode, cnt = act ? aCmpCount() : cmpCount(), base = act ? actSelCount() : selCount();
+  var show = !showRecords && (base > 0 || mode);
   b.style.display = show ? '' : 'none';
-  h.style.display = cmpMode === 'pick' ? '' : 'none';
+  h.style.display = mode === 'pick' ? '' : 'none';
+  $('chartBox').classList.toggle('cmp-picking', act && !!mode);   // в активности подсказка заменяет «Период»
   if (!show) return;
-  if (!cmpMode) b.textContent = 'Сравнить';
-  else if (cmpMode === 'pick') b.innerHTML = cmpCount() ? 'Показать · ' + cmpCount() + '<span class="cmp-x" title="Отменить сравнение (Esc)">✕</span>' : 'Отмена';
-  else b.innerHTML = 'К выбору<span class="cmp-x" title="Выйти из сравнения (снимает выделение колонок)">✕</span>';
-  b.classList.toggle('on', !!cmpMode);
-  h.innerHTML = cmpCount() ? 'Отмечено для сравнения: <b>' + cmpCount() + '</b> — нажми «Показать»' : 'Выбери партии для сравнения — клик по колонкам';
+  if (!mode) b.textContent = 'Сравнить';
+  else if (mode === 'pick') b.innerHTML = cnt ? 'Показать · ' + cnt + '<span class="cmp-x" title="Отменить сравнение (Esc)">✕</span>' : 'Отмена';
+  else b.innerHTML = 'К выбору<span class="cmp-x" title="Выйти из сравнения (снимает выделение)">✕</span>';
+  b.classList.toggle('on', !!mode);
+  var what = act ? plural(cnt, 'день', 'дня', 'дней') : plural(cnt, 'партия', 'партии', 'партий');
+  h.innerHTML = cnt ? 'Отмечено для сравнения: <b>' + cnt + '</b> ' + what + ' — нажми «Показать»'
+                    : (act ? 'Выбери дни для сравнения — клик по столбикам' : 'Выбери партии для сравнения — клик по колонкам');
 }
 $('cmpBtn').addEventListener('click', function(e) {
   e.stopPropagation();
+  if (chartMode === 'activity') {
+    if (e.target.closest('.cmp-x')) { aCmpMode = null; aCmpSet = {}; selDays = {}; renderActivity(); return; }
+    if (!aCmpMode) { aCmpMode = 'pick'; aCmpSet = {}; }
+    else if (aCmpMode === 'pick') aCmpMode = aCmpCount() ? 'view' : null;
+    else aCmpMode = 'pick';
+    renderActivity();
+    return;
+  }
   if (e.target.closest('.cmp-x')) { cmpMode = null; cmpSet = {}; selCols = {}; renderWindow(); return; }   // крестик — отмена сравнения и выбора колонок   // крестик — отмена сравнения
   if (!cmpMode) { cmpMode = 'pick'; cmpSet = {}; }
   else if (cmpMode === 'pick') cmpMode = cmpCount() ? 'view' : null;
@@ -2091,6 +2105,7 @@ function bindTooltip() {
         else selectColumn(chartGames[+el.getAttribute('data-i')], e.ctrlKey || e.metaKey);
         return;
       }
+      if (aCmpMode === 'pick' && el.hasAttribute('data-b')) { toggleACmp(+el.getAttribute('data-b')); return; }
       if (el.hasAttribute('data-res')) {   // график активности: клик по победам / поражениям в столбике
         setRes(el.getAttribute('data-res'), e.ctrlKey || e.metaKey);
         return;
@@ -2401,7 +2416,7 @@ function cfActive() { return modeCount(cfilt.modes) > 0 || hasKeys(cfilt.results
 function chartFilterChanged() {
   cgAll = filterChart(games);
   selCols = {}; cmpMode = null; cmpSet = {};
-  selDays = {};
+  selDays = {}; aCmpMode = null; aCmpSet = {};
   renderChartFilter();
   renderWindow();
   if (chartMode === 'activity') renderActivity();
@@ -2668,7 +2683,7 @@ function periodAnchor() {
 }
 function shiftPeriod(d) {
   periodOffset = Math.min(0, periodOffset + d);
-  selDays = {};
+  selDays = {}; aCmpMode = null; aCmpSet = {};
   renderActivity();
 }
 
@@ -2729,6 +2744,10 @@ var actBuckets = [];
 function renderActivity() {
   if (showRecords) { actBuckets = activityBuckets(); renderRecords(); renderActivityStats(); renderPeriodPick(); return; }
   var list = actBuckets = activityBuckets(), n = list.length;
+  renderCmpBtn();
+  var aView = aCmpMode === 'view' && actSelCount() && aCmpCount();
+  $('chartBox').classList.toggle('cmp-on', !!aView);
+  if (aView) { $('chart').innerHTML = actCmpHtml(); renderPeriodPick(); renderActivityStats(); return; }
   var X0 = 40, W = 550, TOP = 20, BOT = 180, H = BOT - TOP;
   var colW = W / n;
   var dense = n > 20;
@@ -2792,6 +2811,7 @@ function renderActivity() {
     }
   });
   if (actSelCount()) list.forEach(function(b, i) {
+    if (aCmpMode && aCmpSet[i]) { s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="219" fill="rgba(52,211,153,0.08)" stroke="#34d399" stroke-opacity="0.8" stroke-width="1.2" rx="2"/>'); return; }
     if (selDays[i]) s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="219" fill="rgba(255,255,255,0.04)" stroke="#e4e4e7" stroke-opacity="0.55" stroke-width="1.2" rx="2"/>');
     else s.push('<rect x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="220" fill="#0d0f17" opacity="0.62"/>');
   });
@@ -2876,7 +2896,61 @@ function periodElo(r) {
 var selDays = {};   // индекс столбика → true
 // в режиме рекордов столбиков нет — выбор не действует
 function actSelCount() { return Object.keys(selDays).length; }
-function clearActSelection() { if (actSelCount()) { selDays = {}; renderActivity(); } }
+function clearActSelection() { if (actSelCount() || aCmpMode) { selDays = {}; aCmpMode = null; aCmpSet = {}; renderActivity(); } }
+
+/* ---------- сравнение дней (график активности): выбранные дни против отмеченных ---------- */
+var aCmpMode = null, aCmpSet = {};   // индексы столбиков
+function aCmpCount() { return Object.keys(aCmpSet).length; }
+function toggleACmp(i) {
+  if (selDays[i]) return;
+  if (aCmpSet[i]) delete aCmpSet[i]; else aCmpSet[i] = true;
+  renderActivity();
+}
+function bucketLabel(bs) {
+  if (bs.length === 1) return bs[0].title;
+  return bs.length + ' ' + (period === '3months' ? plural(bs.length, 'неделя', 'недели', 'недель') : plural(bs.length, 'день', 'дня', 'дней'));
+}
+function actCmpSide(bs, cls, title) {
+  var gs = byRes([].concat.apply([], bs.map(function(b) { return b.games; })));
+  return '<div class="cmp-side ' + cls + '"><div class="cmp-side-h">' + title + '</div>' +
+    '<div class="cmp-side-t">' + esc(bucketLabel(bs)) + '</div>' +
+    '<div class="cmp-side-m">' + (bs.length > 1 ? bs.map(function(b) { return b.bottom; }).join(', ') + ' · ' : '') + wlHtml(gs) + '</div></div>';
+}
+function actCmpHtml() {
+  var A = actBuckets.filter(function(b, i) { return selDays[i]; }), B = actBuckets.filter(function(b, i) { return aCmpSet[i]; });
+  function gs(bs) { return byRes([].concat.apply([], bs.map(function(b) { return b.games; }))); }
+  var ga = gs(A), gb = gs(B);
+  function days(bs, list) { return list.map(function(g) { return g.day; }).filter(function(d, k, a) { return a.indexOf(d) === k; }).length; }
+  var rows = [
+    {label: 'Партий', color: 'var(--yellow)', a: ga.length, b: gb.length, neutral: true, int: true},
+    {label: 'Активн. дней', color: 'var(--c-debut)', a: days(A, ga), b: days(B, gb), neutral: true, int: true},
+    {label: 'Винрейт', color: '#4ade80', a: winrate(ga), b: winrate(gb), pct: true},
+    {label: 'Точность', color: '#c8c9cd', a: avg(ga, 'acc'), b: avg(gb, 'acc'), pct: true},
+    {label: 'Дебют', color: '#60a5fa', a: avg(ga, 'debut'), b: avg(gb, 'debut'), pct: true},
+    {label: 'Миттельшпиль', color: '#f59e0b', a: avg(ga, 'mid'), b: avg(gb, 'mid'), pct: true},
+    {label: 'Эндшпиль', color: '#a78bfa', a: avg(ga, 'end'), b: avg(gb, 'end'), pct: true},
+    {label: 'Зевки', color: '#f87171', a: avg(ga, 'blunders'), b: avg(gb, 'blunders'), lower: true}
+  ];
+  var html = rows.map(function(r) {
+    var a = r.a, b = r.b;
+    function fmt(v) { return v === null ? '—' : r.pct ? v.toFixed(1) + '<small>%</small>' : r.int ? String(v) : (Math.round(v * 10) / 10); }
+    var d = a === null || b === null ? null : a - b, dTxt = '', cls = '';
+    if (d !== null) {
+      var good = r.neutral ? null : r.lower ? d < 0 : d > 0;
+      cls = Math.abs(d) < 0.05 || good === null ? '' : good ? 'up' : 'down';
+      dTxt = (d > 0 ? '+' : d < 0 ? '−' : '') + (Math.round(Math.abs(d) * 10) / 10) + (r.pct ? '%' : '');
+    }
+    var max = r.pct ? 100 : Math.max(a || 0, b || 0, 1);
+    function bar(v, c, side) { return '<span class="cmp-bar' + (side ? ' ' + side : '') + '"><i style="width:' + (v === null ? 0 : Math.min(100, v / max * 100)) + '%;background:' + c + '"></i></span>'; }
+    return '<div class="cmp-row"><span class="cmp-lbl" style="color:' + r.color + '">' + r.label + '</span>' +
+      '<span class="cmp-a">' + fmt(a) + '</span>' + bar(a, '#e4e4e7', 'l') +
+      '<span class="cmp-d ' + cls + '">' + (dTxt || '—') + '</span>' +
+      bar(b, '#34d399') + '<span class="cmp-b">' + fmt(b) + '</span></div>';
+  }).join('');
+  return '<div class="cmp-view">' +
+    '<div class="cmp-head">' + actCmpSide(A, 'a', 'Выбрано') + '<div class="cmp-vs">vs</div>' + actCmpSide(B, 'b', 'Сравнение') + '</div>' +
+    '<div class="cmp-rows">' + html + '</div></div>';
+}
 function selectBucket(i, add) {
   if (add) { if (selDays[i]) delete selDays[i]; else selDays[i] = true; }
   else if (actSelCount() === 1 && selDays[i]) selDays = {};
@@ -3020,7 +3094,7 @@ $('periodPick').addEventListener('click', function(e) {
   var opt = e.target.closest('.win-opt');
   if (opt) {
     period = opt.getAttribute('data-p');
-    selDays = {};
+    selDays = {}; aCmpMode = null; aCmpSet = {};
     periodOffset = 0;
     try { localStorage.setItem('activityPeriod', period); } catch (err) {}
     setPeriodMenu(false);
@@ -3837,7 +3911,11 @@ function toggleVerdict(open) {
 $('vdCard').addEventListener('click', function() { toggleVerdict(); });
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape' || $('sideRow').classList.contains('vd-open')) return;
-  if (chartMode === 'activity') clearActSelection();
+  if (chartMode === 'activity') {
+    if (aCmpMode === 'view') { aCmpMode = 'pick'; renderActivity(); }
+    else if (aCmpMode === 'pick') { aCmpMode = null; aCmpSet = {}; renderActivity(); }
+    else clearActSelection();
+  }
   else if (cmpMode === 'view') { cmpMode = 'pick'; renderWindow(); }
   else if (cmpMode === 'pick') { cmpMode = null; cmpSet = {}; renderWindow(); }
   else if (selCount()) clearSelection();

@@ -3709,7 +3709,7 @@ function setMode(m) {
     var ranges = picked.map(function(b) { return {from: isoDay(b.from), to: isoDay(b.to)}; });
     var any = ranges.length && cgAll.some(function(g) { return ranges.some(function(r) { return g.day >= r.from && g.day <= r.to; }); });
     dayView = any ? {ranges: ranges, label: picked.length === 1 ? picked[0].title : picked.length + ' ' + plural(picked.length, period === '3months' ? 'неделя' : 'день', period === '3months' ? 'недели' : 'дня', period === '3months' ? 'недель' : 'дней')} : null;
-    selCols = {}; cmpMode = null; cmpSet = {};
+    if (dayView) { selCols = {}; cmpMode = null; cmpSet = {}; }   // выбор партий сбрасывается, только если пришли с выбранными днями
   }
   if (m === 'activity' && chartMode !== 'activity') {
     linkGames = {};

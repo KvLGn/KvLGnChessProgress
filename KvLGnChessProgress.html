@@ -4659,9 +4659,14 @@ function aiOpGames(c) {
 }
 var AI_DATA = {
   weak: function() { return ['Последние 10 партий подробно:'].concat(games.slice(-10).map(aiGame)); },
+  // поражения из последних 10 партий; если их меньше 3 — добавляются более ранние (помечены), чтобы было что сравнивать
   losses: function() {
-    var L = games.filter(function(g) { return g.result === 'lose'; }).slice(-15);
-    return ['Все поражения (' + L.length + ', последние 15):'].concat(L.length ? L.map(aiGame) : ['поражений нет']);
+    var isL = function(g) { return g.result === 'lose'; };
+    var recent = games.slice(-10).filter(isL);
+    var older = recent.length < 3 ? games.slice(0, -10).filter(isL).slice(-(3 - recent.length)) : [];
+    if (!recent.length && !older.length) return ['Поражений нет'];
+    return ['Поражения из последних 10 партий: ' + recent.length + (older.length ? ' (мало — добавлены ' + older.length + ' более ранних)' : '') + ':']
+      .concat(older.map(function(g) { return aiGame(g) + ' (раньше)'; }), recent.map(aiGame));
   },
   phase: function(c) {
     var k = {'дебют': 'debut', 'миттельшпиль': 'mid', 'эндшпиль': 'end'}[c.phase.ru] || 'mid';

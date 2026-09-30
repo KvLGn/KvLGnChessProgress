@@ -424,6 +424,37 @@
   }
   .records-btn:hover, .records-on .records-btn { background: rgba(167,139,250,0.12); }
 
+  /* сравнение партий */
+  .cmp-btn { position: absolute; top: 7px; left: 330px; z-index: 2; height: 39px; padding: 0 14px; border-radius: 8px;
+    font: 600 11px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: #e4e4e7;
+    background: transparent; border: 1px solid rgba(228,228,231,0.5); cursor: pointer; transition: background 0.15s; }
+  .cmp-btn:hover { background: rgba(255,255,255,0.06); }
+  .cmp-btn.on { color: #c4b5fd; border-color: #a78bfa; background: rgba(167,139,250,0.1); }
+  .records-on .cmp-btn, .mode-activity .cmp-btn, .records-on .cmp-hint, .mode-activity .cmp-hint { display: none !important; }
+  .cmp-hint { position: absolute; top: 18px; left: calc(200px + (100% - 200px) / 2); transform: translateX(-50%); z-index: 2;
+    font-size: 12px; color: #c4b5fd; white-space: nowrap; }
+  .cmp-hint b { color: #fff; }
+  .cmp-view { padding: 0 18px 0 28px; }
+  .cmp-head { display: grid; grid-template-columns: 1fr 40px 1fr; align-items: stretch; gap: 8px; margin-bottom: 8px; }
+  .cmp-side { min-width: 0; padding: 7px 12px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-top: 2px solid; }
+  .cmp-side.a { border-top-color: #e4e4e7; } .cmp-side.b { border-top-color: #a78bfa; }
+  .cmp-side-h { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); }
+  .cmp-side.b .cmp-side-h { color: #a78bfa; }
+  .cmp-side-t { font-size: 14px; font-weight: 600; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cmp-side-m { font-size: 12px; color: var(--fg-dim); margin-top: 2px; }
+  .cmp-side-m a { color: #60a5fa; text-decoration: none; }
+  .cmp-vs { align-self: center; text-align: center; font-size: 12px; font-weight: 700; color: var(--fg-mute); text-transform: uppercase; }
+  .cmp-rows { display: flex; flex-direction: column; gap: 1px; }
+  .cmp-row { display: grid; grid-template-columns: 110px 70px 1fr 78px 1fr 70px; align-items: center; gap: 10px; font-size: 12.5px; padding: 1px 0; }
+  .cmp-lbl { font-weight: 600; }
+  .cmp-a, .cmp-b { font-weight: 700; color: #f3f4f6; font-variant-numeric: tabular-nums; }
+  .cmp-a { text-align: right; } .cmp-a small, .cmp-b small { font-size: 10px; color: var(--fg-dim); }
+  .cmp-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.06); overflow: hidden; display: block; }
+  .cmp-bar i { display: block; height: 100%; border-radius: 3px; opacity: 0.75; }
+  .cmp-bar.l { display: flex; justify-content: flex-end; }   /* левая полоса растёт к центру */
+  .cmp-d { text-align: center; font-size: 11.5px; font-weight: 700; color: var(--fg-mute); padding: 0; border-radius: 999px; background: rgba(255,255,255,0.03); }
+  .cmp-d.up { color: var(--up); background: rgba(0,230,118,0.1); } .cmp-d.down { color: var(--red); background: rgba(239,68,68,0.1); }
+
   /* переключатель «за период | за всё время» */
   .rec-scope {
     display: none;
@@ -1247,6 +1278,8 @@
     </div>
     </div>
     <button class="records-btn" id="recordsBtn">Рекорды</button>
+    <button class="cmp-btn" id="cmpBtn" title="Сравнить выбранную партию с другими"></button>
+    <div class="cmp-hint" id="cmpHint"></div>
     <div class="rec-scope" id="recScope"></div>
     <div class="act-range activity-only"><button class="pr-nav" id="prPrev" title="Предыдущий период">‹</button>ПЕРИОД <b id="actRange" title=""></b><button class="pr-nav" id="prNext" title="Следующий период">›</button></div>
     <button class="activity-btn" id="activityBtn">Активность</button>
@@ -1573,7 +1606,82 @@ function statsGames() {
   if (!selCount()) return windowGames();
   return windowGames().filter(function(g) { return selCols[g.id]; });
 }
-function clearSelection() { if (selCount()) { selCols = {}; renderWindow(); } }
+function clearSelection() { if (selCount()) { selCols = {}; cmpMode = null; cmpSet = {}; renderWindow(); } }
+
+/* ---------- сравнение партий: выбранные (A) против отмеченных после «Сравнить» (B) ---------- */
+var cmpMode = null;   // null | 'pick' — выбираем партии для сравнения | 'view' — показываем сравнение
+var cmpSet = {};      // id партии → true (группа B)
+function cmpCount() { return Object.keys(cmpSet).length; }
+function cmpGames() { return windowGames().filter(function(g) { return cmpSet[g.id]; }); }
+function renderCmpBtn() {
+  var b = $('cmpBtn'), h = $('cmpHint');
+  var show = chartMode !== 'activity' && !showRecords && (selCount() > 0 || cmpMode);
+  b.style.display = show ? '' : 'none';
+  h.style.display = cmpMode === 'pick' ? '' : 'none';
+  if (!show) return;
+  if (!cmpMode) b.textContent = 'Сравнить';
+  else if (cmpMode === 'pick') b.textContent = cmpCount() ? 'Показать · ' + cmpCount() : 'Отмена';
+  else b.textContent = 'К выбору';
+  b.classList.toggle('on', !!cmpMode);
+  h.innerHTML = cmpCount() ? 'Отмечено для сравнения: <b>' + cmpCount() + '</b> — нажми «Показать»' : 'Выбери партии для сравнения — клик по колонкам';
+}
+$('cmpBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  if (!cmpMode) { cmpMode = 'pick'; cmpSet = {}; }
+  else if (cmpMode === 'pick') cmpMode = cmpCount() ? 'view' : null;
+  else cmpMode = 'pick';
+  renderWindow();
+});
+function toggleCmp(g) {
+  if (selCols[g.id]) return;   // основная партия не может быть в сравнении
+  if (cmpSet[g.id]) delete cmpSet[g.id]; else cmpSet[g.id] = true;
+  renderWindow();
+}
+
+// экран сравнения: A (выбранные) против B (отмеченные), разница
+var CMP_ROWS = [
+  {k: 'acc', label: 'Точность', pct: true, color: '#c8c9cd'},
+  {k: 'debut', label: 'Дебют', pct: true, color: '#60a5fa'},
+  {k: 'mid', label: 'Миттельшпиль', pct: true, color: '#f59e0b'},
+  {k: 'end', label: 'Эндшпиль', pct: true, color: '#a78bfa'},
+  {k: 'blunders', label: 'Зевки', lower: true, color: '#f87171'},
+  {k: 'mistakes', label: 'Ошибки', lower: true, color: '#fb923c'},
+  {k: 'inacc', label: 'Неточности', lower: true, color: '#eab308'},
+  {k: 'moves', label: 'Ходы', color: '#e4e4e7', neutral: true}
+];
+function cmpSide(list, cls, title) {
+  var one = list.length === 1 ? list[0] : null;
+  var w = list.filter(function(g) { return g.result === 'win'; }).length, l = list.filter(function(g) { return g.result === 'lose'; }).length;
+  return '<div class="cmp-side ' + cls + '"><div class="cmp-side-h">' + title + '</div>' + (one
+    ? '<div class="cmp-side-t" title="' + esc(one.opening) + '">#' + one.n + ' · ' + esc(one.opening) + '</div>' +
+      '<div class="cmp-side-m">' + esc(one.date) + ' · <span style="color:' + RESULT[one.result].color + '">' + RESULT[one.result].label + '</span>' +
+      (one.id ? ' · <a href="https://lichess.org/' + one.id + '" target="_blank" rel="noopener">Lichess ↗</a>' : '') + '</div>'
+    : '<div class="cmp-side-t">' + list.length + ' ' + plural(list.length, 'партия', 'партии', 'партий') + ' · среднее</div>' +
+      '<div class="cmp-side-m">#' + list.map(function(g) { return g.n; }).join(', #') + ' · ' + w + '<span class="green">W</span> / ' + l + '<span class="red">L</span></div>') +
+    '</div>';
+}
+function cmpHtml() {
+  var A = statsGames(), B = cmpGames();
+  var rows = CMP_ROWS.map(function(r) {
+    var a = avg(A, r.k), b = avg(B, r.k);
+    function fmt(v) { return v === null ? '—' : (r.pct ? v.toFixed(1) + '<small>%</small>' : (Math.round(v * 10) / 10)); }
+    var d = a === null || b === null ? null : a - b, dTxt = '', cls = '';
+    if (d !== null) {
+      var good = r.neutral ? null : r.lower ? d < 0 : d > 0;
+      cls = Math.abs(d) < 0.05 || good === null ? '' : good ? 'up' : 'down';
+      dTxt = (d > 0 ? '+' : d < 0 ? '−' : '') + (Math.round(Math.abs(d) * 10) / 10) + (r.pct ? '%' : '');
+    }
+    var max = r.pct ? 100 : Math.max(a || 0, b || 0, 1);
+    function bar(v, c, side) { return '<span class="cmp-bar' + (side ? ' ' + side : '') + '"><i style="width:' + (v === null ? 0 : Math.min(100, v / max * 100)) + '%;background:' + c + '"></i></span>'; }
+    return '<div class="cmp-row"><span class="cmp-lbl" style="color:' + r.color + '">' + r.label + '</span>' +
+      '<span class="cmp-a">' + fmt(a) + '</span>' + bar(a, '#e4e4e7', 'l') +
+      '<span class="cmp-d ' + cls + '">' + (dTxt || '—') + '</span>' +
+      bar(b, '#a78bfa') + '<span class="cmp-b">' + fmt(b) + '</span></div>';
+  }).join('');
+  return '<div class="cmp-view">' +
+    '<div class="cmp-head">' + cmpSide(A, 'a', 'Выбранная') + '<div class="cmp-vs">vs</div>' + cmpSide(B, 'b', 'Сравнение') + '</div>' +
+    '<div class="cmp-rows">' + rows + '</div></div>';
+}
 function selectColumn(g, add) {
   if (add) { if (selCols[g.id]) delete selCols[g.id]; else selCols[g.id] = true; }
   else if (selCount() === 1 && selCols[g.id]) selCols = {};            // повторный клик по единственной — сброс
@@ -1616,7 +1724,7 @@ $('winPick').addEventListener('click', function(e) {
   var opt = e.target.closest('.win-opt');
   if (opt) {
     avgWindow = +opt.getAttribute('data-w');
-    selCols = {};
+    selCols = {}; cmpMode = null; cmpSet = {};
     try { localStorage.setItem('avgWindow', String(avgWindow)); } catch (err) {}
     setWinMenu(false);
     renderWindow();
@@ -1786,8 +1894,10 @@ function renderTitle() {
 }
 
 function renderChart() {
+  renderCmpBtn();
   if (showRecords) { renderRecords(); return; }
   chartGames = windowGames();
+  if (cmpMode === 'view' && selCount() && cmpCount()) { $('chart').innerHTML = cmpHtml(); return; }
   var list = chartGames, n = list.length;
   if (!n) {
     $('chart').innerHTML = '<div class="rec-view"><div class="rec-empty">' + (games.length ? 'Нет партий под фильтр графика' : 'Партий пока нет') + '</div></div>';
@@ -1892,6 +2002,7 @@ function renderChart() {
   });
 
   if (selCount()) list.forEach(function(g, i) {
+    if (cmpMode && cmpSet[g.id]) { s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="198.5" fill="rgba(167,139,250,0.08)" stroke="#a78bfa" stroke-opacity="0.8" stroke-width="1.2" rx="2"/>'); return; }
     if (selCols[g.id]) s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="198.5" fill="rgba(255,255,255,0.04)" stroke="#e4e4e7" stroke-opacity="0.55" stroke-width="1.2" rx="2"/>');
     else s.push('<rect x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="200" fill="#0d0f17" opacity="0.62"/>');
   });
@@ -1968,7 +2079,8 @@ function bindTooltip() {
     el.addEventListener('click', function(e) {
       e.stopPropagation();
       if (el.hasAttribute('data-i')) {   // график показателей: выбор колонок
-        selectColumn(chartGames[+el.getAttribute('data-i')], e.ctrlKey || e.metaKey);
+        if (cmpMode === 'pick') toggleCmp(chartGames[+el.getAttribute('data-i')]);
+        else selectColumn(chartGames[+el.getAttribute('data-i')], e.ctrlKey || e.metaKey);
         return;
       }
       if (el.hasAttribute('data-res')) {   // график активности: клик по победам / поражениям в столбике
@@ -2280,7 +2392,7 @@ function cfActive() { return modeCount(cfilt.modes) > 0 || hasKeys(cfilt.results
 
 function chartFilterChanged() {
   cgAll = filterChart(games);
-  selCols = {};
+  selCols = {}; cmpMode = null; cmpSet = {};
   selDays = {};
   renderChartFilter();
   renderWindow();
@@ -3716,7 +3828,10 @@ function toggleVerdict(open) {
 $('vdCard').addEventListener('click', function() { toggleVerdict(); });
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape' || $('sideRow').classList.contains('vd-open')) return;
-  if (chartMode === 'activity') clearActSelection(); else if (selCount()) clearSelection();
+  if (chartMode === 'activity') clearActSelection();
+  else if (cmpMode === 'view') { cmpMode = 'pick'; renderWindow(); }
+  else if (cmpMode === 'pick') { cmpMode = null; cmpSet = {}; renderWindow(); }
+  else if (selCount()) clearSelection();
 });
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape' && $('sideRow').classList.contains('vd-open')) toggleVerdict(false);

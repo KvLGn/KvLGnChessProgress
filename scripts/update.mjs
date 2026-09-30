@@ -115,6 +115,7 @@ function convert(g) {
   // для «отчёта о матче»: начало (МСК), длительность, чем закончилась, границы фаз, перевес по ходам
   out.start = timeFmt.format(new Date(g.createdAt));
   if (g.lastMoveAt) out.dur = Math.round((g.lastMoveAt - g.createdAt) / 1000);
+  out.ts = g.lastMoveAt || g.createdAt;   // конец партии (мс UTC) — «!» на кнопке «Анализ» первые сутки после партии с зевками / матом
   out.how = g.status;
   out.plies = plies;
   out.mv = g.moves || '';   // ходы партии (SAN) — подписи при наведении на график перевеса

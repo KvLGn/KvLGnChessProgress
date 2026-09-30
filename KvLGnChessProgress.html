@@ -526,6 +526,12 @@
   /* скрытый режим (глаз у аватарки): «Анализ» недоступен */
   .analysis-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .analysis-btn:disabled:hover { background: transparent; }
+  /* «!» — свежая партия (последние сутки) с зевками или матом: угол кнопки «Анализ», список партий, список линз, моменты */
+  .an-new { position: absolute; top: -8px; right: -8px; width: 18px; height: 18px; border-radius: 50%;
+    background: #f87171; color: #11131a; font: 800 11px/18px Inter, sans-serif; letter-spacing: 0; text-align: center; box-shadow: 0 0 0 2px #1a1d29; }
+  .an-new[hidden] { display: none; }
+  .an-bang { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 15px; height: 15px; border-radius: 50%;
+    background: #f87171; color: #11131a; font: 800 10px/1 Inter, sans-serif; letter-spacing: 0; cursor: help; }
 
   /* кнопка «Рекорды» (левый верхний угол графика) */
   .records-btn {
@@ -1145,6 +1151,7 @@
   .an-res { font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 4px; line-height: 16px; }
   .an-g-bl { margin-left: auto; display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--fg-dim); }
   .an-g-bl i { width: 6px; height: 6px; border-radius: 50%; }
+  .an-g-bl .an-bang { margin-right: 3px; }
   .an-g-op, .an-g-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .an-g-op { font-size: 12px; color: var(--fg); }
   .an-g-sub { font-size: 11px; color: var(--fg-mute); }
@@ -1179,12 +1186,14 @@
   .an-pick { margin-left: 6px; text-transform: none; letter-spacing: 0; }   /* сразу за «Ходы N», не у края */
   .an-pick .win-toggle { font: 600 12px Inter, sans-serif; color: #22d3ee; }
   .an-pick .win-toggle:hover, .an-pick.open .win-toggle { color: #67e8f9; }
-  .an-pick .win-menu { left: -8px; right: auto; min-width: 120px; }
+  .an-pick .win-menu { left: -8px; right: auto; min-width: 130px; }
+  .an-pick .win-opt { display: flex; align-items: center; gap: 6px; }
+  .an-pick .win-opt .an-bang { order: 1; margin-left: auto; }   /* «!» у правого края, ✓ остаётся у названия */
   /* колонка 3: моменты выбранной линзы (клик — позиция перед ходом) */
   .an-mom { position: relative; border-right: 1px solid rgba(46,50,68,0.6); }
   .an-mom-in { position: absolute; inset: 0; display: flex; flex-direction: column; }
   .an-ms { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 10px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
-  .an-m { display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 5px 8px; margin-bottom: 2px; text-align: left; background: none;
+  .an-m { position: relative; display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 5px 8px; margin-bottom: 2px; text-align: left; background: none;
     border: 1px solid transparent; border-radius: 6px; cursor: pointer; font: 12.5px Inter, sans-serif; color: var(--fg); }
   .an-m:hover { background: rgba(255,255,255,0.04); }
   .an-m.on { background: rgba(34,211,238,0.12); border-color: rgba(34,211,238,0.35); }
@@ -1192,6 +1201,7 @@
   .an-m-top i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
   .an-m-s { font-size: 11px; color: var(--c); padding-left: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .an-mom .an-empty { padding: 6px 8px; }
+  .an-m .an-bang { position: absolute; top: 5px; right: 5px; }
   /* колонка 4: доска (сверху отступ под кнопки режимов) */
   .an-board { padding: 54px 16px 12px; display: flex; justify-content: center; }
   .an-board svg { display: block; width: min(100%, var(--an-board)); height: auto; border-radius: 4px; box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
@@ -1517,7 +1527,7 @@
     .records-btn { margin-left: 10px; }
     .act-range { margin-left: auto; margin-right: auto; height: 39px; }
     .activity-btn { margin-left: 8px; margin-right: 0; }
-    .analysis-btn { position: static; order: 2; margin: 10px 0 0 8px; padding: 0 10px; letter-spacing: 0.5px; }
+    .analysis-btn { position: relative; order: 2; margin: 10px 0 0 8px; padding: 0 10px; letter-spacing: 0.5px; }   /* relative — для «!» в углу */
     #eyeChart { position: static; order: 2; margin: 10px 10px 0 8px; }
     .records-btn, .activity-btn { padding: 0 10px; letter-spacing: 0.5px; }
     .act-range { padding: 0 10px; font-size: 0; gap: 0; }   /* на телефоне только даты, без слова «Период» */
@@ -1681,7 +1691,7 @@
     <div class="act-range day-range metrics-only" id="winRange" style="display:none"><button class="pr-nav" id="wrPrev" title="Предыдущие партии">‹</button>ПЕРИОД <b id="winRangeTxt"></b><button class="pr-nav" id="wrNext" title="Следующие партии">›</button></div>
     <div class="act-range day-range metrics-only" id="dayRange" style="display:none">ДЕНЬ <b id="dayRangeTxt"></b><button class="pr-nav" id="dayClose" title="Вернуть последние партии (Esc)">✕</button></div>
     <div class="act-range activity-only"><button class="pr-nav" id="prPrev" title="Предыдущий период">‹</button>ПЕРИОД <b id="actRange" title=""></b><button class="pr-nav" id="prNext" title="Следующий период">›</button></div>
-    <button class="analysis-btn" id="analysisBtn" title="Разбор партий на доске: ходы, зевки, график перевеса">Анализ</button>
+    <button class="analysis-btn" id="analysisBtn" title="Разбор партий на доске: ходы, зевки, график перевеса"><span class="an-btn-t">Анализ</span><span class="an-new" id="anNew" hidden>!</span></button>
     <button class="activity-btn" id="activityBtn">Активность</button>
     <button class="sect-eye" id="eyeChart" type="button" data-sec="chart"></button>
     <div class="chart-area" id="chart"></div>
@@ -4274,9 +4284,10 @@ function setMode(m) {
   $('chartBox').classList.toggle('mode-analysis', m === 'analysis');
   // кнопка включённого режима — зелёная «Показатели» (обратно), другая — своё название
   $('activityBtn').textContent = m === 'activity' ? 'Показатели' : 'Активность';
-  $('analysisBtn').textContent = m === 'analysis' ? 'Показатели' : 'Анализ';
+  $('analysisBtn').querySelector('.an-btn-t').textContent = m === 'analysis' ? 'Показатели' : 'Анализ';
   if (!hush.mode) $('analysisBtn').title = m === 'analysis' ? 'Вернуться к показателям' : 'Разбор партий на доске: ходы, зевки, график перевеса';
   if (typeof placeChartBtns === 'function') placeChartBtns();
+  if (typeof renderAnBadge === 'function') renderAnBadge();
   // режим «Рекорды» сохраняется при переключении показатели ⇄ активность
   renderTitle();
   hideTooltip();
@@ -4336,6 +4347,21 @@ function anNeedChess(done) {
 function anList() { return cgAll.filter(function(g) { return g.mv; }).slice().reverse(); }
 function anGame() { return games.filter(function(g) { return g.id === an.gid; })[0] || null; }
 function anSetGame(g) { an.gid = g.id; an.ply = null; }
+// «!» — свежая партия: закончилась меньше суток назад (поле ts из update.mjs) и в ней есть зевки или мат (линзы «Зевки» / «Мат в N»)
+var AN_FRESH_MS = 24 * 3600e3;
+function anFresh(g) {
+  if (!g || !g.ts || Date.now() - g.ts >= AN_FRESH_MS) return null;
+  var f = {bl: (g.bl || []).length > 0, mate: mateSeries(g).length > 0};
+  return f.bl || f.mate ? f : null;
+}
+function anBang(title) { return '<span class="an-bang" title="' + esc(title) + '">!</span>'; }
+// «!» в углу кнопки «Анализ»: есть свежие партии с зевками / матом (не в самом анализе — там кнопка «Показатели»; в скрытом режиме и при скрытом графике — нет)
+function renderAnBadge() {
+  var n = games.filter(anFresh).length, el = $('anNew');
+  el.hidden = !n || chartMode === 'analysis' || hush.mode || hush.chart;
+  el.title = n ? 'Новые партии с зевками или матом за последние сутки: ' + n : '';
+}
+setInterval(renderAnBadge, 5 * 60e3);   // «!» гаснет сам через сутки после партии
 // позиции партии после каждого полухода и сами ходы (from / to / san / captured…) — считаются один раз на партию
 var anPos = {id: null};
 function anPositions(g) {
@@ -4517,7 +4543,8 @@ function anListHtml(list, g) {
     return '<button class="an-g' + (x === g ? ' on' : '') + '" data-id="' + x.id + '">' +
       '<span class="an-g-top"><b>#' + x.n + '</b><span class="an-date">' + esc(x.date) + '</span>' +
         '<span class="an-res" style="color:' + R.color + ';background:' + R.bg + '">' + R.letter + '</span>' +
-        '<span class="an-g-bl" title="Зевков: ' + bl.length + (bl.length ? ' — ' + esc(blSummary(bl)) : '') + '">' + dots + ' ' + (bl.length || '—') + '</span></span>' +
+        '<span class="an-g-bl" title="Зевков: ' + bl.length + (bl.length ? ' — ' + esc(blSummary(bl)) : '') + '">' +
+          (anFresh(x) ? anBang('Новая партия (последние сутки) — есть что разобрать') : '') + dots + ' ' + (bl.length || '—') + '</span></span>' +
       '<span class="an-g-op" title="' + esc(x.opening) + '">' + esc(x.opening) + '</span>' +
       '<span class="an-g-sub">' + KNIGHT[x.color] + ' ' + COLOR_WORD[x.color] + ' · ' + esc(x.engine) + '</span></button>';
   }).join('') + '</div>';
@@ -4549,7 +4576,8 @@ function anMovesCol(g, P, v, moments) {
   return '<div class="an-moves-in"><div class="an-head">Ходы <span>' + Math.ceil(P.n / 2) + '</span>' +
       '<span class="win-pick an-pick"><button class="win-toggle" title="Что выделять в партии: ' + esc(L.hint) + '">' + L.label + '<span class="caret">▾</span></button>' +
       '<div class="win-menu">' + AN_LENSES.map(function(x) {
-        return '<button class="win-opt' + (x.k === L.k ? ' on' : '') + '" data-lens="' + x.k + '" title="' + esc(x.hint) + '">' + x.label + '</button>';
+        var fr = anFresh(g), bang = fr && fr[x.k] ? anBang('В этой партии (последние сутки) есть ' + (x.k === 'bl' ? 'зевки' : 'мат')) : '';
+        return '<button class="win-opt' + (x.k === L.k ? ' on' : '') + '" data-lens="' + x.k + '" title="' + esc(x.hint) + '">' + x.label + bang + '</button>';
       }).join('') + '</div></span></div>' +
     anInfoHtml(g, P, v) + '<div class="an-mvs">' + anMovesHtml(g, P, v, moments) + '</div>' +
     '<div class="an-nav">' +
@@ -4561,11 +4589,11 @@ function anMovesCol(g, P, v, moments) {
 }
 // моменты текущей линзы: ход и короткая подпись; клик — позиция перед ходом
 function anMomentsCol(moments) {
-  var L = anLens();
+  var L = anLens(), fr = anFresh(anGame()), bang = fr && fr[L.k] ? anBang('Новая партия (последние сутки)') : '';
   return '<div class="an-mom-in"><div class="an-head">Моменты <span>' + moments.length + '</span></div><div class="an-ms">' +
     (moments.length ? moments.map(function(m, i) {
       return '<button class="an-m' + (an.ply === m.at || an.ply === m.p ? ' on' : '') + '" data-i="' + i + '" style="--c:' + m.color + '" title="' + esc(m.short) + '">' +
-        '<span class="an-m-top"><i></i>' + anMoveNo(m.p) + esc(m.san) + '</span><span class="an-m-s">' + esc(m.short) + '</span></button>';
+        '<span class="an-m-top"><i></i>' + anMoveNo(m.p) + esc(m.san) + '</span><span class="an-m-s">' + esc(m.short) + '</span>' + bang + '</button>';
     }).join('') : '<div class="an-empty">' + (L.k === 'all' ? 'Все ходы — в записи' : 'В этой партии нет') + '</div>') + '</div></div>';
 }
 
@@ -6468,6 +6496,7 @@ function applyHush() {
   $('analysisBtn').title = hush.mode ? 'Недоступно в скрытом режиме' : chartMode === 'analysis' ? 'Вернуться к показателям' : 'Разбор партий на доске: ходы, зевки, график перевеса';
   if (hush.mode && chartMode === 'analysis') setMode('metrics');
   placeChartBtns();   // глаз графика мог появиться / пропасть
+  renderAnBadge();
   renderTitle();
   renderWindow();
   if (chartMode === 'activity') renderActivity();

@@ -2417,6 +2417,12 @@ function blTip(b) {
   return 'Ход ' + b.m + ': ' + b.s + (b.b ? ' — лучше было ' + b.b : '') + (typeof b.d === 'number' ? ' (−' + b.d + ' пешки)' : '') +
     (b.p ? ' · ' + PHASE_RU[b.p] : '') + '. ' + BL_TYPES[b.t].tip.replace(/^./, function(c) { return c.toUpperCase(); });
 }
+// «под боем 7, упущен выигрыш 2, …» — по типам, самый частый первым
+function blSummary(list) {
+  var n = {};
+  list.forEach(function(b) { n[b.t] = (n[b.t] || 0) + 1; });
+  return Object.keys(n).sort(function(x, y) { return n[y] - n[x]; }).map(function(t) { return BL_TYPES[t].ru.toLowerCase() + ' ' + n[t]; }).join(', ');
+}
 function blChips(g) {
   if (!g.bl || !g.bl.length) return '';
   return '<div class="bl-row"><span class="detail-label">Зевки по типам</span>' + g.bl.map(function(b) {
@@ -2432,7 +2438,7 @@ function tooltipHtml(g) {
     {k: 'mid', html: '<span style="color:#f59e0b">Миттельшпиль: ' + (typeof g.mid === 'number' ? g.mid + '%' : '—') + '</span>'},
     {k: 'end', html: '<span style="color:#a78bfa">Эндшпиль: <span style="color:#e4e4e7">' + (hasEnd(g) ? g.end + '%' : '—') + '</span></span>'},
     {k: 'blunders', html: '<span style="color:#ef4444">Зевки: ' + g.blunders + '</span>' +
-      (g.bl && g.bl.length ? '<span style="color:#9ca3af;font-size:11px"> — ' + g.bl.map(function(b) { return blLabel(b).toLowerCase(); }).join(', ') + '</span>' : '')}
+      (g.bl && g.bl.length ? '<span style="color:#9ca3af;font-size:11px"> — ' + blSummary(g.bl) + '</span>' : '')}
   ];
   // выделенный слева показатель — первым строкой и крупнее
   if (pinnedSeries) rows.sort(function(a, b) { return (b.k === pinnedSeries) - (a.k === pinnedSeries); });

@@ -467,7 +467,7 @@
   .stat-trend { font-size: 11px; margin-left: 13px; }
   .stat-trend .trend-n { font-size: 9px; }
   .stat-blunders { padding-top: 5px; position: relative; }
-  .bl-info { position: absolute; right: -2px; top: 50%; transform: translateY(-50%); z-index: 2; width: 18px; height: 18px; border-radius: 50%; padding: 0;
+  .bl-info { position: absolute; right: -2px; top: 25px; transform: translateY(-50%);   /* на уровне слова «Зевки» */ z-index: 2; width: 18px; height: 18px; border-radius: 50%; padding: 0;
     font: 700 11px Georgia, serif; font-style: italic; color: var(--fg-mute); background: none; border: 1px solid var(--border); cursor: pointer; line-height: 1; }
   .bl-info:hover { color: #f87171; border-color: rgba(248,113,113,0.6); }
   .bl-info.on { color: #11131a; background: #f87171; border-color: #f87171; }
@@ -2407,7 +2407,7 @@ function renderChart() {
   [100, 75, 50, 25, 0].forEach(function(p) {
     var y = yPct(p);
     s.push('<line x1="40" y1="' + y + '" x2="590" y2="' + y + '" stroke="#2a2d3a" stroke-width="0.5"/>');
-    if (p > 0) s.push('<text x="34" y="' + (y + 3.5) + '" text-anchor="end" font-size="9" fill="#9ca3af">' + p + '%</text>');
+    if (p > 0 && !blMode) s.push('<text x="34" y="' + (y + 3.5) + '" text-anchor="end" font-size="9" fill="#9ca3af">' + p + '%</text>');   // в режиме зевков шкала % не нужна
   });
   // шкала зевков прячется вместе с линией зевков
   s.push('<g class="series' + (hiddenSeries.blunders ? ' off' : '') + '" data-s="blunders">');
@@ -2445,7 +2445,7 @@ function renderChart() {
   function pct(key) { return function(g) { return typeof g[key] === 'number' ? yPct(g[key]) : null; }; }
 
   // порядок = слои: нижние первыми
-  s.push(series('acc', pct('acc'), 'stroke="#9ca3af" stroke-width="2" stroke-dasharray="6,4" opacity="0.7"', 'r="3" fill="#9ca3af" opacity="0.5"', '#9ca3af'));
+  if (!blMode) s.push(series('acc', pct('acc'), 'stroke="#9ca3af" stroke-width="2" stroke-dasharray="6,4" opacity="0.7"', 'r="3" fill="#9ca3af" opacity="0.5"', '#9ca3af'));
   if (!blMode) s.push(series('blunders', function(g) { return yBl(g.blunders); }, 'stroke="#f87171" stroke-width="2" stroke-dasharray="3,3" opacity="0.7"', 'r="3" fill="#f87171" opacity="0.85"', '#f87171'));
   else {
     var bw = Math.min(colW * 0.42, 22), unit = H / bMax;
@@ -2461,13 +2461,13 @@ function renderChart() {
       if (g.blunders) s.push('<text x="' + cx(i) + '" y="' + r2(y0 - 4) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#f3f4f6">' + g.blunders + '</text>');
     });
   }
-  s.push(series('end', pct('end'), 'stroke="#a78bfa" stroke-width="2" opacity="0.8"', 'r="3.5" fill="#a78bfa" opacity="0.9"', '#a78bfa'));
-  s.push(series('debut', pct('debut'), 'stroke="#60a5fa" stroke-width="2.5" opacity="0.8"', 'r="4" fill="#60a5fa" opacity="0.9"', '#60a5fa'));
-  s.push(series('mid', pct('mid'), 'stroke="#f59e0b" stroke-width="2.5" opacity="0.8"', 'r="4" fill="#f59e0b" opacity="0.9"', '#f59e0b'));
+  if (!blMode) s.push(series('end', pct('end'), 'stroke="#a78bfa" stroke-width="2" opacity="0.8"', 'r="3.5" fill="#a78bfa" opacity="0.9"', '#a78bfa'));
+  if (!blMode) s.push(series('debut', pct('debut'), 'stroke="#60a5fa" stroke-width="2.5" opacity="0.8"', 'r="4" fill="#60a5fa" opacity="0.9"', '#60a5fa'));
+  if (!blMode) s.push(series('mid', pct('mid'), 'stroke="#f59e0b" stroke-width="2.5" opacity="0.8"', 'r="4" fill="#f59e0b" opacity="0.9"', '#f59e0b'));
 
   // линии средних: ровно по тем партиям, что на графике (= число в панели слева)
   [['acc', '#9ca3af', yPct, '%'], ['debut', '#60a5fa', yPct, '%'], ['mid', '#f59e0b', yPct, '%'],
-   ['end', '#a78bfa', yPct, '%'], ['blunders', '#f87171', yBl, '']].filter(function(a) { return !blMode || a[0] !== 'blunders'; }).forEach(function(a) {
+   ['end', '#a78bfa', yPct, '%'], ['blunders', '#f87171', yBl, '']].filter(function() { return !blMode; }).forEach(function(a) {
     var v = avg(selCount() ? list.filter(function(g) { return selCols[g.id]; }) : list, a[0]);
     if (v === null) return;
     var yy = a[2](v);

@@ -168,7 +168,7 @@ window.PUZZLES = { rating, total,
 | `records` | `setRecords`, `metricsRecordsHtml`, `activityRecordsHtml` |
 | `switch: показатели ⇄ активность` | `setMode` |
 | `карточка задач` / `подробности по задачам` | `renderPuzzleCard`, `renderPuzzleDetail`, `PZ_SKIP`, `pzKey`, `pzLabel` |
-| `дебюты` | `opStats`, `renderOpeningCard`, `renderOpeningDetail` |
+| `дебюты` | `opStats`, `renderOpeningCard` (карусель «Далее / В планах» — `opCarousel`, `startOpCarousel`), `renderOpeningDetail` |
 | `итоги` | **`buildVerdicts`** (все правила), `renderVerdictCard`, `renderVerdictDetail` |
 | `глобальный поиск` | **`gsIndex`** (все команды поиска), `gsRender`, `gsRun` |
 | `go` | порядок первичной отрисовки |

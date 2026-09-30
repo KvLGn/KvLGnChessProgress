@@ -608,6 +608,12 @@
   .op-kn { font-size: 15px; font-weight: 400; color: var(--fg-dim); }
   .op-line { font-size: 11px; color: var(--fg-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .op-next .op-kn { font-size: 11px; }
+  .op-next { display: flex; align-items: center; gap: 8px; }
+  .op-slide { flex: 0 0 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .op-sl-lbl { color: var(--fg-mute); }
+  .op-dots { flex-shrink: 0; display: flex; gap: 3px; }
+  .op-dots i { width: 3px; height: 3px; border-radius: 50%; background: var(--fg-mute); opacity: 0.5; transition: opacity 0.3s, background 0.3s; }
+  .op-dots i.on { background: #60a5fa; opacity: 1; }
   .op-sub { font-size: 11px; color: var(--fg-mute); }
   /* панель задач накрывает карточку дебютов */
   .side-row.open .op-card { opacity: 0; pointer-events: none; }
@@ -3621,11 +3627,43 @@ function renderOpeningCard() {
   $('opCard').innerHTML = head +
     '<div class="op-main" title="Изучаю сейчас">' + opName(cur) + '</div>' +
     '<div class="op-line">' + opGamesLine(st) + '</div>' +
-    '<div class="op-line op-next">' + ((O.next || []).length
-      ? 'Далее: ' + O.next.map(function(o) { return opName(o); }).join(' · ')
-      : 'Далее: —') + '</div>' +
+    '<div class="op-line op-next">' + opCarousel(O) + '</div>' +
     '<div class="op-sub">В планах: ' + (O.planned || []).length + ((O.done || []).length ? ' · изучено: ' + O.done.length : '') + '</div>';
+  startOpCarousel();
 }
+// карусель «Далее / В планах»: по одному дебюту на слайд, сначала следующие, потом планы
+function opCarousel(O) {
+  var slides = (O.next || []).map(function(o) { return ['Далее', o]; })
+    .concat((O.planned || []).map(function(o) { return ['В планах', o]; }))
+    .map(function(p) { return '<div class="op-slide"><span class="op-sl-lbl">' + p[0] + ':</span> ' + opName(p[1]) + '</div>'; });
+  if (!slides.length) return 'Далее: —';
+  opN = slides.length;
+  return '<div class="pz-car"><div class="pz-track">' + slides.join('') + (slides.length > 1 ? slides[0] : '') + '</div></div>' +
+    (slides.length > 1 ? '<div class="op-dots">' + slides.map(function(_, k) { return '<i' + (k === 0 ? ' class="on"' : '') + '></i>'; }).join('') + '</div>' : '');
+}
+var opTimer = null, opIdx = 0, opN = 0, opPaused = false;
+function startOpCarousel() {
+  clearInterval(opTimer); clearTimeout(opTimer);
+  opIdx = 0;
+  if (opN < 2) return;
+  // сдвиг на 2 с относительно карусели задач — чтобы карточки не листались одновременно
+  opTimer = setTimeout(function() {
+    opTimer = setInterval(function() {
+      if (opPaused) return;
+      var track = $('opCard').querySelector('.pz-track');
+      if (!track) return;
+      opIdx++;
+      track.style.transition = 'transform 0.5s ease';
+      track.style.transform = 'translateX(' + (-100 * opIdx) + '%)';
+      $('opCard').querySelectorAll('.op-dots i').forEach(function(d, k) { d.classList.toggle('on', k === opIdx % opN); });
+      if (opIdx === opN) {
+        setTimeout(function() { track.style.transition = 'none'; track.style.transform = 'translateX(0)'; opIdx = 0; }, 520);
+      }
+    }, 4000);
+  }, 2000);
+}
+$('opCard').addEventListener('mouseenter', function() { opPaused = true; });
+$('opCard').addEventListener('mouseleave', function() { opPaused = false; });
 
 function studyLinks(o) {
   return (o.studies || []).map(function(s) {

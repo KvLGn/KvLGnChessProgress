@@ -174,7 +174,7 @@
   .sect-eye.shut .eye-open { transform: scaleY(0.1); opacity: 0; }
   .sect-eye.shut .eye-shut { opacity: 1; }
   .sect-eye.shut { color: #a5b4fc; border-color: rgba(129,140,248,0.5); }
-  #eyeChart { position: absolute; top: 9px; z-index: 2; }
+  #eyeChart { position: absolute; top: 9px; right: 14px; z-index: 2; }   /* справа налево: глаз, «Активность», «Анализ» (кнопки ставит placeChartBtns) */
   #eyeHead { margin-left: 2px; width: 32px; height: 32px; }
   #eyeHead svg { width: 18px; height: 18px; }
   .links { gap: 8px; padding-right: 14px; }
@@ -509,8 +509,21 @@
   }
   .activity-btn:hover { background: var(--yellow-bg); }
   /* в режиме активности кнопка ведёт назад к показателям — тот же стиль, зелёный */
-  .mode-activity .activity-btn { color: var(--green); border-color: var(--green); }
-  .mode-activity .activity-btn:hover { background: var(--green-bg); }
+  /* нажатая кнопка режима залита своим цветом; повторный клик — обратно к показателям */
+  .mode-activity .activity-btn, .mode-activity .activity-btn:hover { background: rgba(234,179,8,0.16); }
+
+  /* кнопка режима «Анализ» (разбор партий на доске) — бирюзовая */
+  .analysis-btn {
+    position: absolute; top: 7px; z-index: 2;
+    display: inline-flex; align-items: center; gap: 7px;
+    height: 39px; padding: 0 14px; border-radius: 8px;
+    font: 600 11px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase;
+    color: #22d3ee; background: transparent; border: 1px solid #22d3ee;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .analysis-btn:hover { background: rgba(34,211,238,0.1); }
+  .mode-analysis .analysis-btn, .mode-analysis .analysis-btn:hover { background: rgba(34,211,238,0.16); }
+  .analysis-btn .an-ic { font-size: 16px; line-height: 1; letter-spacing: 0; }
 
   /* кнопка «Рекорды» (левый верхний угол графика) */
   .records-btn {
@@ -1101,6 +1114,78 @@
   svg.focus .avg-line.hl text { display: inline; }
   .win-short { color: var(--fg-mute); font-weight: 400; font-size: 11px; margin-left: 4px; }
 
+  /* ---------- анализ партий: список партий · ходы · доска, внизу график перевеса ---------- */
+  .chart-container:not(.mode-analysis) .analysis-only { display: none !important; }
+  /* в анализе блок занят разбором — панели, график, легенда и кнопки других режимов спрятаны */
+  .mode-analysis .panel-stack, .mode-analysis .chart-area, .mode-analysis .legend-rule, .mode-analysis .legend,
+  .mode-analysis .records-btn, .mode-analysis .cmp-btn, .mode-analysis .cmp-hint, .mode-analysis .rec-scope,
+  .mode-analysis .act-range { display: none !important; }
+  .chart-container.mode-analysis::before, .chart-container.mode-analysis::after { display: none; }
+  .an-box {
+    --an-list-w: 260px; --an-moves-w: 250px; --an-board: 360px;
+    width: 100%; display: grid; grid-template-columns: var(--an-list-w) var(--an-moves-w) minmax(0, 1fr);
+  }
+  .an-head { display: flex; align-items: baseline; gap: 8px; height: 42px; padding: 12px 16px 0; font-size: 12px; font-weight: 700; letter-spacing: 2px; color: #cbd0da; text-transform: uppercase; }
+  .an-head span { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--fg-mute); }
+  .an-empty { padding: 14px 16px; font-size: 12px; color: var(--fg-mute); }
+  /* колонка 1: партии (прокрутка внутри; высоту задают доска и график) */
+  .an-list { grid-row: 1 / span 2; position: relative; border-right: 3px solid var(--divider); min-height: 200px; }
+  .an-list-in { position: absolute; inset: 42px 0 0 0; overflow-y: auto; border-top: 3px solid var(--divider); scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+  .an-g { display: flex; flex-direction: column; gap: 2px; width: 100%; padding: 8px 14px 8px 13px; text-align: left; color: var(--fg); background: none;
+    border: none; border-left: 3px solid transparent; border-bottom: 1px solid rgba(46,50,68,0.6); cursor: pointer; font: 12px Inter, sans-serif; }
+  .an-g:hover { background: rgba(255,255,255,0.03); }
+  .an-g.on { background: rgba(34,211,238,0.07); border-left-color: #22d3ee; }
+  .an-g-top { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+  .an-g-top .an-date { color: var(--fg-dim); font-size: 12px; }
+  .an-res { font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 4px; line-height: 16px; }
+  .an-g-bl { margin-left: auto; display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--fg-dim); }
+  .an-g-bl i { width: 6px; height: 6px; border-radius: 50%; }
+  .an-g-op, .an-g-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .an-g-op { font-size: 12px; color: var(--fg); }
+  .an-g-sub { font-size: 11px; color: var(--fg-mute); }
+  .an-bls { padding: 2px 0 6px; background: rgba(34,211,238,0.035); border-left: 3px solid #22d3ee; border-bottom: 1px solid rgba(46,50,68,0.6); }
+  .an-b { display: grid; grid-template-columns: 8px 44px 50px minmax(0, 1fr); align-items: center; gap: 6px; width: 100%; padding: 4px 14px 4px 16px;
+    font: 11.5px Inter, sans-serif; color: var(--fg-dim); text-align: left; background: none; border: none; cursor: pointer; }
+  .an-b:hover { background: rgba(255,255,255,0.04); }
+  .an-b.on { background: rgba(255,255,255,0.07); color: var(--fg); }
+  .an-b i { width: 8px; height: 8px; border-radius: 50%; }
+  .an-b b { color: var(--fg); font-weight: 600; }
+  .an-b em { font-style: normal; }
+  .an-b span { color: var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* колонка 2: ходы — описание текущего хода, запись партии, кнопки листания */
+  .an-moves { position: relative; border-right: 1px solid rgba(46,50,68,0.6); }
+  .an-moves-in { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .an-info { flex-shrink: 0; margin: 0 12px 8px; padding: 7px 10px; border-radius: 8px; border-left: 3px solid var(--c, var(--border)); background: rgba(255,255,255,0.03); min-height: 52px; }
+  .an-info-t { font-size: 13px; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .an-info-t em { font-style: normal; color: var(--c); }
+  .an-info-s { font-size: 11.5px; color: var(--fg-dim); margin-top: 3px; line-height: 1.4; }
+  .an-info-s b { color: var(--fg); }
+  .an-info-s .good { color: #4ade80; } .an-info-s .bad { color: #f87171; }
+  .an-mvs { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px; display: grid; grid-template-columns: 30px 1fr 1fr; grid-auto-rows: 26px; align-items: center; align-content: start; gap: 1px 4px;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+  .an-no { font-size: 11px; color: var(--fg-mute); text-align: right; padding-right: 4px; }
+  .an-mv { font: 12.5px Inter, sans-serif; color: var(--fg-dim); text-align: left; background: none; border: 1px solid transparent; border-radius: 5px; height: 24px; padding: 0 6px; cursor: pointer; }
+  .an-mv:hover { background: rgba(255,255,255,0.05); color: var(--fg); }
+  .an-mv.me { color: var(--fg); }
+  .an-mv.bl { color: var(--c); font-weight: 700; }
+  .an-mv.bl::after { content: ' ●'; font-size: 8px; vertical-align: 2px; }
+  .an-mv.next { border-color: var(--c); border-style: dashed; }
+  .an-mv.on { background: rgba(34,211,238,0.18); color: #fff; }
+  .an-nav { display: flex; align-items: center; gap: 4px; padding: 8px 12px 10px; }
+  .an-nav button { font: 14px/1 Inter, sans-serif; color: var(--fg-dim); background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; width: 34px; height: 28px; cursor: pointer; }
+  .an-nav button:hover:not(:disabled) { color: var(--fg); border-color: #22d3ee; }
+  .an-nav button:disabled { opacity: 0.3; cursor: default; }
+  .an-nav span { margin-left: auto; font-size: 11px; color: var(--fg-mute); }
+  /* колонка 3: доска (сверху отступ под кнопки режимов) */
+  .an-board { padding: 54px 16px 12px; display: flex; justify-content: center; }
+  .an-board svg { display: block; width: min(100%, var(--an-board)); height: auto; border-radius: 4px; box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
+  .an-coord { font: 600 0.2px Inter, sans-serif; }
+  /* строка 2: график перевеса на ширину ходов и доски; клик — позиция на этом ходу */
+  .an-graph { grid-column: 2 / span 2; padding: 10px 16px 12px; border-top: 1px solid rgba(46,50,68,0.6); }
+  .an-graph .mr-graph { margin-bottom: 0; }
+  .an-graph .mr-graph svg { height: 92px; cursor: pointer; }
+  .an-lock { grid-column: 2 / span 2; display: flex; align-items: center; justify-content: center; min-height: 300px; font-size: 13px; color: var(--fg-mute); }
+
   /* ---------- Table filters ---------- */
   .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 12px; }
   /* скрытый режим: вместо фильтров — одна надпись той же высоты */
@@ -1416,8 +1501,9 @@
     .records-btn, .act-range, .activity-btn, .rec-scope { position: static; transform: none; order: 2; margin: 10px 0 0; }
     .records-btn { margin-left: 10px; }
     .act-range { margin-left: auto; margin-right: auto; height: 39px; }
-    .activity-btn { margin-left: 8px; margin-right: 10px; }
-    #eyeChart { position: static; order: 2; margin: 10px 0 0 auto; }
+    .activity-btn { margin-left: 8px; margin-right: 0; }
+    .analysis-btn { position: static; order: 2; margin: 10px 0 0 8px; padding: 0 10px; letter-spacing: 0.5px; }
+    #eyeChart { position: static; order: 2; margin: 10px 10px 0 8px; }
     .records-btn, .activity-btn { padding: 0 10px; letter-spacing: 0.5px; }
     .act-range { padding: 0 10px; font-size: 0; gap: 0; }   /* на телефоне только даты, без слова «Период» */
     .act-range b { font-size: 13px; }
@@ -1443,6 +1529,17 @@
     /* таблица */
     .filters { gap: 6px; }
     .f-menu { width: min(320px, calc(100vw - 40px)); }
+    /* анализ: всё в одну колонку — партии, ходы, доска, график */
+    .an-box { order: 3; grid-template-columns: minmax(0, 1fr); }
+    .an-list { grid-row: auto; border-right: none; border-bottom: 3px solid var(--divider); min-height: 0; }
+    .an-list-in { position: static; max-height: 230px; }
+    .an-moves { border-right: none; }
+    .an-moves-in { position: static; max-height: 300px; }
+    .an-board { order: 1; padding: 12px 8px; }
+    .an-moves { order: 2; } .an-graph { order: 3; }
+    .an-board svg { width: 100%; }
+    .an-graph, .an-lock { grid-column: auto; }
+    .an-graph .mr-leg { display: none; }
   }
 </style>
 </head>
@@ -1564,9 +1661,12 @@
     <div class="act-range day-range metrics-only" id="winRange" style="display:none"><button class="pr-nav" id="wrPrev" title="Предыдущие партии">‹</button>ПЕРИОД <b id="winRangeTxt"></b><button class="pr-nav" id="wrNext" title="Следующие партии">›</button></div>
     <div class="act-range day-range metrics-only" id="dayRange" style="display:none">ДЕНЬ <b id="dayRangeTxt"></b><button class="pr-nav" id="dayClose" title="Вернуть последние партии (Esc)">✕</button></div>
     <div class="act-range activity-only"><button class="pr-nav" id="prPrev" title="Предыдущий период">‹</button>ПЕРИОД <b id="actRange" title=""></b><button class="pr-nav" id="prNext" title="Следующий период">›</button></div>
-    <button class="sect-eye" id="eyeChart" type="button" data-sec="chart"></button>
+    <button class="analysis-btn" id="analysisBtn" title="Разбор партий на доске: ходы, зевки, график перевеса"><span class="an-ic">♞</span>Анализ</button>
     <button class="activity-btn" id="activityBtn">Активность</button>
+    <button class="sect-eye" id="eyeChart" type="button" data-sec="chart"></button>
     <div class="chart-area" id="chart"></div>
+    <!-- режим «Анализ»: заполняет renderAnalysis() -->
+    <div class="an-box analysis-only" id="anBox"></div>
     <div class="legend-rule"></div>
     <div class="legend">
       <div class="bl-legend metrics-only" id="blLegend"></div>
@@ -2353,6 +2453,7 @@ function streakTitle() {
 function renderTitle() {
   if (hush.chart) { $('chartTitle').textContent = 'Недавняя активность'; return; }
   if (chartMode === 'activity') $('chartTitle').innerHTML = streakTitle();
+  else if (chartMode === 'analysis') $('chartTitle').innerHTML = 'Анализ партий <span class="title-note">клик по зевку — позиция перед ним · ← → ходы · ↑ ↓ зевки</span>';
   else $('chartTitle').textContent = renderRecentCount();
 }
 
@@ -2607,8 +2708,11 @@ function mrBar(label, v, color, delta) {
 function mrCount(label, v, color, delta) {
   return '<div class="mr-cnt"><b style="color:' + color + '">' + v + '</b><span>' + label + '</span>' + (delta || '') + '</div>';
 }
+// номер полухода зевка (1 — первый ход белых): позиция перед зевком — blPly − 1, после — blPly
+function blPly(g, b) { return (b.m - 1) * 2 + (g.color === 'white' ? 1 : 2); }
 // график перевеса: фазы фоном, линия перевеса (выше нуля — лучше у меня), точки зевков по типам
-function evalGraph(g) {
+// idPre — префикс id внутри SVG, если одна партия показана в двух местах (таблица и анализ)
+function evalGraph(g, idPre) {
   if (!g.ev || g.ev.length < 3) return '';
   var W = 1000, H = 120, mid = H / 2, cap = 50, n = g.ev.length - 1;
   function x(p) { return (p / n * W).toFixed(1); }
@@ -2623,7 +2727,7 @@ function evalGraph(g) {
     });
   out.push('<line x1="0" y1="' + mid + '" x2="' + W + '" y2="' + mid + '" stroke="rgba(255,255,255,0.18)" stroke-dasharray="4,4"/>');
   var pts = g.ev.map(function(v, i) { return x(i) + ',' + y(v); });
-  var id = 'mr' + g.id;
+  var id = (idPre || 'mr') + g.id;
   out.push('<defs><clipPath id="' + id + 'u"><rect x="0" y="0" width="' + W + '" height="' + mid + '"/></clipPath>' +
     '<clipPath id="' + id + 'd"><rect x="0" y="' + mid + '" width="' + W + '" height="' + mid + '"/></clipPath></defs>');
   var area = '0,' + mid + ' ' + pts.join(' ') + ' ' + W + ',' + mid;
@@ -2631,7 +2735,7 @@ function evalGraph(g) {
   out.push('<polygon points="' + area + '" fill="rgba(248,113,113,0.22)" clip-path="url(#' + id + 'd)"/>');
   out.push('<polyline points="' + pts.join(' ') + '" fill="none" stroke="#e4e4e7" stroke-width="1.6" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>');
   (g.bl || []).forEach(function(b) {
-    var p = (b.m - 1) * 2 + (g.color === 'white' ? 1 : 2);
+    var p = blPly(g, b);
     if (p > n) return;
     out.push('<circle cx="' + x(p) + '" cy="' + y(g.ev[p]) + '" r="5.5" fill="' + BL_TYPES[b.t].color + '" stroke="#11131a" stroke-width="1.5"><title>' + esc(blLabel(b) + ' — ' + blTip(b)) + '</title></circle>');
   });
@@ -2690,7 +2794,7 @@ function mrHover(e) {
   else {
     var mine = (p % 2 === 1) === (g.color === 'white');
     txt = '<b>' + Math.ceil(p / 2) + (p % 2 ? '. ' : '… ') + esc(mv[p - 1] || '') + '</b> <span>' + (mine ? 'твой ход' : 'ход соперника') + '</span>';
-    var bl = mine ? (g.bl || []).filter(function(b) { return (b.m - 1) * 2 + (g.color === 'white' ? 1 : 2) === p; })[0] : null;
+    var bl = mine ? (g.bl || []).filter(function(b) { return blPly(g, b) === p; })[0] : null;
     if (bl) txt += '<div style="color:' + BL_TYPES[bl.t].color + '">⚠ ' + esc(blLabel(bl)) + (bl.b ? ' — лучше ' + esc(bl.b) : '') + '</div>';
   }
   hint.innerHTML = txt + '<div>Перевес: <b style="color:' + (v > 0 ? '#4ade80' : v < 0 ? '#f87171' : 'var(--fg)') + '">' + evText(v) + '</b>' + (v ? (v > 0 ? ' у тебя' : ' у соперника') : '') + '</div>';
@@ -3137,6 +3241,7 @@ function chartFilterChanged() {
   renderChartFilter();
   renderWindow();
   if (chartMode === 'activity') renderActivity();
+  else if (chartMode === 'analysis') renderAnalysis();
 }
 
 function toggleKey(obj, k) { if (obj[k]) delete obj[k]; else obj[k] = true; }
@@ -3194,6 +3299,7 @@ $('cf').querySelector('.cf-metrics').addEventListener('input', function(e) {
   renderChartFilter(true);
   renderWindow();
   if (chartMode === 'activity') renderActivity();
+  else if (chartMode === 'analysis') renderAnalysis();
 });
 
 function rangeLabel(k) {
@@ -3368,6 +3474,7 @@ function renderGames() {
     detail.innerHTML = '<td colspan="7"><div class="detail-inner mr">' + matchReport(g) +
       '<span class="detail-links">' +
       (g.bl && g.bl.length ? '<button class="detail-link mr-bl-btn" type="button">Список зевков (' + g.bl.length + ') ▾</button>' : '') +
+      (g.mv ? '<button class="detail-link detail-an" type="button" title="Открыть партию в режиме «Анализ»: доска, ходы, зевки">Разбор на доске ♞</button>' : '') +
       (chartReach(g) ? '<button class="detail-link detail-chart" type="button" title="Переключить на график и выделить колонку этой партии">Показать на графике</button>' : '') +
       (g.id ? '<a class="detail-link" href="https://lichess.org/' + g.id + '" target="_blank" rel="noopener">Партия на Lichess ↗</a>' : '') +
       '</span>' +
@@ -3392,6 +3499,8 @@ function renderGames() {
       r.addEventListener('click', go);
       r.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(e); } });
     });
+    var anBtn = detail.querySelector('.detail-an');
+    if (anBtn) anBtn.addEventListener('click', function(e) { e.stopPropagation(); anOpen(g); });
     var chBtn = detail.querySelector('.detail-chart');
     if (chBtn) chBtn.addEventListener('click', function(e) { e.stopPropagation(); showOnChart(g); });
     row.addEventListener('click', toggle);
@@ -3424,7 +3533,8 @@ var DOW = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 var chartMode = 'metrics';
 var period = 'week';
 try {
-  if (localStorage.getItem('chartMode') === 'activity') chartMode = 'activity';
+  var savedMode = localStorage.getItem('chartMode');
+  if (savedMode === 'activity' || savedMode === 'analysis') chartMode = savedMode;   // 'metrics' | 'activity' | 'analysis'
   var savedPeriod = localStorage.getItem('activityPeriod');
   if (PERIODS.some(function(p) { return p.key === savedPeriod; })) period = savedPeriod;
 } catch (e) {}
@@ -4093,7 +4203,8 @@ function activityRecordsHtml() {
   '</div>';
 }
 
-/* ---------- switch: показатели ⇄ активность ---------- */
+/* ---------- switch: показатели ⇄ активность ⇄ анализ ---------- */
+// кнопки «Анализ» и «Активность» включают свой режим, повторный клик по нажатой — обратно к показателям
 var linkGames = {};   // партии, выбранные в «Показателях», — в «Активности» их дни обведены пунктиром
 function setMode(m) {
   if (m === 'metrics' && chartMode === 'activity') {
@@ -4111,14 +4222,19 @@ function setMode(m) {
   try { localStorage.setItem('chartMode', m); } catch (e) {}
   $('chartBox').classList.remove('cmp-on');
   $('chartBox').classList.toggle('mode-activity', m === 'activity');
-  $('activityBtn').textContent = m === 'activity' ? 'Показатели' : 'Активность';
-  if (typeof placeChartEye === 'function' && $('eyeChart')) placeChartEye();
+  $('chartBox').classList.toggle('mode-analysis', m === 'analysis');
+  if (typeof placeChartBtns === 'function') placeChartBtns();
   // режим «Рекорды» сохраняется при переключении показатели ⇄ активность
   renderTitle();
   hideTooltip();
   if (m === 'activity') { renderPeriodPick(); renderActivity(); }
+  else if (m === 'analysis') renderAnalysis();
   else renderWindow();   // средние, подпись окна и график — режим дня мог включиться
 }
+$('analysisBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  setMode(chartMode === 'analysis' ? 'metrics' : 'analysis');
+});
 $('wrPrev').addEventListener('click', function(e) { e.stopPropagation(); shiftWin(1); });
 $('wrNext').addEventListener('click', function(e) { e.stopPropagation(); shiftWin(-1); });
 $('winRangeTxt').addEventListener('click', function(e) { e.stopPropagation(); if (winPage) shiftWin(-winPage); });
@@ -4126,6 +4242,264 @@ $('dayClose').addEventListener('click', function(e) { e.stopPropagation(); exitD
 $('activityBtn').addEventListener('click', function(e) {
   e.stopPropagation();
   setMode(chartMode === 'activity' ? 'metrics' : 'activity');
+});
+
+/* ---------- анализ партий: список партий · ходы · доска · график перевеса ---------- */
+// Позиции считает chess.js (lib/chess.js — грузится при первом открытии режима), фигуры — assets/pieces (cburnett, как на Lichess).
+// Состояние — партия и полуход на доске: ply = 0 — начальная позиция, ply = k — позиция после k-го полухода.
+// Перед своим зевком (ply = blPly − 1) на доске две стрелки: красная — что сыграно, зелёная — лучший ход.
+var an = {gid: null, ply: 0};
+var AN_COLORS = {light: '#dee3e6', dark: '#8ca2ad',                           // клетки (доска Lichess «blue»)
+                 last: 'rgba(155,199,0,0.41)', lastBad: 'rgba(239,68,68,0.45)', // последний ход; он же, если это зевок
+                 played: '#f87171', best: '#4ade80'};                          // стрелки: сыграно / лучше
+var AN_PIECES = 'assets/pieces/';                                              // wK.svg, bN.svg, …
+
+// chess.js подгружается один раз; пока грузится — ждущие вызовы копятся в очереди
+var anChessQueue = null;
+function anNeedChess(done) {
+  if (window.Chess) { done(); return; }
+  if (anChessQueue) { anChessQueue.push(done); return; }
+  anChessQueue = [done];
+  var s = document.createElement('script');
+  s.src = 'lib/chess.js';
+  s.onload = function() { var q = anChessQueue; anChessQueue = null; q.forEach(function(f) { f(); }); };
+  s.onerror = function() { anChessQueue = null; $('anBox').innerHTML = '<div class="an-lock" style="grid-column: 1 / -1">Не удалось загрузить lib/chess.js — обнови страницу</div>'; };
+  document.head.appendChild(s);
+}
+
+/* --- данные --- */
+// партии для списка: с учётом фильтра графика, новые сверху, только с записью ходов
+function anList() { return cgAll.filter(function(g) { return g.mv; }).slice().reverse(); }
+function anGame() { return games.filter(function(g) { return g.id === an.gid; })[0] || null; }
+// выбрать партию: позиция перед первым зевком, если он есть, иначе начало
+function anSetGame(g) { an.gid = g.id; an.ply = g.bl && g.bl.length ? blPly(g, g.bl[0]) - 1 : 0; }
+// позиции партии после каждого полухода и сами ходы (from / to / san) — считаются один раз на партию
+var anPos = {id: null};
+function anPositions(g) {
+  if (anPos.id === g.id) return anPos;
+  var c = new Chess(), boards = [c.board()], fens = [c.fen()], moves = [];
+  (g.mv || '').split(' ').filter(Boolean).some(function(san) {
+    try { moves.push(c.move(san)); } catch (e) { return true; }   // нечитаемый ход — дальше не идём
+    boards.push(c.board()); fens.push(c.fen());
+    return false;
+  });
+  anPos = {id: g.id, boards: boards, fens: fens, moves: moves, n: moves.length};
+  return anPos;
+}
+// мой зевок, сыгранный полуходом ply (или null)
+function anBlunderAt(g, ply) { return (g.bl || []).filter(function(b) { return blPly(g, b) === ply; })[0] || null; }
+// лучший ход движка из позиции ply (SAN → from / to)
+function anBest(P, ply, san) { if (!san) return null; try { return new Chess(P.fens[ply]).move(san); } catch (e) { return null; } }
+// что показать на полуходе ply: стрелки перед зевком, подсветка последнего хода, зевок рядом
+function anView(g, P, ply) {
+  var v = {next: anBlunderAt(g, ply + 1), done: anBlunderAt(g, ply), arrows: [], last: null};
+  var lm = P.moves[ply - 1];
+  if (lm) v.last = {from: lm.from, to: lm.to, bad: !!v.done};
+  if (v.next && P.moves[ply]) {
+    v.arrows.push({from: P.moves[ply].from, to: P.moves[ply].to, color: AN_COLORS.played});
+    var best = anBest(P, ply, v.next.b);
+    if (best) v.arrows.push({from: best.from, to: best.to, color: AN_COLORS.best});
+  }
+  return v;
+}
+
+/* --- доска (SVG 8×8 клеток, клетка = 1) --- */
+function anSq(sq, flip) { var f = sq.charCodeAt(0) - 97, r = 8 - +sq[1]; return flip ? {x: 7 - f, y: 7 - r} : {x: f, y: r}; }
+function anArrow(a, flip) {
+  var p = anSq(a.from, flip), q = anSq(a.to, flip);
+  var x1 = p.x + 0.5, y1 = p.y + 0.5, x2 = q.x + 0.5, y2 = q.y + 0.5;
+  var L = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)), ux = (x2 - x1) / L, uy = (y2 - y1) / L;
+  var tx = x2 - ux * 0.1, ty = y2 - uy * 0.1, bx = tx - ux * 0.42, by = ty - uy * 0.42, w = 0.23;   // острие, основание, полуширина наконечника
+  return '<g opacity="0.82"><line x1="' + r2(x1 + ux * 0.15) + '" y1="' + r2(y1 + uy * 0.15) + '" x2="' + r2(bx) + '" y2="' + r2(by) + '" stroke="' + a.color + '" stroke-width="0.17" stroke-linecap="round"/>' +
+    '<polygon points="' + r2(tx) + ',' + r2(ty) + ' ' + r2(bx - uy * w) + ',' + r2(by + ux * w) + ' ' + r2(bx + uy * w) + ',' + r2(by - ux * w) + '" fill="' + a.color + '"/></g>';
+}
+// board — массив chess.js (строка 0 = 8-я горизонталь); o = {flip, last: {from, to, bad}, arrows: [{from, to, color}]}
+function anBoardSvg(board, o) {
+  var s = [], flip = o.flip, x, y;
+  for (y = 0; y < 8; y++) for (x = 0; x < 8; x++)
+    s.push('<rect x="' + x + '" y="' + y + '" width="1" height="1" fill="' + ((x + y) % 2 ? AN_COLORS.dark : AN_COLORS.light) + '"/>');
+  if (o.last) [o.last.from, o.last.to].forEach(function(sq) {
+    var c = anSq(sq, flip);
+    s.push('<rect x="' + c.x + '" y="' + c.y + '" width="1" height="1" fill="' + (o.last.bad ? AN_COLORS.lastBad : AN_COLORS.last) + '"/>');
+  });
+  // координаты: буквы по нижнему краю, цифры по левому — цветом противоположной клетки
+  for (var i = 0; i < 8; i++) {
+    s.push('<text x="' + (i + 0.95) + '" y="7.94" text-anchor="end" font-size="0.2" font-weight="600" fill="' + ((i + 7) % 2 ? AN_COLORS.light : AN_COLORS.dark) + '">' + String.fromCharCode(97 + (flip ? 7 - i : i)) + '</text>');
+    s.push('<text x="0.05" y="' + (i + 0.22) + '" font-size="0.2" font-weight="600" fill="' + (i % 2 ? AN_COLORS.light : AN_COLORS.dark) + '">' + (flip ? i + 1 : 8 - i) + '</text>');
+  }
+  board.forEach(function(row, r) {
+    row.forEach(function(pc, f) {
+      if (pc) s.push('<image href="' + AN_PIECES + pc.color + pc.type.toUpperCase() + '.svg" x="' + (flip ? 7 - f : f) + '" y="' + (flip ? 7 - r : r) + '" width="1" height="1"/>');
+    });
+  });
+  (o.arrows || []).forEach(function(a) { s.push(anArrow(a, flip)); });
+  return '<svg viewBox="0 0 8 8" role="img" aria-label="Позиция на доске">' + s.join('') + '</svg>';
+}
+
+/* --- колонки --- */
+// список партий; у выбранной под карточкой — её зевки (клик — позиция перед зевком)
+function anListHtml(list, g) {
+  var head = '<div class="an-head">Партии <span>' + list.length + '</span></div>';
+  if (!list.length) return head + '<div class="an-list-in"><div class="an-empty">' + (games.length ? 'Нет партий под фильтр графика' : 'Партий пока нет') + '</div></div>';
+  return head + '<div class="an-list-in">' + list.map(function(x) {
+    var R = RESULT[x.result], on = x === g, bl = x.bl || [];
+    var dots = BL_ORDER.filter(function(t) { return bl.some(function(b) { return b.t === t; }); })
+      .map(function(t) { return '<i style="background:' + BL_TYPES[t].color + '"></i>'; }).join('');
+    return '<button class="an-g' + (on ? ' on' : '') + '" data-id="' + x.id + '">' +
+        '<span class="an-g-top"><b>#' + x.n + '</b><span class="an-date">' + esc(x.date) + '</span>' +
+          '<span class="an-res" style="color:' + R.color + ';background:' + R.bg + '">' + R.letter + '</span>' +
+          '<span class="an-g-bl" title="Зевков: ' + bl.length + (bl.length ? ' — ' + esc(blSummary(bl)) : '') + '">' + dots + ' ' + (bl.length || '—') + '</span></span>' +
+        '<span class="an-g-op" title="' + esc(x.opening) + '">' + esc(x.opening) + '</span>' +
+        '<span class="an-g-sub">' + KNIGHT[x.color] + ' ' + COLOR_WORD[x.color] + ' · ' + esc(x.engine) + '</span>' +
+      '</button>' +
+      (on && bl.length ? '<div class="an-bls">' + bl.map(function(b) {
+        return '<button class="an-b" data-ply="' + (blPly(x, b) - 1) + '" style="--c:' + BL_TYPES[b.t].color + '" title="' + esc(blTip(b)) + '">' +
+          '<i style="background:' + BL_TYPES[b.t].color + '"></i><em>ход ' + b.m + '</em><b>' + esc(b.s) + '</b><span>' + esc(blLabel(b)) + '</span></button>';
+      }).join('') + '</div>' : '');
+  }).join('') + '</div>';
+}
+// описание текущей позиции: зевок рядом — что сыграно и что лучше; иначе — ход и перевес
+function anInfoHtml(g, P, v) {
+  var b = v.next || v.done, ply = an.ply;
+  if (b) {
+    var loss = (typeof b.d === 'number' ? ' · −' + b.d + ' пешки' : ' · мат') + (b.p ? ' · ' + PHASE_RU[b.p] : '');
+    return '<div class="an-info" style="--c:' + BL_TYPES[b.t].color + '"><div class="an-info-t">⚠ ' + b.m + '. ' + esc(b.s) + ' · <em>' + esc(blLabel(b)) + '</em></div>' +
+      '<div class="an-info-s">' + (v.next
+        ? 'Твой ход — здесь был зевок: <span class="bad">сыграно ' + esc(b.s) + '</span>' + (b.b ? ', <span class="good">лучше ' + esc(b.b) + '</span>' : '')
+        : 'Зевок сыгран' + (b.b ? ' — лучше было <b>' + esc(b.b) + '</b>' : '')) + loss + '</div></div>';
+  }
+  if (!ply) return '<div class="an-info"><div class="an-info-t">Начальная позиция</div><div class="an-info-s">▶ или → — первый ход</div></div>';
+  var m = P.moves[ply - 1], mine = (ply % 2 === 1) === (g.color === 'white'), ev = g.ev ? g.ev[ply] : null;
+  return '<div class="an-info"><div class="an-info-t">' + Math.ceil(ply / 2) + (ply % 2 ? '. ' : '… ') + esc(m.san) + '</div>' +
+    '<div class="an-info-s">' + (mine ? 'твой ход' : 'ход соперника') +
+      (typeof ev === 'number' ? ' · перевес <b>' + evText(ev) + '</b>' + (ev ? (ev > 0 ? ' у тебя' : ' у соперника') : '') : '') + '</div></div>';
+}
+// запись партии парами «1. e4 c6»; зевки — цветом типа, текущий ход подсвечен, ход-зевок впереди — пунктиром
+function anMovesHtml(g, P, v) {
+  var blAt = {}, out = [];
+  (g.bl || []).forEach(function(b) { blAt[blPly(g, b)] = b; });
+  function mv(p) {
+    if (p > P.n) return '<span></span>';
+    var b = blAt[p], mine = (p % 2 === 1) === (g.color === 'white');
+    var cls = 'an-mv' + (mine ? ' me' : '') + (b ? ' bl' : '') + (p === an.ply ? ' on' : '') + (v.next && p === an.ply + 1 ? ' next' : '');
+    return '<button class="' + cls + '" data-p="' + p + '"' + (b ? ' style="--c:' + BL_TYPES[b.t].color + '" title="' + esc(blLabel(b)) + '"' : '') + '>' + esc(P.moves[p - 1].san) + '</button>';
+  }
+  for (var p = 1; p <= P.n; p += 2) out.push('<span class="an-no">' + (p + 1) / 2 + '.</span>' + mv(p) + mv(p + 1));
+  return out.join('');
+}
+function anMovesCol(g, P, v) {
+  var ply = an.ply;
+  return '<div class="an-moves-in"><div class="an-head">Ходы <span>' + Math.ceil(P.n / 2) + '</span></div>' +
+    anInfoHtml(g, P, v) + '<div class="an-mvs">' + anMovesHtml(g, P, v) + '</div>' +
+    '<div class="an-nav">' +
+      '<button data-nav="first" title="В начало (Home)"' + (ply ? '' : ' disabled') + '>⏮</button>' +
+      '<button data-nav="prev" title="Назад (←)"' + (ply ? '' : ' disabled') + '>◀</button>' +
+      '<button data-nav="next" title="Вперёд (→)"' + (ply < P.n ? '' : ' disabled') + '>▶</button>' +
+      '<button data-nav="last" title="В конец (End)"' + (ply < P.n ? '' : ' disabled') + '>⏭</button>' +
+      '<span>' + (ply ? 'ход ' + Math.ceil(ply / 2) + ' из ' + Math.ceil(P.n / 2) : 'начало') + '</span></div></div>';
+}
+
+/* --- отрисовка --- */
+// весь режим: список, ходы, доска, график (при смене партии, фильтра графика, скрытия)
+function renderAnalysis() {
+  var box = $('anBox');
+  if (chartMode !== 'analysis') return;
+  if (hush.chart) {
+    box.innerHTML = '<div class="an-list"><div class="an-head">Партии</div><div class="an-list-in"><div class="an-empty">нет данных</div></div></div><div class="an-lock">🔒 Скрыто</div>';
+    return;
+  }
+  if (!window.Chess) { box.innerHTML = '<div class="an-lock" style="grid-column: 1 / -1">Загружаю доску…</div>'; anNeedChess(renderAnalysis); return; }
+  var list = anList(), g = anGame();
+  if (!g || list.indexOf(g) < 0) { g = list[0] || null; if (g) anSetGame(g); }
+  if (!g) { box.innerHTML = '<div class="an-list">' + anListHtml(list, null) + '</div><div class="an-lock">Партий для разбора нет</div>'; return; }
+  box.innerHTML = '<div class="an-list">' + anListHtml(list, g) + '</div><div class="an-moves"></div><div class="an-board"></div>' +
+    '<div class="an-graph">' + (evalGraph(g, 'an') || '<div class="an-empty">Графика перевеса нет — у партии нет компьютерного анализа</div>') + '</div>';
+  anUpdate();
+  // выбранная партия — в видимой части списка
+  var sel = box.querySelector('.an-g.on'), sc = box.querySelector('.an-list-in');
+  if (sel && (sel.offsetTop < sc.scrollTop || sel.offsetTop > sc.scrollTop + sc.clientHeight - 60)) sc.scrollTop = sel.offsetTop - 8;
+}
+// смена полухода: ходы, доска, отметка на графике и выбранный зевок в списке (список не перерисовывается — прокрутка остаётся)
+function anUpdate() {
+  var g = anGame(), box = $('anBox'), col = box.querySelector('.an-moves');
+  if (!g || !col) return;
+  var P = anPositions(g);
+  an.ply = Math.max(0, Math.min(P.n, an.ply));
+  var v = anView(g, P, an.ply);
+  col.innerHTML = anMovesCol(g, P, v);
+  box.querySelector('.an-board').innerHTML = anBoardSvg(P.boards[an.ply], {flip: g.color === 'black', last: v.last, arrows: v.arrows});
+  // текущий ход — посередине записи
+  var cur = col.querySelector('.an-mv.on, .an-mv.next'), sc = col.querySelector('.an-mvs');
+  if (cur) sc.scrollTop = Math.max(0, cur.offsetTop - sc.offsetTop - sc.clientHeight / 2 + 12);
+  // отметка текущего хода на графике перевеса
+  var svg = box.querySelector('.an-graph svg');
+  if (svg && g.ev) {
+    var ln = svg.querySelector('.an-ply');
+    if (!ln) {
+      ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      ln.setAttribute('class', 'an-ply'); ln.setAttribute('y1', 0); ln.setAttribute('y2', 120);
+      ln.setAttribute('stroke', '#22d3ee'); ln.setAttribute('stroke-width', 2); ln.setAttribute('vector-effect', 'non-scaling-stroke');
+      svg.appendChild(ln);
+    }
+    var x = an.ply / (g.ev.length - 1) * 1000;
+    ln.setAttribute('x1', x); ln.setAttribute('x2', x);
+  }
+  box.querySelectorAll('.an-b').forEach(function(b) { var p = +b.getAttribute('data-ply'); b.classList.toggle('on', p === an.ply || p + 1 === an.ply); });
+}
+
+/* --- действия --- */
+function anGo(ply) { if (anGame()) { an.ply = ply; anUpdate(); } }
+// ↑ ↓ — к предыдущему / следующему зевку партии (позиция перед ним)
+function anStepBlunder(dir) {
+  var g = anGame();
+  if (!g) return;
+  var ps = (g.bl || []).map(function(b) { return blPly(g, b) - 1; });
+  var t = dir > 0 ? ps.filter(function(p) { return p > an.ply; })[0] : ps.filter(function(p) { return p < an.ply; }).pop();
+  if (t !== undefined) anGo(t);
+}
+// открыть партию в анализе (из отчёта о матче); если её прячет фильтр графика — фильтр снимается
+function anOpen(g, ply) {
+  if (cgAll.indexOf(g) < 0) { cfilt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}}; renderCfInputs(); chartFilterChanged(); }
+  anSetGame(g);
+  if (typeof ply === 'number') an.ply = ply;
+  var was = chartMode === 'analysis';
+  gsChart('analysis', false);
+  if (was) renderAnalysis();
+}
+$('anBox').addEventListener('click', function(e) {
+  var t = e.target.closest('.an-g, .an-b, .an-mv, [data-nav], .an-graph svg');
+  if (!t) return;
+  if (t.classList.contains('an-g')) {
+    var g = games.filter(function(x) { return x.id === t.getAttribute('data-id'); })[0];
+    if (g && g.id !== an.gid) { anSetGame(g); renderAnalysis(); }
+  } else if (t.classList.contains('an-b')) anGo(+t.getAttribute('data-ply'));
+  else if (t.classList.contains('an-mv')) anGo(+t.getAttribute('data-p'));
+  else if (t.hasAttribute('data-nav')) {
+    var k = t.getAttribute('data-nav');
+    anGo(k === 'first' ? 0 : k === 'last' ? Infinity : an.ply + (k === 'next' ? 1 : -1));
+  } else {   // график перевеса: позиция на этом ходу; клик по своему зевку — позиция перед ним (со стрелками)
+    var gg = anGame();
+    if (!gg || !gg.ev) return;
+    var r = t.getBoundingClientRect(), n = gg.ev.length - 1;
+    var p = Math.max(0, Math.min(n, Math.round((e.clientX - r.left) / r.width * n)));
+    anGo(anBlunderAt(gg, p) ? p - 1 : p);
+  }
+});
+// клавиатура, пока блок анализа на экране: ← → ходы, Home / End, ↑ ↓ зевки
+document.addEventListener('keydown', function(e) {
+  if (chartMode !== 'analysis' || hush.chart || !anGame() || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) || $('aiMenu').classList.contains('open')) return;
+  var r = $('chartBox').getBoundingClientRect();
+  if (r.bottom < 60 || r.top > window.innerHeight - 60) return;
+  var k = e.key;
+  if (k === 'ArrowLeft') anGo(an.ply - 1);
+  else if (k === 'ArrowRight') anGo(an.ply + 1);
+  else if (k === 'Home') anGo(0);
+  else if (k === 'End') anGo(Infinity);
+  else if (k === 'ArrowUp') anStepBlunder(-1);
+  else if (k === 'ArrowDown') anStepBlunder(1);
+  else return;
+  e.preventDefault();
 });
 
 /* ---------- карточка задач (puzzles.js из update.bat) ---------- */
@@ -4798,6 +5172,7 @@ function toggleVerdict(open) {
 $('vdCard').addEventListener('click', function() { toggleVerdict(); });
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape' || $('sideRow').classList.contains('vd-open')) return;
+  if (chartMode === 'analysis') return;   // выбор и сравнение показателей / активности в анализе не видны — не трогаем
   if (chartMode === 'activity') {
     if (aCmpMode === 'view') { aCmpMode = 'pick'; renderActivity(); }
     else if (aCmpMode === 'pick') { aCmpMode = null; aCmpSet = {}; renderActivity(); }
@@ -5447,6 +5822,7 @@ function gsIndex() {
   // разделы и действия
   add('Разделы', '📈', 'График показателей', 'средние, линии по партиям', 'график показатели точность дебют миттельшпиль эндшпиль зевки средние', function() { gsChart('metrics', false); });
   add('Разделы', '📊', 'Активность', 'партии по дням, недели, месяцы', 'активность неделя месяц дни серия', function() { gsChart('activity', false); });
+  add('Разделы', '♞', 'Анализ партий', 'доска, ходы и зевки каждой партии', 'анализ разбор доска ходы зевки позиция', function() { gsChart('analysis', false); });
   add('Разделы', '🏆', 'Рекорды партий', 'лучшая и худшая партия', 'рекорды лучшая худшая партия', function() { gsChart('metrics', true); });
   add('Разделы', '🏆', 'Рекорды активности', 'лучший и худший день, рекорды', 'рекорды день неделя активность', function() { gsChart('activity', true); });
   add('Разделы', '🧩', 'Задачи', 'рейтинг, режимы, сильные и слабые темы', 'задачи пазлы рейтинг темы микс puzzle', function() { gsCloseSide(); togglePuzzleDetail(true); gsFlash($('sideRow')); });
@@ -5902,6 +6278,7 @@ function applyHush() {
   renderTitle();
   renderWindow();
   if (chartMode === 'activity') renderActivity();
+  else if (chartMode === 'analysis') renderAnalysis();
   renderWrBox();
   renderPuzzleCard();
   renderOpeningCard();
@@ -5929,14 +6306,16 @@ document.querySelectorAll('.sect-eye').forEach(function(b) {
     setTimeout(function() { hush[k] = !hush[k]; saveHush(); applyHush(); }, 250);
   });
 });
-// глаз графика стоит слева от «Активность / Показатели» — ширина кнопки меняется, пересчитываем
-function placeChartEye() {
-  var b = $('activityBtn'), e = $('eyeChart');
-  if (getComputedStyle(b).position !== 'absolute') { e.style.right = ''; return; }
-  e.style.right = (b.parentNode.clientWidth - b.offsetLeft + 8) + 'px';
+// кнопки справа над графиком: глаз у края (CSS), левее «Активность», ещё левее «Анализ» — ширина кнопок зависит от шрифта, пересчитываем
+function placeChartBtns() {
+  var eye = $('eyeChart'), act = $('activityBtn'), an = $('analysisBtn');
+  if (getComputedStyle(act).position !== 'absolute') { act.style.right = an.style.right = ''; return; }   // телефон: кнопки идут строкой
+  var W = act.parentNode.clientWidth;
+  act.style.right = (W - eye.offsetLeft + 8) + 'px';
+  an.style.right = (W - act.offsetLeft + 8) + 'px';
 }
-window.addEventListener('resize', placeChartEye);
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeChartEye);
+window.addEventListener('resize', placeChartBtns);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeChartBtns);
 function setEyeOut(on) { $('avatar').parentNode.classList.toggle('eye-out', on); }
 $('avatar').addEventListener('click', function(e) {
   e.stopPropagation();
@@ -5981,9 +6360,9 @@ renderChartFilter();
 renderMetricInputs();
 renderFilterBar();
 renderGames();
-if (chartMode === 'activity') setMode('activity');
+if (chartMode !== 'metrics') setMode(chartMode);
 applyHush();
-placeChartEye();
+placeChartBtns();
 </script>
 
 </body>

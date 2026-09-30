@@ -143,7 +143,7 @@ window.PUZZLES = { rating, total,
 | `фильтр графика` | `.cf-*` |
 | `карточка «Дебюты»` / `карточка «Итоги»` | `.op-*`, `.vd-*`, карусель итогов |
 | `глобальный поиск` | `.gs-*` |
-| `скрытый режим` | `hush` (localStorage `hush`), `applyHush`, `setEyeOut`; клик по аватарке — кнопка-глаз `#eyeBtn`. Каждая скрываемая часть проверяет `hush` в своей функции отрисовки (`renderWrBox`, `renderPuzzleCard/Detail`, `renderOpeningCard/Detail`, `renderVerdictCard`, `toggleVerdict`, `gsOpen`) |
+| `скрытый режим` | `.eye-btn`, `body.hush`, `.hush-na`, `.hush-q` |
 | `освежённый блок графика` | фон блока, полосы-акценты строк, «таблетки», легенда |
 | `переключение режимов` | `.mode-activity`, `.records-on`, скрытие панелей |
 | `линии средних скрыты` | средние линии видны только при наведении/выделении |

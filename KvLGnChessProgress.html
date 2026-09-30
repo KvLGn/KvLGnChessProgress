@@ -895,6 +895,9 @@
     display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 8px;
     background: rgba(255,255,255,0.03); border: 1px solid #2d3143; }
   .records-on .act-range { display: none !important; }
+  .day-range { display: flex; align-items: center; gap: 8px; }
+  .day-range .pr-nav { font-size: 12px; }
+  .cmp-picking .day-range { visibility: hidden; }
   .act-range b { color: #f3f4f6; font-size: 13px; letter-spacing: 0.3px; }
   .act-range { padding: 0 4px !important; }
   .pr-nav { font: 16px/1 Inter, sans-serif; color: var(--fg-dim); background: none; border: none; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; }
@@ -1397,6 +1400,7 @@
     <button class="cmp-btn" id="cmpBtn" title="Сравнить выбранную партию с другими"></button>
     <div class="cmp-hint" id="cmpHint"></div>
     <div class="rec-scope" id="recScope"></div>
+    <div class="act-range day-range metrics-only" id="dayRange" style="display:none">ДЕНЬ <b id="dayRangeTxt"></b><button class="pr-nav" id="dayClose" title="Вернуть последние партии (Esc)">✕</button></div>
     <div class="act-range activity-only"><button class="pr-nav" id="prPrev" title="Предыдущий период">‹</button>ПЕРИОД <b id="actRange" title=""></b><button class="pr-nav" id="prNext" title="Следующий период">›</button></div>
     <button class="sect-eye" id="eyeChart" type="button" data-sec="chart"></button>
     <button class="activity-btn" id="activityBtn">Активность</button>
@@ -1731,7 +1735,15 @@ try {
   if (WINDOWS.indexOf(savedWin) >= 0) avgWindow = savedWin;
 } catch (e) {}
 
-function windowGames() { return hush.chart ? [] : cgAll.slice(-avgWindow); }
+function windowGames() {
+  if (hush.chart) return [];
+  if (dayView) return cgAll.filter(inDayView);
+  return cgAll.slice(-avgWindow);
+}
+// дни, выбранные в «Активности», при переходе в «Показатели» — график показывает все их партии (сколько бы ни было)
+var dayView = null;   // null | {ranges: [{from, to}], label}
+function inDayView(g) { return dayView.ranges.some(function(r) { return g.day >= r.from && g.day <= r.to; }); }
+function exitDayView() { if (!dayView) return; dayView = null; selCols = {}; cmpMode = null; cmpSet = {}; renderWindow(); }
 
 /* ---------- выбор колонок графика: клик — одна партия, Ctrl+клик — несколько ---------- */
 var selCols = {};   // id партии → true
@@ -1754,7 +1766,7 @@ function renderCmpBtn() {
   var show = !hush.chart && !showRecords && (base > 0 || mode);
   b.style.display = show ? '' : 'none';
   h.style.display = mode === 'pick' ? '' : 'none';
-  $('chartBox').classList.toggle('cmp-picking', act && !!mode);   // в активности подсказка заменяет «Период»
+  $('chartBox').classList.toggle('cmp-picking', !!mode && (act || !!dayView));   // в активности подсказка заменяет «Период»
   if (!show) return;
   if (!mode) b.textContent = 'Сравнить';
   else if (mode === 'pick') b.innerHTML = cnt ? 'Показать · ' + cnt + '<span class="cmp-x" title="Отменить сравнение (Esc)">✕</span>' : 'Отмена';
@@ -1841,6 +1853,10 @@ function winLabel(w) { return 'за ' + w + ' ' + plural(w, 'игру', 'игр�
 var LOCK = '<svg class="lock" viewBox="0 0 16 16" width="10" height="10" aria-hidden="true"><path fill="currentColor" d="M4 7V5a4 4 0 0 1 8 0v2h1v8H3V7h1zm2 0h4V5a2 2 0 0 0-4 0v2z"/></svg>';
 // фактическое окно: сколько партий реально вошло в средние (меньше выбранного — замок)
 function winActualLabel() {
+  if (dayView) {
+    var n = windowGames().length;
+    return selCount() ? '<span class="sel-n">' + selCount() + '</span> из ' + n : n + ' ' + plural(n, 'игра', 'игры', 'игр') + ' дня';
+  }
   if (selCount()) return '<span class="sel-n">' + selCount() + '</span> из ' + Math.min(avgWindow, cgAll.length);
   var k = Math.min(avgWindow, cgAll.length);
   return k < avgWindow ? k + ' из ' + avgWindow + LOCK : winLabel(avgWindow);
@@ -1872,6 +1888,7 @@ $('winPick').addEventListener('click', function(e) {
   var opt = e.target.closest('.win-opt');
   if (opt) {
     avgWindow = +opt.getAttribute('data-w');
+    dayView = null;
     selCols = {}; cmpMode = null; cmpSet = {};
     try { localStorage.setItem('avgWindow', String(avgWindow)); } catch (err) {}
     setWinMenu(false);
@@ -1897,7 +1914,7 @@ function renderStats() {
   // прирост = вторая половина окна против первой: 10 → 5 vs 5, 20 → 10 vs 10; при окне 5 не показываем
   // если партий пока мало — сравниваем по максимуму доступного (приписка покажет, сколько игр)
   var half = Math.min(avgWindow / 2, Math.floor(cgAll.length / 2));
-  var withTrend = !hush.chart && avgWindow >= 10 && half >= 2 && !selCount();   // при выбранных колонках прирост не считаем
+  var withTrend = !hush.chart && !dayView && avgWindow >= 10 && half >= 2 && !selCount();   // при выбранных колонках прирост не считаем
   function tr(fn) { return withTrend ? trend(fn, half) : null; }
   // без прироста строка остаётся пустой, чтобы высота блока не прыгала при переключении
   function th(diff, isPct, lowerIsBetter) {
@@ -2044,6 +2061,13 @@ function renderTitle() {
 
 function renderChart() {
   renderCmpBtn();
+  var dv = dayView && !hush.chart && !showRecords;
+  $('dayRange').style.display = dv ? '' : 'none';
+  if (dv) {
+    var nd = windowGames().length;
+    $('dayRange').firstChild.nodeValue = (dayView.ranges.length === 1 && dayView.ranges[0].from === dayView.ranges[0].to ? 'ДЕНЬ ' : 'ДНИ ');
+    $('dayRangeTxt').textContent = dayView.label + ' · ' + nd + ' ' + plural(nd, 'партия', 'партии', 'партий');
+  }
   if (showRecords) { renderRecords(); return; }
   chartGames = windowGames();
   var cmpView = cmpMode === 'view' && selCount() && cmpCount();
@@ -2068,6 +2092,7 @@ function renderChart() {
   var X0 = 40, W = 550, TOP = 30, BOT = 180, H = BOT - TOP;
   var colW = W / n;
   var badgeW = Math.min(38, colW - 8);
+  var narrow = colW < 24, tiny = colW < 14;   // 20+ колонок (режим дня) — значки мельче / только цвет
   var maxB = Math.max.apply(null, list.map(function(g) { return g.blunders; }));
   var bMax = Math.max(15, Math.ceil(maxB / 5) * 5);
 
@@ -2098,10 +2123,10 @@ function renderChart() {
     s.push('<text x="' + r2((cx(gr.from) + cx(gr.to)) / 2) + '" y="214" text-anchor="middle" font-size="9" fill="#9ca3af">' + esc(gr.date) + '</text>');
   });
   // W/L/D badges
-  list.forEach(function(g, i) {
+  if (!tiny) list.forEach(function(g, i) {
     var R = RESULT[g.result];
     s.push('<rect x="' + r2(cx(i) - badgeW / 2) + '" y="3" width="' + r2(badgeW) + '" height="20" rx="4" fill="' + R.badge + '"/>');
-    s.push('<text x="' + cx(i) + '" y="17" text-anchor="middle" font-size="12" font-weight="700" fill="' + R.color + '">' + R.letter + '</text>');
+    s.push('<text x="' + cx(i) + '" y="17" text-anchor="middle" font-size="' + (narrow ? 9 : 12) + '" font-weight="700" fill="' + R.color + '">' + R.letter + '</text>');
   });
   // grid + % axis (left) + blunders axis (right)
   [100, 75, 50, 25, 0].forEach(function(p) {
@@ -2117,8 +2142,8 @@ function renderChart() {
   });
   s.push('</g>');
   // knights (side played)
-  list.forEach(function(g, i) {
-    s.push('<text x="' + cx(i) + '" y="198" text-anchor="middle" font-size="16" fill="#d1d5db">' + KNIGHT[g.color] + '</text>');
+  if (!tiny) list.forEach(function(g, i) {
+    s.push('<text x="' + cx(i) + '" y="198" text-anchor="middle" font-size="' + (narrow ? 11 : 16) + '" fill="#d1d5db">' + KNIGHT[g.color] + '</text>');
   });
 
   // одна серия = <g data-s> с линией и точками; null (фаза не наступила) рвёт линию
@@ -2709,6 +2734,7 @@ function chartReach(g) {
   return i >= 0 && games.length - i <= WINDOWS[WINDOWS.length - 1];
 }
 function showOnChart(g) {
+  dayView = null;
   if (cgAll.indexOf(g) < 0) {   // партию скрывает фильтр графика — снимаем его
     cfilt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}};
     renderCfInputs();
@@ -2717,6 +2743,7 @@ function showOnChart(g) {
   var fromEnd = cgAll.length - cgAll.indexOf(g);
   if (fromEnd > avgWindow) {
     avgWindow = WINDOWS.filter(function(w) { return w >= fromEnd; })[0] || WINDOWS[WINDOWS.length - 1];
+    dayView = null;
     try { localStorage.setItem('avgWindow', String(avgWindow)); } catch (e) {}
   }
   gsChart('metrics', false);
@@ -2989,6 +3016,10 @@ function renderActivity() {
     } else {
       s.push('<text x="' + cx(i) + '" y="202" text-anchor="middle" font-size="' + (dense ? 8 : 9) + '" fill="' + lblColor + '"' + op + '>' + b.bottom + '</text>');
     }
+  });
+  if (!actSelCount() && hasKeys(linkGames)) list.forEach(function(b, i) {
+    if (b.games.some(function(g) { return linkGames[g.id]; }))
+      s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="226" fill="none" stroke="#e4e4e7" stroke-opacity="0.45" stroke-width="1" stroke-dasharray="4,3" rx="2"/>');
   });
   if (actSelCount()) list.forEach(function(b, i) {
     if (aCmpMode && aCmpSet[i]) { s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="226" fill="rgba(52,211,153,0.08)" stroke="#34d399" stroke-opacity="0.8" stroke-width="1.2" rx="2"/>'); return; }
@@ -3497,7 +3528,19 @@ function activityRecordsHtml() {
 }
 
 /* ---------- switch: показатели ⇄ активность ---------- */
+var linkGames = {};   // партии, выбранные в «Показателях», — в «Активности» их дни обведены пунктиром
 function setMode(m) {
+  if (m === 'metrics' && chartMode === 'activity') {
+    var picked = actBuckets.filter(function(b, i) { return selDays[i]; });
+    var ranges = picked.map(function(b) { return {from: isoDay(b.from), to: isoDay(b.to)}; });
+    var any = ranges.length && cgAll.some(function(g) { return ranges.some(function(r) { return g.day >= r.from && g.day <= r.to; }); });
+    dayView = any ? {ranges: ranges, label: picked.length === 1 ? picked[0].title : picked.length + ' ' + plural(picked.length, period === '3months' ? 'неделя' : 'день', period === '3months' ? 'недели' : 'дня', period === '3months' ? 'недель' : 'дней')} : null;
+    selCols = {}; cmpMode = null; cmpSet = {};
+  }
+  if (m === 'activity' && chartMode !== 'activity') {
+    linkGames = {};
+    Object.keys(selCols).forEach(function(id) { linkGames[id] = true; });
+  }
   chartMode = m;
   try { localStorage.setItem('chartMode', m); } catch (e) {}
   $('chartBox').classList.remove('cmp-on');
@@ -3508,8 +3551,9 @@ function setMode(m) {
   renderTitle();
   hideTooltip();
   if (m === 'activity') { renderPeriodPick(); renderActivity(); }
-  else { renderChart(); applySeries(); }
+  else renderWindow();   // средние, подпись окна и график — режим дня мог включиться
 }
+$('dayClose').addEventListener('click', function(e) { e.stopPropagation(); exitDayView(); });
 $('activityBtn').addEventListener('click', function(e) {
   e.stopPropagation();
   setMode(chartMode === 'activity' ? 'metrics' : 'activity');
@@ -4159,6 +4203,7 @@ document.addEventListener('keydown', function(e) {
   else if (cmpMode === 'view') { cmpMode = 'pick'; renderWindow(); }
   else if (cmpMode === 'pick') { cmpMode = null; cmpSet = {}; renderWindow(); }
   else if (selCount()) clearSelection();
+  else if (dayView) exitDayView();
 });
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape' && $('sideRow').classList.contains('vd-open')) toggleVerdict(false);
@@ -4240,6 +4285,7 @@ function gsCompareGames(A, B) {
   if (cfActive()) { cfilt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}}; renderCfInputs(); chartFilterChanged(); }
   var need = Math.max.apply(null, A.concat(B).map(function(g) { return cgAll.length - cgAll.indexOf(g); }));
   avgWindow = WINDOWS.filter(function(w) { return w >= need; })[0] || WINDOWS[WINDOWS.length - 1];
+  dayView = null;
   try { localStorage.setItem('avgWindow', String(avgWindow)); } catch (e) {}
   gsChart('metrics', false);
   selCols = {}; cmpSet = {};
@@ -4361,7 +4407,7 @@ function gsIndex() {
   });
   WINDOWS.forEach(function(w) {
     add('Виды графика', '📈', 'Средние за ' + w + ' ' + plural(w, 'игру', 'игры', 'игр'), 'график показателей', 'средние окно игр ' + w, function() {
-      avgWindow = w;
+      avgWindow = w; dayView = null;
       try { localStorage.setItem('avgWindow', String(w)); } catch (e) {}
       gsChart('metrics', false);
       renderWindow();

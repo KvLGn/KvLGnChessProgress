@@ -3012,15 +3012,7 @@ $('opCard').addEventListener('keydown', function(e) {
 $('opDetail').addEventListener('click', function(e) {
   if (e.target.closest('.op-close')) toggleOpeningDetail(false);
 });
-// увёл курсор с карточки и панели — панель закрывается (с небольшой задержкой, чтобы не мигала при переходе)
-var opLeaveTimer = null;
-['opCard', 'opDetail'].forEach(function(id) {
-  $(id).addEventListener('mouseleave', function() {
-    if (!$('sideRow').classList.contains('op-open')) return;
-    opLeaveTimer = setTimeout(function() { toggleOpeningDetail(false); }, 350);
-  });
-  $(id).addEventListener('mouseenter', function() { clearTimeout(opLeaveTimer); });
-});
+// панель дебютов закрывается только кликом по карточке или ×, как задачи и итоги (раньше — при уходе курсора)
 
 /* ---------- итоги: автоматические выводы по всей статистике ---------- */
 // каждое правило добавляет пункт {t: good | bad | tip, w: важность, text, link?}

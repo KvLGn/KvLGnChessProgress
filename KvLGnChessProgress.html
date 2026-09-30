@@ -514,6 +514,8 @@
   .md-n { font-size: 10px; color: var(--fg-mute); margin-left: 5px; font-weight: 500; }
   .md-chip.on .md-n { color: inherit; opacity: 0.75; }
   .md-zero { opacity: 0.45; }
+  .md-total { font-size: 12px; color: var(--fg-mute); margin: 0 2px 10px; }
+  .md-total b { color: var(--fg); }
   .md-disabled { opacity: 0.25; pointer-events: none; }
   .md-off-note { text-transform: none; letter-spacing: 0; }
   .md-zero.on { opacity: 1; }
@@ -1992,9 +1994,11 @@ function modeChipsHtml(modes) {
     return '<div class="md-sec">' + G.title + (off ? ' <span class="md-off-note">— только для игр с компьютером</span>' : '') + '</div><div class="md-chips' + (G.g === 'lvl' ? ' md-lvl' : '') + (off ? ' md-disabled' : '') + '">' + G.items.map(function(it) {
       var on = !!(modes[G.g] && modes[G.g][it.k]), n = cnt[it.k] || 0;
       return '<button class="f-chip md-chip' + (on ? ' on' : '') + (n ? '' : ' md-zero') + '" data-mg="' + G.g + '" data-mk="' + it.k + '"' +
-        ' title="Партий: ' + n + '">' + it.label + (n ? '<span class="md-n">' + n + '</span>' : '') + '</button>';
+        ' title="Партий: ' + n + '">' + it.label + '</button>';
     }).join('') + '</div>';
-  }).join('');
+  }).join('') +
+  // итог по выбранным режимам — одной строкой под разделами
+  '<div class="md-total">Подходит <b>' + games.filter(function(g) { return modeMatch(g, modes); }).length + '</b> из ' + games.length + ' ' + plural(games.length, 'партии', 'партий', 'партий') + '</div>';
 }
 function toggleMode(f, grp, k) {
   f.modes = f.modes || {};

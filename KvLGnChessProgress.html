@@ -1809,16 +1809,14 @@ function trend(fn, n, list) {
 function r1(v) { return Math.round(v * 10) / 10; }        // 17 / 14.2
 function r2(v) { return Math.round(v * 100) / 100; }      // svg coords
 
-// прирост ОБЩЕГО винрейта за последний игровой день: было до этого дня → стало (в процентных пунктах)
+// прирост ОБЩЕГО винрейта за последние N партий: винрейт сейчас минус винрейт до этих N партий (в процентных пунктах)
 function wrDayTrend() {
-  if (!games.length) return '';
-  var day = games[games.length - 1].day, before = games.filter(function(g) { return g.day < day; });
+  var N = TREND_N, before = games.slice(0, -N);
   if (!before.length) return '';
-  var d = Math.round(winrate(games)) - Math.round(winrate(before));
+  var now = Math.round(winrate(games)), was = Math.round(winrate(before)), d = now - was;
   var color = d > 0 ? 'var(--up)' : d < 0 ? 'var(--red)' : 'var(--fg-mute)';
-  var when = day === isoDay(gameToday()) ? 'сегодня' : 'за ' + ddmm(fromIso(day));
-  return '<span class="trend" style="color:' + color + '" title="Общий винрейт до ' + ddmm(fromIso(day)) + ': ' + Math.round(winrate(before)) + '%, после: ' + Math.round(winrate(games)) + '%">' +
-    (d > 0 ? '▲ +' : d < 0 ? '▼ −' : '■ ') + Math.abs(d) + '% <span class="trend-n">' + when + '</span></span>';
+  return '<span class="trend" style="color:' + color + '" title="Общий винрейт до последних ' + N + ' партий: ' + was + '%, сейчас: ' + now + '%">' +
+    (d > 0 ? '▲ +' : d < 0 ? '▼ −' : '■ ') + Math.abs(d) + '% <span class="trend-n">' + N + ' ' + plural(N, 'игра', 'игры', 'игр') + '</span></span>';
 }
 function trendHtml(diff, isPct, lowerIsBetter, n) {
   if (diff === null) return '';
@@ -5330,7 +5328,7 @@ function gsIndex() {
   /* --- быстрые ответы: ответ прямо в строке результата --- */
   var nG = games.length;
   var wrAll = nG ? Math.round(winrate(games)) : null;
-  var wrTr = wrDayTrend().replace(/<[^>]+>/g, '');   // «▲ +5% сегодня» — как в карточке профиля
+  var wrTr = wrDayTrend().replace(/<[^>]+>/g, '');   // «▲ +22% 5 игр» — как в карточке профиля
   var nW = games.filter(function(g) { return g.result === 'win'; }).length;
   add('Ответы', '📊', 'Винрейт: ' + (wrAll === null ? '—' : wrAll + '%'),
     nW + 'W / ' + (nG - nW) + 'L' + (wrTr ? ' · ' + wrTr : ''),

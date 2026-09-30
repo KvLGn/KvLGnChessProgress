@@ -827,6 +827,7 @@
   .sel-clear { font: 12px Inter, sans-serif; color: var(--fg-dim); background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; margin-left: 6px; cursor: pointer; line-height: 16px; }
   .sel-clear:hover { color: var(--fg); }
   .sel-n { color: #f3f4f6; font-weight: 700; }
+  .act-sel { font-size: 13px; color: var(--fg-mute); margin-left: 8px; white-space: nowrap; }
   .win-pick { display: inline-flex; align-items: center; }
   .avg-line text { display: none; }
   svg.focus .avg-line.hl text { display: inline; }
@@ -1892,6 +1893,10 @@ function bindTooltip() {
         selectColumn(chartGames[+el.getAttribute('data-i')], e.ctrlKey || e.metaKey);
         return;
       }
+      if (el.hasAttribute('data-b')) {   // график активности: выбор дней
+        selectBucket(+el.getAttribute('data-b'), e.ctrlKey || e.metaKey);
+        return;
+      }
       if (activeHit === el && e.pointerType !== 'mouse') hideTooltip();
       else showTooltip(el, e.clientX, e.clientY);
     });
@@ -2109,6 +2114,7 @@ function cfActive() { return hasKeys(cfilt.results) || hasKeys(cfilt.colors) || 
 function chartFilterChanged() {
   cgAll = filterChart(games);
   selCols = {};
+  selDays = {};
   renderChartFilter();
   renderWindow();
   if (chartMode === 'activity') renderActivity();
@@ -2417,6 +2423,10 @@ function renderActivity() {
       s.push('<text x="' + cx(i) + '" y="198" text-anchor="middle" font-size="' + (dense ? 8 : 9) + '" fill="' + lblColor + '"' + op + '>' + b.bottom + '</text>');
     }
   });
+  if (actSelCount()) list.forEach(function(b, i) {
+    if (selDays[i]) s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="219" fill="rgba(255,255,255,0.04)" stroke="#e4e4e7" stroke-opacity="0.55" stroke-width="1.2" rx="2"/>');
+    else s.push('<rect x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="220" fill="#0d0f17" opacity="0.62"/>');
+  });
   // области наведения
   list.forEach(function(b, i) {
     s.push('<rect class="hit" data-b="' + i + '" x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="200" fill="rgba(0,0,0,0)"/>');
@@ -2428,6 +2438,7 @@ function renderActivity() {
       return '<linearGradient id="gBar-' + a[0] + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + a[1] + '" stop-opacity="0.95"/><stop offset="1" stop-color="' + a[2] + '" stop-opacity="0.8"/></linearGradient>';
     }).join('') + '</defs>';
   $('chart').innerHTML = '<svg viewBox="10 -10 600 245" role="img" aria-label="Активность за период">' + defs + s.join('') + '</svg>';
+  renderPeriodPick();
   var pr = periodRange(0);
   $('actRange').textContent = pr.from.slice(8) + '.' + pr.from.slice(5, 7) + ' – ' + pr.to.slice(8) + '.' + pr.to.slice(5, 7);
   bindTooltip();
@@ -2487,7 +2498,43 @@ function periodElo(r) {
   };
 }
 
+/* ---------- выбор дней на графике активности: клик — один день (неделя для «3 месяцев»), Ctrl+клик — несколько ---------- */
+var selDays = {};   // индекс столбика → true
+// в режиме рекордов столбиков нет — выбор не действует
+function actSelCount() { return actBuckets.length ? Object.keys(selDays).length : 0; }
+function clearActSelection() { if (actSelCount()) { selDays = {}; renderActivity(); } }
+function selectBucket(i, add) {
+  if (add) { if (selDays[i]) delete selDays[i]; else selDays[i] = true; }
+  else if (actSelCount() === 1 && selDays[i]) selDays = {};
+  else { selDays = {}; selDays[i] = true; }
+  renderActivity();
+}
+
 function renderActivityStats() {
+  // выбраны столбики — сводка только по ним, без сравнения с прошлым периодом
+  if (actSelCount()) {
+    var picked = actBuckets.filter(function(b, i) { return selDays[i]; });
+    var gs = [].concat.apply([], picked.map(function(b) { return b.games; }));
+    var days = picked.reduce(function(sum, b) { return sum + daysBetween(b.from, b.to) + 1; }, 0);
+    var act = picked.filter(function(b) { return b.games.length; }).reduce(function(sum, b) {
+      return sum + b.games.map(function(g) { return g.day; }).filter(function(d, k, a) { return a.indexOf(d) === k; }).length; }, 0);
+    var sacc = avg(gs, 'acc'), swr = winrate(gs);
+    var none = '<span class="trend" style="visibility:hidden">▲</span>';
+    var srows = [
+      {label: 'Партий', color: 'var(--yellow)', value: String(gs.length)},
+      {label: 'Активн. дней', color: 'var(--c-debut)', value: act + '<small>/' + days + '</small>'},
+      {label: 'Точность', color: 'var(--c-acc)', value: sacc === null ? '—' : sacc.toFixed(1) + '<small>%</small>'},
+      {label: 'Винрейт', color: '#4ade80', value: swr === null ? '—' : Math.round(swr) + '<small>%</small>'}
+    ];
+    $('actList').innerHTML = srows.map(function(r) {
+      return '<div class="stat" style="--sc:' + r.color + '">' + statLine(r.label, r.color, r.value) + '<div class="stat-trend">' + none + '</div></div>';
+    }).join('');
+    var from = isoDay(picked[0].from), to = isoDay(picked[picked.length - 1].to);
+    var pe = periodElo({from: from, to: to});
+    $('actElo').innerHTML = statLine('ELO', '#818cf8', !pe ? '?' : (pe.diff > 0 ? '+' : pe.diff < 0 ? '−' : '') + Math.abs(pe.diff)) +
+      '<div class="stat-trend"><span class="trend" style="color:var(--fg-mute);font-weight:400">' + (!pe ? 'рейтинговых партий нет' : 'за выбранные дни') + '</span></div>';
+    return;
+  }
   var cur = periodRange(0), prev = periodRange(1);
   function activeDays(r) { return r.games.map(function(g) { return g.day; }).filter(function(d, i, a) { return a.indexOf(d) === i; }).length; }
   function diff(a, b) { return a === null || b === null ? null : a - b; }
@@ -2541,6 +2588,7 @@ function renderPeriodPick() {
   var cur = PERIODS.filter(function(p) { return p.key === period; })[0];
   $('periodPick').innerHTML =
     '<button class="win-toggle period-toggle" aria-haspopup="listbox" aria-expanded="false">' + cur.label + '<span class="caret">▾</span></button>' +
+    (actSelCount() ? '<span class="act-sel" title="Сводка по выбранным столбикам. Клик — один, Ctrl+клик — добавить/убрать, Esc или ✕ — сбросить"><span class="sel-n">' + actSelCount() + '</span> из ' + actBuckets.length + '</span><button class="sel-clear" title="Сбросить выбор (Esc)">✕</button>' : '') +
     '<div class="win-menu" role="listbox">' + PERIODS.map(function(p) {
       return '<button class="win-opt' + (p.key === period ? ' on' : '') + '" role="option" data-p="' + p.key + '">' + p.label + '</button>';
     }).join('') + '</div>';
@@ -2554,9 +2602,11 @@ function setPeriodMenu(open) {
 
 $('periodPick').addEventListener('click', function(e) {
   e.stopPropagation();
+  if (e.target.closest('.sel-clear')) { clearActSelection(); return; }
   var opt = e.target.closest('.win-opt');
   if (opt) {
     period = opt.getAttribute('data-p');
+    selDays = {};
     try { localStorage.setItem('activityPeriod', period); } catch (err) {}
     setPeriodMenu(false);
     renderPeriodPick();
@@ -3349,7 +3399,8 @@ function toggleVerdict(open) {
 }
 $('vdCard').addEventListener('click', function() { toggleVerdict(); });
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape' && selCount() && !$('sideRow').classList.contains('vd-open')) clearSelection();
+  if (e.key !== 'Escape' || $('sideRow').classList.contains('vd-open')) return;
+  if (chartMode === 'activity') clearActSelection(); else if (selCount()) clearSelection();
 });
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape' && $('sideRow').classList.contains('vd-open')) toggleVerdict(false);

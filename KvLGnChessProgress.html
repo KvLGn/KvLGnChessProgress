@@ -2194,8 +2194,9 @@ function renderChart() {
     runs.forEach(function(r) {
       if (r.length < 2) return;
       // заливка под линией — видна, когда показатель подсвечен наведением
-      if (color) out += '<polygon class="area" points="' + r.join(' ') + ' ' + r[r.length - 1].split(',')[0] + ',' + BOT + ' ' + r[0].split(',')[0] + ',' + BOT + '" fill="url(#ga-' + key + ')"/>';
-      out += '<polyline points="' + r.join(' ') + '" fill="none" stroke-linejoin="round" stroke-linecap="round" ' + line + '/>';
+      var d = smoothPath(r);
+      if (color) out += '<path class="area" d="' + d + ' L' + r[r.length - 1].split(',')[0] + ',' + BOT + ' L' + r[0].split(',')[0] + ',' + BOT + ' Z" fill="url(#ga-' + key + ')"/>';
+      out += '<path d="' + d + '" fill="none" stroke-linejoin="round" stroke-linecap="round" ' + line + '/>';
     });
     list.forEach(function(g, i) {
       var v = y(g);
@@ -2243,6 +2244,22 @@ function renderChart() {
     }).join('') + '</defs>';
   $('chart').innerHTML = '<svg viewBox="10 -10 600 245" role="img" aria-label="График последних партий">' + defs + s.join('') + '</svg>';
   bindTooltip();
+}
+
+// мягкая линия через точки (монотонный кубический сплайн: не выходит за соседние значения, без «горбов» выше 100%)
+function smoothPath(pts) {
+  var p = pts.map(function(t) { var a = t.split(','); return [+a[0], +a[1]]; }), n = p.length, i;
+  if (n < 3) return 'M' + pts.join(' L');
+  var dx = [], m = [], t = [];
+  for (i = 0; i < n - 1; i++) { dx[i] = p[i + 1][0] - p[i][0]; m[i] = (p[i + 1][1] - p[i][1]) / dx[i]; }
+  t[0] = m[0]; t[n - 1] = m[n - 2];
+  for (i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : 3 * (dx[i - 1] + dx[i]) / ((2 * dx[i] + dx[i - 1]) / m[i - 1] + (dx[i] + 2 * dx[i - 1]) / m[i]);
+  var d = 'M' + r2(p[0][0]) + ',' + r2(p[0][1]);
+  for (i = 0; i < n - 1; i++) {
+    var h = dx[i] / 3;
+    d += ' C' + r2(p[i][0] + h) + ',' + r2(p[i][1] + t[i] * h) + ' ' + r2(p[i + 1][0] - h) + ',' + r2(p[i + 1][1] - t[i + 1] * h) + ' ' + r2(p[i + 1][0]) + ',' + r2(p[i + 1][1]);
+  }
+  return d;
 }
 
 /* ---------- tooltip ---------- */

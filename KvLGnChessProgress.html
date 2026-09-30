@@ -1315,7 +1315,11 @@
   .mr-ticks span { position: absolute; transform: translateX(-50%); top: 2px; }
   .mr-bl { display: none; margin: 6px 0 4px; border-top: 1px solid var(--border); padding-top: 6px; }
   .mr.bl-open .mr-bl { display: block; }
-  .mr-bl-row { display: grid; grid-template-columns: 10px 58px 64px 1fr 110px 50px 100px; align-items: center; gap: 8px; font-size: 12px; padding: 3px 0; color: var(--fg-dim); }
+  .mr-bl-row { display: grid; grid-template-columns: 10px 58px 64px 1fr 110px 50px 100px 12px; align-items: center; gap: 8px; font-size: 12px; padding: 3px 0; color: var(--fg-dim); }
+  .mr-bl-row.go { cursor: pointer; border-radius: 6px; margin: 0 -8px; padding: 3px 8px; outline: none; transition: background 0.15s; }
+  .mr-bl-row.go:hover, .mr-bl-row.go:focus-visible { background: rgba(255,255,255,0.05); }
+  .mr-bl-go { color: var(--fg-mute); font-size: 14px; line-height: 1; opacity: 0; transition: opacity 0.15s; }
+  .mr-bl-row.go:hover .mr-bl-go, .mr-bl-row.go:focus-visible .mr-bl-go { opacity: 1; color: #60a5fa; }
   .mr-bl-row i { width: 8px; height: 8px; border-radius: 50%; }
   .mr-bl-row b { color: var(--fg); }
   .mr-bl-t { font-weight: 600; }
@@ -1327,7 +1331,8 @@
     .mr-z { display: none; }
     .mr-head { flex-wrap: wrap; }
     .mr-stats { grid-template-columns: 1fr; gap: 12px; }
-    .mr-bl-row { grid-template-columns: 10px 50px 56px 1fr 60px; }
+    .mr-bl-row { grid-template-columns: 10px 50px 56px 1fr 60px 12px; }
+    .mr-bl-go { opacity: 1; }   /* на телефоне наведения нет — стрелка видна всегда */
     .mr-bl-b, .mr-bl-p { display: none; }
   }
   .bl-row { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
@@ -2655,12 +2660,13 @@ function matchReport(g) {
       mrCount('ошибок', g.mistakes, '#fb923c', detailDelta(g, 'mistakes', false, true)) +
       mrCount('зевков', g.blunders, 'var(--red)', detailDelta(g, 'blunders', false, true)) + '</div>' +
   '</div>';
+  var go = chartReach(g);   // клик по зевку — к графику в режиме зевков с выделенной партией
   var list = g.bl && g.bl.length ? '<div class="mr-bl">' + g.bl.map(function(b) {
-    return '<div class="mr-bl-row"><i style="background:' + BL_TYPES[b.t].color + '"></i><span class="mr-bl-m">ход ' + b.m + '</span><b>' + esc(b.s) + '</b>' +
+    return '<div class="mr-bl-row' + (go ? ' go" data-t="' + b.t + '" role="button" tabindex="0" title="Показать на графике зевков' : '') + '"><i style="background:' + BL_TYPES[b.t].color + '"></i><span class="mr-bl-m">ход ' + b.m + '</span><b>' + esc(b.s) + '</b>' +
       '<span class="mr-bl-t" style="color:' + BL_TYPES[b.t].color + '">' + esc(blLabel(b)) + '</span>' +
       '<span class="mr-bl-b">' + (b.b ? 'лучше ' + esc(b.b) : '') + '</span>' +
       '<span class="mr-bl-d">' + (typeof b.d === 'number' ? '−' + b.d : 'мат') + '</span>' +
-      '<span class="mr-bl-p">' + (b.p ? PHASE_RU[b.p] : '') + '</span></div>';
+      '<span class="mr-bl-p">' + (b.p ? PHASE_RU[b.p] : '') + '</span><span class="mr-bl-go">' + (go ? '›' : '') + '</span></div>';
   }).join('') + '</div>' : '';
   return head + stats + evalGraph(g) + list;
 }
@@ -3368,6 +3374,18 @@ function renderGames() {
       e.stopPropagation();
       var on = detail.querySelector('.mr').classList.toggle('bl-open');
       blBtn.textContent = 'Список зевков (' + g.bl.length + ') ' + (on ? '▴' : '▾');
+    });
+    // зевок из списка — график в режиме зевков, партия выделена; тип зевка, если скрыт в легенде, снова показывается
+    detail.querySelectorAll('.mr-bl-row.go').forEach(function(r) {
+      function go(e) {
+        e.stopPropagation();
+        var t = r.getAttribute('data-t');
+        if (blHidden[t]) { delete blHidden[t]; try { localStorage.setItem('blHidden', JSON.stringify(blHidden)); } catch (err) {} }
+        blMode = true;
+        showOnChart(g);
+      }
+      r.addEventListener('click', go);
+      r.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(e); } });
     });
     var chBtn = detail.querySelector('.detail-chart');
     if (chBtn) chBtn.addEventListener('click', function(e) { e.stopPropagation(); showOnChart(g); });

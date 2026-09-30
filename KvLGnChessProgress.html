@@ -2466,7 +2466,7 @@ function streakTitle() {
 function renderTitle() {
   if (hush.chart) { $('chartTitle').textContent = 'Недавняя активность'; return; }
   if (chartMode === 'activity') $('chartTitle').innerHTML = streakTitle();
-  else if (chartMode === 'analysis') $('chartTitle').innerHTML = 'Анализ партий <span class="title-note">выбери у «Ходов», что искать · клик — позиция перед ходом · ← → ходы · ↑ ↓ моменты</span>';
+  else if (chartMode === 'analysis') $('chartTitle').textContent = 'Анализ партий';
   else $('chartTitle').textContent = renderRecentCount();
 }
 
@@ -4267,6 +4267,7 @@ $('activityBtn').addEventListener('click', function(e) {
 var an = {gid: null, ply: null, lens: 'bl'};   // ply = null — при отрисовке встать на первый момент
 try { var anSaved = localStorage.getItem('anLens'); if (anSaved) an.lens = anSaved; } catch (e) {}
 var AN_COLORS = {light: '#dee3e6', dark: '#8ca2ad',                             // клетки (доска Lichess «blue»)
+                 coordOnLight: '#4a6272', coordOnDark: '#f1f5f9',               // координаты a–h / 1–8 на светлой / тёмной клетке
                  last: 'rgba(155,199,0,0.41)',                                  // последний ход
                  lastBad: 'rgba(239,68,68,0.45)', lastGood: 'rgba(74,222,128,0.4)', // он же, если это плохой / хороший момент
                  played: '#f87171', best: '#4ade80',                            // стрелки: сыграно (плохо) / лучше или хорошо
@@ -4457,10 +4458,10 @@ function anBoardSvg(board, o) {
     var c = anSq(sq, flip), fill = o.last.tint === 'bad' ? AN_COLORS.lastBad : o.last.tint === 'good' ? AN_COLORS.lastGood : AN_COLORS.last;
     s.push('<rect x="' + c.x + '" y="' + c.y + '" width="1" height="1" fill="' + fill + '"/>');
   });
-  // координаты: буквы по нижнему краю, цифры по левому — цветом противоположной клетки
+  // координаты: буквы по нижнему краю, цифры по левому — контрастным цветом к своей клетке
   for (var i = 0; i < 8; i++) {
-    s.push('<text x="' + (i + 0.95) + '" y="7.94" text-anchor="end" font-size="0.2" font-weight="600" fill="' + ((i + 7) % 2 ? AN_COLORS.light : AN_COLORS.dark) + '">' + String.fromCharCode(97 + (flip ? 7 - i : i)) + '</text>');
-    s.push('<text x="0.05" y="' + (i + 0.22) + '" font-size="0.2" font-weight="600" fill="' + (i % 2 ? AN_COLORS.light : AN_COLORS.dark) + '">' + (flip ? i + 1 : 8 - i) + '</text>');
+    s.push('<text x="' + (i + 0.95) + '" y="7.93" text-anchor="end" font-size="0.27" font-weight="700" fill="' + ((i + 7) % 2 ? AN_COLORS.coordOnDark : AN_COLORS.coordOnLight) + '">' + String.fromCharCode(97 + (flip ? 7 - i : i)) + '</text>');
+    s.push('<text x="0.06" y="' + (i + 0.27) + '" font-size="0.27" font-weight="700" fill="' + (i % 2 ? AN_COLORS.coordOnDark : AN_COLORS.coordOnLight) + '">' + (flip ? i + 1 : 8 - i) + '</text>');
   }
   board.forEach(function(row, r) {
     row.forEach(function(pc, f) {

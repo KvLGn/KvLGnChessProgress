@@ -2113,11 +2113,12 @@ function renderChart() {
 
   var X0 = 40, W = 550, TOP = 30, BOT = 180, H = BOT - TOP;
   var colW = W / n;
-  // режим дня с парой партий: колонки обычной ширины (как при 10), по центру графика
-  if (dayView && n < 10) { colW = W / 10; X0 = 40 + (W - colW * n) / 2; }
-  // обычный режим: окно всегда N колонок; партий меньше — слева пустые
-  var padN = dayView ? 0 : Math.max(0, avgWindow - n);
-  if (padN) { colW = W / avgWindow; X0 = 40 + padN * colW; }
+  // колонки не шире, чем при 10 партиях: меньше колонок — по центру графика
+  var padN = dayView ? 0 : Math.max(0, avgWindow - n);   // обычный режим: окно всегда N колонок, недостающие слева пустые
+  var slots = n + padN;
+  colW = W / Math.max(slots, 10);
+  var PX0 = 40 + (W - colW * slots) / 2;               // начало первой (в т. ч. пустой) колонки
+  X0 = PX0 + padN * colW;
   var badgeW = Math.min(38, colW - 8);
   var narrow = colW < 24, tiny = colW < 14;   // 20+ колонок (режим дня) — значки мельче / только цвет
   var maxB = Math.max.apply(null, list.map(function(g) { return g.blunders; }));
@@ -2132,9 +2133,9 @@ function renderChart() {
 
   // пустые колонки (партий в окне меньше N)
   for (var pi = 0; pi < padN; pi++) {
-    s.push('<rect x="' + r2(40 + pi * colW) + '" y="-5" width="' + r2(colW) + '" height="200" fill="rgba(255,255,255,0.025)"/>');
-    if (pi) s.push('<line x1="' + r2(40 + pi * colW) + '" y1="-5" x2="' + r2(40 + pi * colW) + '" y2="195" stroke="#0f1119" stroke-width="1.5" stroke-opacity="0.9"/>');
-    s.push('<circle cx="' + r2(40 + pi * colW + colW / 2) + '" cy="192" r="1.6" fill="#4b5063"/>');
+    s.push('<rect x="' + r2(PX0 + pi * colW) + '" y="-5" width="' + r2(colW) + '" height="200" fill="rgba(255,255,255,0.025)"/>');
+    if (pi) s.push('<line x1="' + r2(PX0 + pi * colW) + '" y1="-5" x2="' + r2(PX0 + pi * colW) + '" y2="195" stroke="#0f1119" stroke-width="1.5" stroke-opacity="0.9"/>');
+    s.push('<circle cx="' + r2(PX0 + pi * colW + colW / 2) + '" cy="192" r="1.6" fill="#4b5063"/>');
   }
   if (padN) s.push('<line x1="' + r2(X0) + '" y1="-5" x2="' + r2(X0) + '" y2="195" stroke="#0f1119" stroke-width="1.5" stroke-opacity="0.9"/>');
 

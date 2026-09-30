@@ -856,6 +856,10 @@
   .sel-clear { font: 12px Inter, sans-serif; color: var(--fg-dim); background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; margin-left: 6px; cursor: pointer; line-height: 16px; }
   .sel-clear:hover { color: var(--fg); }
   .sel-n { color: #f3f4f6; font-weight: 700; }
+  .wl { font-size: 12px; font-weight: 600; color: var(--fg-dim); margin-right: 5px; white-space: nowrap; }
+  /* W/L и прирост — в одну строку, чтобы блок не рос в высоту */
+  #actList .stat-trend { display: flex; align-items: center; white-space: nowrap; }
+  #actList .stat-trend .trend-n { overflow: hidden; text-overflow: ellipsis; }
   .act-sel { font-size: 13px; color: var(--fg-mute); margin-left: 6px; white-space: nowrap; }
   /* выбор дней: «2/14 ✕» должен помещаться в панель 200px и при «2 недели» / «3 месяца» */
   .period-pick { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; }
@@ -2749,6 +2753,13 @@ function resRowMeta() {
   var label = ks.length === 1 ? RES_NAMES[ks[0]] : NOT[missing[0]];
   return {label: label, color: ks.length === 1 ? RES_COLORS[ks[0]] : '#c4b5fd', share: true};
 }
+// «2W / 5L» (и D, если были ничьи) — под винрейтом
+function actTrendShort(d, pct) { return actTrend(d, pct).replace(/ <span class="trend-n">[^<]*<\/span>/, ''); }
+function wlHtml(list) {
+  var w = 0, l = 0, d = 0;
+  list.forEach(function(g) { if (g.result === 'win') w++; else if (g.result === 'lose') l++; else d++; });
+  return '<span class="wl">' + w + '<span class="green">W</span> / ' + l + '<span class="red">L</span>' + (d ? ' / ' + d + 'D' : '') + '</span>';
+}
 function resShare(all) { return all.length ? byRes(all).length / all.length * 100 : null; }
 function byRes(list) { return actRes ? list.filter(function(g) { return actRes[g.result]; }) : list; }
 
@@ -2770,8 +2781,9 @@ function renderActivityStats() {
       (function() { var v = rm.share ? resShare(gsAll) : swr;
         return {label: rm.label, color: rm.color, value: rm.share ? '' : v === null ? '—' : Math.round(v) + '<small>%</small>'}; })()
     ];
-    $('actList').innerHTML = srows.map(function(r) {
-      return '<div class="stat" style="--sc:' + r.color + '">' + statLine(r.label, r.color, r.value) + '<div class="stat-trend">' + none + '</div></div>';
+    $('actList').innerHTML = srows.map(function(r, k) {
+      var under = k === 3 && !rm.share ? wlHtml(gs) : none;
+      return '<div class="stat" style="--sc:' + r.color + '">' + statLine(r.label, r.color, r.value) + '<div class="stat-trend">' + under + '</div></div>';
     }).join('');
     var from = isoDay(picked[0].from), to = isoDay(picked[picked.length - 1].to);
     var pe = periodElo({from: from, to: to});
@@ -2801,7 +2813,8 @@ function renderActivityStats() {
       // выбран результат — строка просто подписывает, что выбрано (числа — в строках выше)
       if (rm.share) return {label: rm.label, color: rm.color, value: '', tr: '<span class="trend" style="visibility:hidden">▲</span>'};
       return {label: rm.label, color: rm.color, value: v === null ? '—' : Math.round(v) + '<small>%</small>',
-              tr: actTrend(diff(v === null ? null : Math.round(v), pv === null ? null : Math.round(pv)), true)};
+              // W/L + прирост без подписи «к пр. …» — иначе не влезает в одну строку
+              tr: wlHtml(cur.games) + ' ' + actTrendShort(diff(v === null ? null : Math.round(v), pv === null ? null : Math.round(pv)), true)};
     })()
   ];
   $('actList').innerHTML = rows.map(function(r) {

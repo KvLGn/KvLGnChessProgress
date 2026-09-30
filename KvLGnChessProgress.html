@@ -4539,6 +4539,7 @@ var AI_PROMPT = {
       'партии (с компьютерным анализом) и задачи и сам считает статистику и автоматические выводы. Ниже — сводка с этого сайта и просьба.',
       'Правила: опирайся только на цифры из сводки и называй их; никаких общих фраз вроде «больше тренируйся»; давай конкретные действия',
       '(что делать, сколько, как понять, что получилось); учитывай, что игрок новичок и играет против Stockfish; если данных мало — так и скажи.',
+      'Когда ссылаешься на партию, сверяй её результат и цифры с данными; не обобщай («все три — поражения»), если это верно не для всех. Перфоманс темы задач — не рейтинг.',
       'Отвечай по-русски, коротко, списком.'
     ],
     plan: [
@@ -4561,7 +4562,8 @@ var AI_PROMPT = {
       'You help a beginner chess player (Lichess: KvLGn) improve. His dashboard automatically pulls games (with computer analysis) and puzzles',
       'from Lichess and computes stats and automatic conclusions. Below: the site summary (in Russian) and a request.',
       'Rules: rely only on the numbers in the summary and cite them; no generic phrases like "train more"; give concrete actions',
-      '(what, how much, how to know it worked); he is a beginner playing Stockfish; if data is thin, say so. Answer briefly, as a list.'
+      '(what, how much, how to know it worked); he is a beginner playing Stockfish; if data is thin, say so. Answer briefly, as a list.',
+      'When you cite a game, check its result and numbers against the data; do not generalise ("all three were losses") unless it is true for all of them. A puzzle theme performance is not a rating.'
     ],
     plan: [
       'The request is a PLAN CHANGE. The plan lives in data/plan.js (full text at the end). How the site uses it:',

@@ -11,6 +11,8 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import vm from 'node:vm';
+import { classifyBlunders } from './blunders.mjs';
+const { Chess } = await import('chess.js');   // позиции партий — для типов зевков
 
 const USER = 'KvLGn';
 const TZ = 'Europe/Moscow';
@@ -61,7 +63,7 @@ const f1 = (v) => v === null ? '—' : v.toFixed(1);
 /* ---------- Lichess ---------- */
 
 async function fetchGames(token) {
-  const url = `https://lichess.org/api/games/user/${USER}?accuracy=true&division=true&opening=true&moves=true&sort=dateAsc`;
+  const url = `https://lichess.org/api/games/user/${USER}?accuracy=true&division=true&opening=true&moves=true&evals=true&sort=dateAsc`;
   const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/x-ndjson' } });
   if (res.status === 401) fail('Lichess не принял токен (401). Возможно, он удалён — создай новый.');
   if (!res.ok) fail(`Lichess ответил ${res.status} ${res.statusText}`);
@@ -107,6 +109,8 @@ function convert(g) {
     first: g.moves ? g.moves.split(' ')[0] : '',   // первый ход белых — по нему дашборд понимает, какой дебют из плана играл (1.e4 / 1.d4)
   };
   if (typeof me.ratingDiff === 'number') out.ir = me.ratingDiff;
+  // зевки по типам: {m: ход, s: сыгранный, t: тип, p: фаза, b: лучший, x: фигура, q: поле, d: потеря в пешках}
+  if (g.analysis) out.bl = classifyBlunders(Chess, g, meColor, g.division);
   return out;
 }
 
@@ -320,7 +324,6 @@ function detectOpening(Chess, openings, san) {
 }
 
 async function puzzleOpenings(ids, token) {
-  const { Chess } = await import('chess.js');
   const openings = await loadOpenings(Chess);
   const cache = existsSync(PUZZLE_OPENINGS_CACHE) ? JSON.parse(readFileSync(PUZZLE_OPENINGS_CACHE, 'utf8')) : {};
   const todo = [...new Set(ids)].filter((id) => !(id in cache));

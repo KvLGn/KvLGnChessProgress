@@ -2376,6 +2376,29 @@ function irCell(ir) {
   return '<td style="color:' + color + ';font-weight:600">' + text + '</td>';
 }
 
+// высота таблицы не «прыгает» при фильтрах: держим высоту полной страницы (как без фильтров),
+// сообщение «ничего не нашлось» — по центру этого места
+var tableFullH = 0;
+function keepTableHeight(rowsShown) {
+  var wrap = document.querySelector('.table-wrap');
+  wrap.style.minHeight = '';
+  var full = Math.min(PER_PAGE, games.length);
+  if (rowsShown >= full && wrap.offsetHeight > tableFullH) tableFullH = wrap.offsetHeight;
+  if (!tableFullH) return;
+  wrap.style.minHeight = tableFullH + 'px';
+  var empty = wrap.querySelector('.no-rows td');
+  if (empty) empty.style.height = (tableFullH - wrap.querySelector('thead').offsetHeight - 2) + 'px';
+}
+
+// шрифт Inter догружается позже и меняет высоту строк — перемерить после загрузки и при смене ширины окна
+function remeasureTable() {
+  var full = Math.min(PER_PAGE, games.length);
+  if (document.querySelectorAll('#gameRows tr.game-row').length >= full) tableFullH = 0;
+  renderGames();
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasureTable);
+window.addEventListener('resize', function() { clearTimeout(window._tblT); window._tblT = setTimeout(remeasureTable, 200); });
+
 function renderGames() {
   var ordered = filterGames(games).slice(-TABLE_N).reverse();
   var total = ordered.length;
@@ -2427,6 +2450,7 @@ function renderGames() {
     tbody.appendChild(detail);
   });
 
+  keepTableHeight(end - start);
   $('pageInfo').textContent = total ? (start + 1) + '–' + end + ' из ' + total : '0 из 0';
   $('prevPage').disabled = currentPage === 0;
   $('nextPage').disabled = currentPage >= pages - 1;

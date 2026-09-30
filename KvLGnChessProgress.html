@@ -2766,9 +2766,9 @@ function matchReport(g) {
       mrCount('ошибок', g.mistakes, '#fb923c', detailDelta(g, 'mistakes', false, true)) +
       mrCount('зевков', g.blunders, 'var(--red)', detailDelta(g, 'blunders', false, true)) + '</div>' +
   '</div>';
-  var go = chartReach(g);   // клик по зевку — к графику в режиме зевков с выделенной партией
+  var go = !!g.mv;   // клик по зевку — «Анализ» на позиции перед ним (нужна запись ходов)
   var list = g.bl && g.bl.length ? '<div class="mr-bl">' + g.bl.map(function(b) {
-    return '<div class="mr-bl-row' + (go ? ' go" data-t="' + b.t + '" role="button" tabindex="0" title="Показать на графике зевков' : '') + '"><i style="background:' + BL_TYPES[b.t].color + '"></i><span class="mr-bl-m">ход ' + b.m + '</span><b>' + esc(b.s) + '</b>' +
+    return '<div class="mr-bl-row' + (go ? ' go" data-ply="' + (blPly(g, b) - 1) + '" role="button" tabindex="0" title="Разобрать на доске: позиция перед зевком' : '') + '"><i style="background:' + BL_TYPES[b.t].color + '"></i><span class="mr-bl-m">ход ' + b.m + '</span><b>' + esc(b.s) + '</b>' +
       '<span class="mr-bl-t" style="color:' + BL_TYPES[b.t].color + '">' + esc(blLabel(b)) + '</span>' +
       '<span class="mr-bl-b">' + (b.b ? 'лучше ' + esc(b.b) : '') + '</span>' +
       '<span class="mr-bl-d">' + (typeof b.d === 'number' ? '−' + b.d : 'мат') + '</span>' +
@@ -3489,14 +3489,11 @@ function renderGames() {
       var on = detail.querySelector('.mr').classList.toggle('bl-open');
       blBtn.textContent = 'Список зевков (' + g.bl.length + ') ' + (on ? '▴' : '▾');
     });
-    // зевок из списка — график в режиме зевков, партия выделена; тип зевка, если скрыт в легенде, снова показывается
+    // зевок из списка — «Анализ» на позиции перед ним (стрелки «сыграно / лучше»)
     detail.querySelectorAll('.mr-bl-row.go').forEach(function(r) {
       function go(e) {
         e.stopPropagation();
-        var t = r.getAttribute('data-t');
-        if (blHidden[t]) { delete blHidden[t]; try { localStorage.setItem('blHidden', JSON.stringify(blHidden)); } catch (err) {} }
-        blMode = true;
-        showOnChart(g);
+        anOpen(g, +r.getAttribute('data-ply'));
       }
       r.addEventListener('click', go);
       r.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(e); } });

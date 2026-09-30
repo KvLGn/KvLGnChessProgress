@@ -2605,7 +2605,7 @@ function activityBuckets() {
 var actBuckets = [];
 
 function renderActivity() {
-  if (showRecords) { actBuckets = []; renderRecords(); renderActivityStats(); return; }
+  if (showRecords) { actBuckets = activityBuckets(); renderRecords(); renderActivityStats(); renderPeriodPick(); return; }
   var list = actBuckets = activityBuckets(), n = list.length;
   var X0 = 40, W = 550, TOP = 20, BOT = 180, H = BOT - TOP;
   var colW = W / n;
@@ -2753,7 +2753,7 @@ function periodElo(r) {
 /* ---------- выбор дней на графике активности: клик — один день (неделя для «3 месяцев»), Ctrl+клик — несколько ---------- */
 var selDays = {};   // индекс столбика → true
 // в режиме рекордов столбиков нет — выбор не действует
-function actSelCount() { return actBuckets.length ? Object.keys(selDays).length : 0; }
+function actSelCount() { return Object.keys(selDays).length; }
 function clearActSelection() { if (actSelCount()) { selDays = {}; renderActivity(); } }
 function selectBucket(i, add) {
   if (add) { if (selDays[i]) delete selDays[i]; else selDays[i] = true; }
@@ -2938,7 +2938,9 @@ $('recScope').addEventListener('click', function(e) {
 });
 
 function renderRecords() {
-  var periodLabel = chartMode === 'activity' ? PERIOD_SCOPE[period] : winActualLabel();
+  var periodLabel = chartMode === 'activity'
+    ? (actSelCount() ? 'выбрано дней: ' + actSelCount() : PERIOD_SCOPE[period]) + (actRes ? ' · ' + resRowMeta().label.toLowerCase() : '')
+    : winActualLabel();
   $('recScope').innerHTML =
     '<button data-scope="period" class="' + (recScope === 'period' ? 'on' : '') + '">' + periodLabel + '</button>' +
     '<button data-scope="all" class="' + (recScope === 'all' ? 'on' : '') + '">за всё время</button>';
@@ -2952,7 +2954,8 @@ function emptyCard(best, head, text) {
 
 /* --- показатели: лучшая и худшая партия по точности --- */
 function metricsRecordsHtml() {
-  var list = recScope === 'all' ? cgAll : windowGames();
+  // выбранные колонки графика — рекорды только среди них (кроме «за всё время»)
+  var list = recScope === 'all' ? cgAll : statsGames();
   if (!list.length) {
     return '<div class="rec-view"><div class="rec-grid">' +
       emptyCard(true, '▲ Лучшая партия', 'сыграй партию, чтобы появилась') +
@@ -3022,7 +3025,11 @@ function tile(label, val, sub) {
 }
 
 function activityRecordsHtml() {
-  var list = recScope === 'all' ? cgAll : periodRange(0).games;
+  // выбранные дни (кроме «за всё время») и выделенный результат (всегда)
+  var list = recScope === 'all' ? cgAll : actSelCount()
+    ? [].concat.apply([], actBuckets.filter(function(b, i) { return selDays[i]; }).map(function(b) { return b.games; }))
+    : periodRange(0).games;
+  list = byRes(list);
   var days = groupDays(list);
   // партий нет — карточки остаются на местах с «—», экран всегда одинаковый
   if (!days.length) {

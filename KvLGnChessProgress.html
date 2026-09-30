@@ -509,8 +509,6 @@
   }
   .activity-btn:hover { background: var(--yellow-bg); }
   /* в режиме активности кнопка ведёт назад к показателям — тот же стиль, зелёный */
-  /* нажатая кнопка режима залита своим цветом; повторный клик — обратно к показателям */
-  .mode-activity .activity-btn, .mode-activity .activity-btn:hover { background: rgba(234,179,8,0.16); }
 
   /* кнопка режима «Анализ» (разбор партий на доске) — бирюзовая */
   .analysis-btn {
@@ -522,8 +520,12 @@
     cursor: pointer; transition: background 0.15s;
   }
   .analysis-btn:hover { background: rgba(34,211,238,0.1); }
-  .mode-analysis .analysis-btn, .mode-analysis .analysis-btn:hover { background: rgba(34,211,238,0.16); }
-  .analysis-btn .an-ic { font-size: 16px; line-height: 1; letter-spacing: 0; }
+  /* кнопка включённого режима («Активность» / «Анализ») становится зелёной «Показатели» — ведёт обратно */
+  .mode-activity .activity-btn, .mode-analysis .analysis-btn { color: var(--green); border-color: var(--green); }
+  .mode-activity .activity-btn:hover, .mode-analysis .analysis-btn:hover { background: var(--green-bg); }
+  /* скрытый режим (глаз у аватарки): «Анализ» недоступен */
+  .analysis-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .analysis-btn:disabled:hover { background: transparent; }
 
   /* кнопка «Рекорды» (левый верхний угол графика) */
   .records-btn {
@@ -1661,7 +1663,7 @@
     <div class="act-range day-range metrics-only" id="winRange" style="display:none"><button class="pr-nav" id="wrPrev" title="Предыдущие партии">‹</button>ПЕРИОД <b id="winRangeTxt"></b><button class="pr-nav" id="wrNext" title="Следующие партии">›</button></div>
     <div class="act-range day-range metrics-only" id="dayRange" style="display:none">ДЕНЬ <b id="dayRangeTxt"></b><button class="pr-nav" id="dayClose" title="Вернуть последние партии (Esc)">✕</button></div>
     <div class="act-range activity-only"><button class="pr-nav" id="prPrev" title="Предыдущий период">‹</button>ПЕРИОД <b id="actRange" title=""></b><button class="pr-nav" id="prNext" title="Следующий период">›</button></div>
-    <button class="analysis-btn" id="analysisBtn" title="Разбор партий на доске: ходы, зевки, график перевеса"><span class="an-ic">♞</span>Анализ</button>
+    <button class="analysis-btn" id="analysisBtn" title="Разбор партий на доске: ходы, зевки, график перевеса">Анализ</button>
     <button class="activity-btn" id="activityBtn">Активность</button>
     <button class="sect-eye" id="eyeChart" type="button" data-sec="chart"></button>
     <div class="chart-area" id="chart"></div>
@@ -4204,7 +4206,7 @@ function activityRecordsHtml() {
 }
 
 /* ---------- switch: показатели ⇄ активность ⇄ анализ ---------- */
-// кнопки «Анализ» и «Активность» включают свой режим, повторный клик по нажатой — обратно к показателям
+// кнопки «Анализ» и «Активность» включают свой режим; в нём кнопка становится зелёной «Показатели» — обратно
 var linkGames = {};   // партии, выбранные в «Показателях», — в «Активности» их дни обведены пунктиром
 function setMode(m) {
   if (m === 'metrics' && chartMode === 'activity') {
@@ -4223,6 +4225,10 @@ function setMode(m) {
   $('chartBox').classList.remove('cmp-on');
   $('chartBox').classList.toggle('mode-activity', m === 'activity');
   $('chartBox').classList.toggle('mode-analysis', m === 'analysis');
+  // кнопка включённого режима — зелёная «Показатели» (обратно), другая — своё название
+  $('activityBtn').textContent = m === 'activity' ? 'Показатели' : 'Активность';
+  $('analysisBtn').textContent = m === 'analysis' ? 'Показатели' : 'Анализ';
+  if (!hush.mode) $('analysisBtn').title = m === 'analysis' ? 'Вернуться к показателям' : 'Разбор партий на доске: ходы, зевки, график перевеса';
   if (typeof placeChartBtns === 'function') placeChartBtns();
   // режим «Рекорды» сохраняется при переключении показатели ⇄ активность
   renderTitle();
@@ -4404,8 +4410,8 @@ function anMovesCol(g, P, v) {
 function renderAnalysis() {
   var box = $('anBox');
   if (chartMode !== 'analysis') return;
-  if (hush.chart) {
-    box.innerHTML = '<div class="an-list"><div class="an-head">Партии</div><div class="an-list-in"><div class="an-empty">нет данных</div></div></div><div class="an-lock">🔒 Скрыто</div>';
+  if (hush.chart) {   // график скрыт своим глазом (в скрытом режиме у аватарки «Анализ» недоступен — см. applyHush)
+    box.innerHTML = '<div class="an-list"><div class="an-head">Партии</div><div class="an-list-in"><div class="an-empty">нет данных</div></div></div><div class="an-lock">нет данных</div>';
     return;
   }
   if (!window.Chess) { box.innerHTML = '<div class="an-lock" style="grid-column: 1 / -1">Загружаю доску…</div>'; anNeedChess(renderAnalysis); return; }
@@ -6275,6 +6281,11 @@ function applyHush() {
     delete hushSnap.table;
   }
   if (!hush.chart && hushPrev.chart) restoreHush('chart');
+  // скрытый режим (глаз у аватарки): «Анализ» недоступен; открытый анализ сменяется показателями
+  $('analysisBtn').disabled = hush.mode;
+  $('analysisBtn').title = hush.mode ? 'Недоступно в скрытом режиме' : chartMode === 'analysis' ? 'Вернуться к показателям' : 'Разбор партий на доске: ходы, зевки, график перевеса';
+  if (hush.mode && chartMode === 'analysis') setMode('metrics');
+  placeChartBtns();   // глаз графика мог появиться / пропасть
   renderTitle();
   renderWindow();
   if (chartMode === 'activity') renderActivity();
@@ -6311,7 +6322,7 @@ function placeChartBtns() {
   var eye = $('eyeChart'), act = $('activityBtn'), an = $('analysisBtn');
   if (getComputedStyle(act).position !== 'absolute') { act.style.right = an.style.right = ''; return; }   // телефон: кнопки идут строкой
   var W = act.parentNode.clientWidth;
-  act.style.right = (W - eye.offsetLeft + 8) + 'px';
+  act.style.right = (eye.offsetParent ? W - eye.offsetLeft + 8 : 14) + 'px';   // в скрытом режиме глаза нет — «Активность» у края
   an.style.right = (W - act.offsetLeft + 8) + 'px';
 }
 window.addEventListener('resize', placeChartBtns);

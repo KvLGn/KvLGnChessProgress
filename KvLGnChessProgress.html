@@ -976,6 +976,11 @@
 
   /* ---------- Table filters ---------- */
   .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 12px; }
+  /* скрытый режим: вместо фильтров — одна надпись той же высоты */
+  .filters-na { display: none; align-items: center; height: 48px; padding: 0 16px; border: 1px dashed var(--border); border-radius: 10px; font-size: 12px; color: var(--fg-mute); }
+  body.hush #filters > :not(.filters-na) { display: none; }
+  body.hush .filters-na { display: flex; }
+  body.hush .pager { visibility: hidden; }
   .f-chips { display: flex; gap: 6px; }
   #fColor { padding-left: 10px; border-left: 1px solid var(--border); }
   .f-knight { font-size: 14px; line-height: 1; margin-right: 5px; vertical-align: -1px; }
@@ -1391,9 +1396,10 @@
 
 <!-- Game table -->
 <div class="section">
-  <h2 class="chart-title" style="margin-bottom:14px">Последние 30 партий</h2>
+  <h2 class="chart-title" id="tableTitle" style="margin-bottom:14px">Последние 30 партий</h2>
   <!-- фильтры таблицы -->
   <div class="filters" id="filters">
+    <div class="filters-na">🔒 Фильтры недоступны</div>
     <div class="f-chips" id="fResult" role="group" aria-label="Результат"></div>
     <div class="f-chips" id="fColor" role="group" aria-label="Цвет"></div>
     <div class="f-drop" id="fOpening">
@@ -2697,7 +2703,7 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasureT
 window.addEventListener('resize', function() { clearTimeout(window._tblT); window._tblT = setTimeout(remeasureTable, 200); });
 
 function renderGames() {
-  var ordered = filterGames(games).slice(-TABLE_N).reverse();
+  var ordered = hush ? [] : filterGames(games).slice(-TABLE_N).reverse();
   var total = ordered.length;
   var pages = Math.max(1, Math.ceil(total / PER_PAGE));
   currentPage = Math.max(0, Math.min(pages - 1, currentPage));
@@ -2707,7 +2713,7 @@ function renderGames() {
   var tbody = $('gameRows');
   tbody.innerHTML = '';
   if (!total) tbody.innerHTML = '<tr class="no-rows"><td colspan="7">' +
-    (games.length ? 'Нет партий под выбранные фильтры' : 'Партий пока нет') + '</td></tr>';
+    (hush ? 'Ничего не найдено' : games.length ? 'Нет партий под выбранные фильтры' : 'Партий пока нет') + '</td></tr>';
 
   ordered.slice(start, end).forEach(function(g) {
     var R = RESULT[g.result];
@@ -4616,6 +4622,9 @@ function applyHush() {
     pinnedSeries = null; markPinned();
     if (actRes) { actRes = null; document.querySelectorAll('.res-toggle').forEach(function(el) { el.classList.remove('pinned', 'dim'); }); }
   }
+  $('tableTitle').textContent = hush ? 'Последние партии' : 'Последние 30 партий';
+  if (hush) closeDrops();
+  renderGames();
   renderTitle();
   renderWindow();
   if (chartMode === 'activity') renderActivity();

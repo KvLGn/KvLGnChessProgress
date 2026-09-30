@@ -759,6 +759,11 @@
     background: rgba(255,255,255,0.03); border: 1px solid #2d3143; }
   .records-on .act-range { display: none !important; }
   .act-range b { color: #f3f4f6; font-size: 13px; letter-spacing: 0.3px; }
+  .act-range { padding: 0 4px !important; }
+  .pr-nav { font: 16px/1 Inter, sans-serif; color: var(--fg-dim); background: none; border: none; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; }
+  .pr-nav:hover:not(:disabled) { color: var(--fg); background: rgba(255,255,255,0.06); }
+  .pr-nav:disabled { opacity: 0.25; cursor: default; }
+  #actRange.past { color: #fbbf24; cursor: pointer; }
   .stat-val { color: #f3f4f6; font-size: 19px; font-weight: 700; }
   .stat-name { font-weight: 500; }
   .stat-trend .trend {
@@ -1207,7 +1212,7 @@
     </div>
     <button class="records-btn" id="recordsBtn">Рекорды</button>
     <div class="rec-scope" id="recScope"></div>
-    <div class="act-range activity-only">ПЕРИОД <b id="actRange"></b></div>
+    <div class="act-range activity-only"><button class="pr-nav" id="prPrev" title="Предыдущий период">‹</button>ПЕРИОД <b id="actRange" title=""></b><button class="pr-nav" id="prNext" title="Следующий период">›</button></div>
     <button class="activity-btn" id="activityBtn">Активность</button>
     <div class="chart-area" id="chart"></div>
     <div class="legend-rule"></div>
@@ -2485,8 +2490,28 @@ function mondayOf(d) { return addDays(d, -((d.getDay() + 6) % 7)); }
 // игровой день: до 05:00 — ещё вчера (как в update.mjs)
 function gameToday() { var t = new Date(Date.now() - 5 * 3600e3); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
 
+/* ---------- листание периода стрелками: 0 — текущий, -1 — предыдущий и т. д. ---------- */
+var periodOffset = 0;
+// опорный день выбранного периода (для текущего — сегодня)
+function periodAnchor() {
+  var t = gameToday(), o = periodOffset;
+  if (!o) return t;
+  if (period === 'week') return addDays(t, 7 * o);
+  if (period === '2weeks') return addDays(t, 14 * o);
+  if (period === 'month') return new Date(t.getFullYear(), t.getMonth() + o, 1);
+  // 3 месяца: окна идут встык — опорный день = день перед началом более позднего окна
+  var an = t;
+  for (var k = 0; k < -o; k++) an = addDays(mondayOf(new Date(an.getFullYear(), an.getMonth() - 2, 1)), -1);
+  return an;
+}
+function shiftPeriod(d) {
+  periodOffset = Math.min(0, periodOffset + d);
+  selDays = {};
+  renderActivity();
+}
+
 function activityBuckets() {
-  var today = gameToday(), list = [], i, d;
+  var today = periodAnchor(), list = [], i, d;
   function day(d, top, bottom) {
     list.push({from: d, to: d, top: top, bottom: bottom, title: DOW[d.getDay()] + ' ' + ddmm(d)});
   }
@@ -2504,7 +2529,7 @@ function activityBuckets() {
       list.push({from: m, to: addDays(m, 6), top: '', bottom: ddmm(m), title: 'Неделя ' + ddmm(m) + ' – ' + ddmm(addDays(m, 6))});
     }
   }
-  var td = isoDay(today);
+  var td = isoDay(gameToday());   // «сегодня» и «будущее» — по настоящей дате
   list.forEach(function(b) {
     var f = isoDay(b.from), t = isoDay(b.to);
     b.games = cgAll.filter(function(g) { return g.day >= f && g.day <= t; });
@@ -2596,6 +2621,9 @@ function renderActivity() {
   renderPeriodPick();
   var pr = periodRange(0);
   $('actRange').textContent = pr.from.slice(8) + '.' + pr.from.slice(5, 7) + ' – ' + pr.to.slice(8) + '.' + pr.to.slice(5, 7);
+  $('prNext').disabled = periodOffset >= 0;
+  $('actRange').classList.toggle('past', periodOffset < 0);
+  $('actRange').title = periodOffset < 0 ? 'Нажми, чтобы вернуться к текущему периоду' : '';
   bindTooltip();
   renderActivityStats();
 }
@@ -2604,8 +2632,8 @@ function renderActivity() {
 function fromIso(x) { var p = x.split('-'); return new Date(+p[0], p[1] - 1, +p[2]); }
 function daysBetween(a, b) { return Math.round((b - a) / 864e5); }
 
-function periodRange(shift) {   // shift = 0 — текущий период, 1 — предыдущий
-  var today = gameToday(), from, to;
+function periodRange(shift) {   // shift = 0 — выбранный период, 1 — предыдущий перед ним
+  var today = periodAnchor(), from, to;
   if (period === 'week' || period === '2weeks') {
     var len = period === 'week' ? 7 : 14;
     to = addDays(mondayOf(today), 6 - shift * len);
@@ -2738,6 +2766,10 @@ function activityTip(b) {
     (acc !== null ? '<div style="color:#9ca3af">Средняя точность: <span style="color:#e4e4e7">' + acc.toFixed(1) + '%</span></div>' : '');
 }
 
+$('prPrev').addEventListener('click', function(e) { e.stopPropagation(); shiftPeriod(-1); });
+$('prNext').addEventListener('click', function(e) { e.stopPropagation(); shiftPeriod(1); });
+$('actRange').addEventListener('click', function(e) { if (periodOffset < 0) { e.stopPropagation(); periodOffset = 0; selDays = {}; renderActivity(); } });
+
 /* ---------- period dropdown («НЕДЕЛЯ ▾») ---------- */
 function renderPeriodPick() {
   var cur = PERIODS.filter(function(p) { return p.key === period; })[0];
@@ -2762,6 +2794,7 @@ $('periodPick').addEventListener('click', function(e) {
   if (opt) {
     period = opt.getAttribute('data-p');
     selDays = {};
+    periodOffset = 0;
     try { localStorage.setItem('activityPeriod', period); } catch (err) {}
     setPeriodMenu(false);
     renderPeriodPick();

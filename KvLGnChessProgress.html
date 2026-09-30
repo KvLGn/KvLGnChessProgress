@@ -3476,7 +3476,6 @@ function renderGames() {
     detail.innerHTML = '<td colspan="7"><div class="detail-inner mr">' + matchReport(g) +
       '<span class="detail-links">' +
       (g.bl && g.bl.length ? '<button class="detail-link mr-bl-btn" type="button">Список зевков (' + g.bl.length + ') ▾</button>' : '') +
-      (g.mv ? '<button class="detail-link detail-an" type="button" title="Открыть партию в режиме «Анализ»: доска, ходы, зевки">Разбор на доске ♞</button>' : '') +
       (chartReach(g) ? '<button class="detail-link detail-chart" type="button" title="Переключить на график и выделить колонку этой партии">Показать на графике</button>' : '') +
       (g.id ? '<a class="detail-link" href="https://lichess.org/' + g.id + '" target="_blank" rel="noopener">Партия на Lichess ↗</a>' : '') +
       '</span>' +
@@ -3498,8 +3497,6 @@ function renderGames() {
       r.addEventListener('click', go);
       r.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(e); } });
     });
-    var anBtn = detail.querySelector('.detail-an');
-    if (anBtn) anBtn.addEventListener('click', function(e) { e.stopPropagation(); anOpen(g); });
     var chBtn = detail.querySelector('.detail-chart');
     if (chBtn) chBtn.addEventListener('click', function(e) { e.stopPropagation(); showOnChart(g); });
     row.addEventListener('click', toggle);

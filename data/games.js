@@ -1,5 +1,5 @@
 // Создаётся автоматически скриптом update.mjs — не редактировать вручную.
-window.GAMES_UPDATED = '30.09.2026 19:15';
+window.GAMES_UPDATED = '30.09.2026 19:17';
 window.GAMES = [
   {"id":"y5Zzpoql","date":"26.09","day":"2026-09-26","opening":"King's Pawn Game: Wayward Queen Attack","eco":"C20","color":"white","result":"win","moves":52,"acc":74,"debut":57,"mid":44,"end":97,"inacc":2,"mistakes":1,"blunders":5,"acpl":67,"engine":"Stockfish 3","section":"Stockfish 3","opp":"ai","lvl":3,"rated":false,"speed":"correspondence"},
   {"id":"ngv6Da40","date":"28.09","day":"2026-09-28","opening":"Italian Game: Giuoco Pianissimo, Normal","eco":"C50","color":"white","result":"lose","moves":40,"acc":71,"debut":70,"mid":68,"end":null,"inacc":5,"mistakes":5,"blunders":6,"acpl":99,"engine":"Stockfish 3","section":"Stockfish 3","opp":"ai","lvl":3,"rated":false,"speed":"correspondence"},

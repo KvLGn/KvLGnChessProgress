@@ -132,6 +132,10 @@
   .wr-label::after { content: ' ⇄'; opacity: 0; transition: opacity 0.15s; }
   .wr-box:hover .wr-label::after, .wr-box:focus-visible .wr-label::after { opacity: 0.6; }
   .wr-box.swap { animation: wrSwap 0.2s ease; }
+  /* подсветка из поиска — рамка ровно вокруг блока винрейта / ELO */
+  .wr-box.gs-flash { animation: wrFlash 1.4s ease; }
+  .wr-box.swap.gs-flash { animation: wrSwap 0.2s ease, wrFlash 1.4s ease; }
+  @keyframes wrFlash { 0%, 40% { outline: 1px solid rgba(129,140,248,0.7); outline-offset: 6px; } 100% { outline: 1px solid transparent; outline-offset: 6px; } }
   @keyframes wrSwap { from { opacity: 0.2; transform: translateY(2px); } to { opacity: 1; transform: none; } }
 
   .profile-side { flex: 1; min-width: 0; display: flex; flex-direction: column; margin-right: -32px; }   /* выступает за правую рамку страницы на 8px — как карточка профиля слева */
@@ -4125,8 +4129,14 @@ function gsCompareDays(daysA, daysB) {
   renderActivity();
 }
 
+// блок винрейта / ELO в профиле: переключить на нужный вид и подсветить
+function gsWr(elo) {
+  if (showElo !== elo) toggleWr();
+  gsFlash($('wrBox'));
+}
+
 function gsIndex() {
-  var items = [];
+  var items = [], RG0 = window.RATING_GAMES || [];
   function add(group, icon, title, sub, keys, run) { items.push({group: group, icon: icon, title: title, sub: sub || '', keys: gsNorm(title + ' ' + (sub || '') + ' ' + (keys || '')), run: run}); }
 
   // разделы и действия
@@ -4148,7 +4158,10 @@ function gsIndex() {
   var nW = games.filter(function(g) { return g.result === 'win'; }).length;
   add('Ответы', '📊', 'Винрейт: ' + (wrAll === null ? '—' : wrAll + '%'),
     nW + 'W / ' + (nG - nW) + 'L' + (wrTr !== null ? ' · ' + (wrTr >= 0 ? '▲ +' : '▼ −') + Math.abs(Math.round(wrTr)) + '% за ' + TREND_N + ' игр' : ''),
-    'винрейт процент побед статистика', function() { gsFlash($('wrBox').closest('.profile-card')); });
+    'винрейт процент побед статистика', function() { gsWr(false); });
+  add('Ответы', '⭐', 'ELO: ' + (RG0.length ? RG0[RG0.length - 1].after : '?'),
+    RG0.length ? 'рейтинг по последней рейтинговой партии · блок ELO' : 'рейтинговых партий пока нет · блок ELO',
+    'эло elo рейтинг партии', function() { gsWr(true); });
   var P2 = window.PUZZLES, RG2 = window.RATING_GAMES || [];
   add('Ответы', '📈', 'Рейтинг: задачи ' + (P2 && P2.rating !== null ? P2.rating : '—') + ' · ELO ' + (RG2.length ? RG2[RG2.length - 1].after : '?'),
     RG2.length ? 'по последней рейтинговой партии' : 'рейтинговых партий пока нет', 'рейтинг эло elo задачи', function() { gsFlash($('pzCard')); });

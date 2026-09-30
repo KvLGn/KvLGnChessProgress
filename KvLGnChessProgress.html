@@ -506,6 +506,18 @@
   .cf .f-menu { left: auto; right: 0; width: 340px; }
   .cf-sec { font-size: 10px; color: var(--fg-mute); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 2px 6px; }
   .cf-results, .cf-colors { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  /* режимы партии */
+  .md-sec { font-size: 10px; color: var(--fg-mute); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 2px 6px; }
+  .md-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .md-chip { padding: 4px 10px; font-size: 12px; }
+  .md-lvl .md-chip { min-width: 34px; padding: 4px 8px; }
+  .md-n { font-size: 10px; color: var(--fg-mute); margin-left: 5px; font-weight: 500; }
+  .md-chip.on .md-n { color: inherit; opacity: 0.75; }
+  .md-zero { opacity: 0.45; }
+  .md-zero.on { opacity: 1; }
+  .f-menu-mode { width: 380px; padding: 10px; }
+  .md-lvl { flex-wrap: nowrap; }
+  .md-lvl .md-chip { min-width: 0; flex: 1; padding: 4px 0; text-align: center; }
   .cf-more {
     display: flex; align-items: center; justify-content: space-between; width: 100%;
     font: 600 12px Inter, sans-serif; color: var(--fg-dim);
@@ -1153,6 +1165,7 @@
       <div class="f-menu">
         <div class="cf-sec">Результат</div><div class="cf-results"></div>
         <div class="cf-sec">Цвет</div><div class="cf-colors"></div>
+        <div class="cf-modes"></div>
         <div class="cf-sec">Дебют</div>
         <input class="f-search" type="search" placeholder="Поиск дебюта…" autocomplete="off">
         <div class="f-list"></div>
@@ -1231,6 +1244,13 @@
         <input class="f-search" type="search" placeholder="Поиск дебюта…" autocomplete="off">
         <div class="f-list" role="listbox" aria-multiselectable="true"></div>
         <div class="f-foot"><button class="f-link" data-act="clear">Сбросить дебюты</button></div>
+      </div>
+    </div>
+    <div class="f-drop" id="fMode">
+      <button class="f-btn" aria-haspopup="true" aria-expanded="false"></button>
+      <div class="f-menu f-menu-mode">
+        <div class="md-body"></div>
+        <div class="f-foot"><button class="f-link" data-act="clear">Сбросить режимы</button></div>
       </div>
     </div>
     <div class="f-drop" id="fMetrics">
@@ -1925,8 +1945,63 @@ var F_METRICS = [
 
 function hasKeys(o) { return Object.keys(o).length > 0; }
 
+/* ---------- режимы партии (как на Lichess): соперник, уровень бота, рейтинг, контроль времени ---------- */
+// группы: внутри группы — «или», между группами — «и». Состояние: f.modes = {opp:{}, lvl:{}, rated:{}, speed:{}}
+var MODE_GROUPS = [
+  {g: 'opp', title: 'Соперник', items: [{k: 'ai', label: '🤖 Компьютер'}, {k: 'human', label: '👤 Люди'}]},
+  {g: 'lvl', title: 'Уровень Stockfish', items: [1, 2, 3, 4, 5, 6, 7, 8].map(function(n) { return {k: String(n), label: String(n)}; })},
+  {g: 'rated', title: 'Тип', items: [{k: 'rated', label: 'Рейтинговые'}, {k: 'casual', label: 'Товарищеские'}]},
+  {g: 'speed', title: 'Контроль', items: [
+    {k: 'ultraBullet', label: 'Ультрапуля'}, {k: 'bullet', label: 'Пуля'}, {k: 'blitz', label: 'Блиц'},
+    {k: 'rapid', label: 'Рапид'}, {k: 'classical', label: 'Классика'}, {k: 'correspondence', label: 'Переписка'}]}
+];
+function modeVal(g, grp) {
+  if (grp === 'opp') return g.opp || (/^Stockfish/.test(g.engine) ? 'ai' : 'human');
+  if (grp === 'lvl') return g.lvl ? String(g.lvl) : (String(g.engine).match(/^Stockfish (\d)/) || [])[1] || null;
+  if (grp === 'rated') return g.rated ? 'rated' : 'casual';
+  return g.speed || null;
+}
+function modeMatch(g, modes) {
+  if (!modes) return true;
+  for (var grp in modes) {
+    if (!hasKeys(modes[grp])) continue;
+    if (!modes[grp][modeVal(g, grp)]) return false;
+  }
+  return true;
+}
+function modeCount(modes) {
+  var n = 0;
+  for (var grp in (modes || {})) n += Object.keys(modes[grp]).length;
+  return n;
+}
+function modeLabel(grp, k) {
+  var G = MODE_GROUPS.filter(function(x) { return x.g === grp; })[0];
+  var it = G.items.filter(function(x) { return x.k === k; })[0];
+  return grp === 'lvl' ? 'Stockfish ' + k : it ? it.label.replace(/^\S+ /, function(m) { return /[🤖👤]/.test(m) ? '' : m; }) : k;
+}
+// кнопки-переключатели; число — сколько партий с таким значением
+function modeChipsHtml(modes) {
+  modes = modes || {};
+  return MODE_GROUPS.map(function(G) {
+    var cnt = {};
+    games.forEach(function(g) { var v = modeVal(g, G.g); if (v) cnt[v] = (cnt[v] || 0) + 1; });
+    return '<div class="md-sec">' + G.title + '</div><div class="md-chips' + (G.g === 'lvl' ? ' md-lvl' : '') + '">' + G.items.map(function(it) {
+      var on = !!(modes[G.g] && modes[G.g][it.k]), n = cnt[it.k] || 0;
+      return '<button class="f-chip md-chip' + (on ? ' on' : '') + (n ? '' : ' md-zero') + '" data-mg="' + G.g + '" data-mk="' + it.k + '"' +
+        ' title="Партий: ' + n + '">' + it.label + (n ? '<span class="md-n">' + n + '</span>' : '') + '</button>';
+    }).join('') + '</div>';
+  }).join('');
+}
+function toggleMode(f, grp, k) {
+  f.modes = f.modes || {};
+  f.modes[grp] = f.modes[grp] || {};
+  if (f.modes[grp][k]) delete f.modes[grp][k]; else f.modes[grp][k] = true;
+  if (grp === 'lvl' && f.modes.lvl[k]) { f.modes.opp = f.modes.opp || {}; }   // уровень подразумевает компьютер — отдельно не требуется
+}
+
 function filterGames(list) {
   return list.filter(function(g) {
+    if (!modeMatch(g, filt.modes)) return false;
     if (hasKeys(filt.results) && !filt.results[g.result]) return false;
     if (hasKeys(filt.colors) && !filt.colors[g.color]) return false;
     if (hasKeys(filt.openings) && !filt.openings[g.opening]) return false;
@@ -2050,9 +2125,10 @@ function toggleDrop(id) {
   el.classList.toggle('open', open);
   el.querySelector('.f-btn').setAttribute('aria-expanded', String(open));
   if (open && id === 'fOpening') { renderOpeningList(); el.querySelector('.f-search').focus(); }
+  if (open && id === 'fMode') el.querySelector('.md-body').innerHTML = modeChipsHtml(filt.modes);
 }
 function closeDrops() {
-  ['fOpening', 'fMetrics'].forEach(function(id) {
+  ['fOpening', 'fMetrics', 'fMode'].forEach(function(id) {
     $(id).classList.remove('open');
     $(id).querySelector('.f-btn').setAttribute('aria-expanded', 'false');
   });
@@ -2066,7 +2142,22 @@ $('fReset').addEventListener('click', function() {
   filtersChanged();
 });
 
+$('fMode').addEventListener('click', function(e) {
+  e.stopPropagation();
+  if (e.target.closest('.f-btn')) { toggleDrop('fMode'); return; }
+  var t = e.target.closest('.md-chip');
+  if (t) toggleMode(filt, t.getAttribute('data-mg'), t.getAttribute('data-mk'));
+  else if (e.target.closest('[data-act="clear"]')) filt.modes = {};
+  else return;
+  $('fMode').querySelector('.md-body').innerHTML = modeChipsHtml(filt.modes);
+  filtersChanged();
+});
+
 function renderFilterButtons() {
+  var mc = modeCount(filt.modes);
+  var mdb = $('fMode').querySelector('.f-btn');
+  mdb.innerHTML = 'Режим' + (mc ? ' · ' + mc : '') + '<span class="caret">▾</span>';
+  mdb.classList.toggle('active', mc > 0);
   var names = Object.keys(filt.openings);
   var ob = $('fOpening').querySelector('.f-btn');
   ob.innerHTML = esc(names.length === 0 ? 'Дебют: все' : names.length === 1 ? names[0] : 'Дебюты: ' + names.length) + '<span class="caret">▾</span>';
@@ -2078,7 +2169,7 @@ function renderFilterButtons() {
   mb.innerHTML = 'Показатели' + (mk ? ' · ' + mk : '') + '<span class="caret">▾</span>';
   mb.classList.toggle('active', mk > 0);
 
-  var any = hasKeys(filt.results) || hasKeys(filt.colors) || names.length > 0 || mk > 0;
+  var any = mc > 0 || hasKeys(filt.results) || hasKeys(filt.colors) || names.length > 0 || mk > 0;
   $('filters').classList.toggle('any', any);
   var shown = filterGames(games).length;
   $('fCount').textContent = any ? 'Найдено ' + shown + ' из ' + games.length : '';
@@ -2096,6 +2187,7 @@ var cfilt = {results: {}, colors: {}, openings: {}, ranges: {}};
 
 function filterChart(list) {
   return list.filter(function(g) {
+    if (!modeMatch(g, cfilt.modes)) return false;
     if (hasKeys(cfilt.results) && !cfilt.results[g.result]) return false;
     if (hasKeys(cfilt.colors) && !cfilt.colors[g.color]) return false;
     if (hasKeys(cfilt.openings) && !cfilt.openings[g.opening]) return false;
@@ -2109,7 +2201,7 @@ function filterChart(list) {
   });
 }
 
-function cfActive() { return hasKeys(cfilt.results) || hasKeys(cfilt.colors) || hasKeys(cfilt.openings) || hasKeys(cfilt.ranges); }
+function cfActive() { return modeCount(cfilt.modes) > 0 || hasKeys(cfilt.results) || hasKeys(cfilt.colors) || hasKeys(cfilt.openings) || hasKeys(cfilt.ranges); }
 
 function chartFilterChanged() {
   cgAll = filterChart(games);
@@ -2132,6 +2224,7 @@ function renderCfMenu() {
     var on = !!cfilt.colors[c];
     return '<button class="f-chip' + (on ? ' on' : '') + '" data-c="' + c + '"><span class="f-knight">' + KNIGHT[c] + '</span>' + COLOR_NAME[c] + '</button>';
   }).join('');
+  el.querySelector('.cf-modes').innerHTML = modeChipsHtml(cfilt.modes);
   var q = el.querySelector('.f-search').value.trim().toLowerCase();
   var items = openingStats().filter(function(o) { return !q || o.name.toLowerCase().indexOf(q) >= 0; });
   el.querySelector('.f-list').innerHTML = items.length ? items.map(function(o) {
@@ -2188,6 +2281,7 @@ function renderChartFilter(keepMenu) {
   var pills = [];
   F_RESULTS.forEach(function(r) { if (cfilt.results[r.key]) pills.push({t: 'r', k: r.key, label: r.label}); });
   ['white', 'black'].forEach(function(c) { if (cfilt.colors[c]) pills.push({t: 'c', k: c, label: KNIGHT[c] + ' ' + COLOR_NAME[c]}); });
+  for (var mg in (cfilt.modes || {})) Object.keys(cfilt.modes[mg]).forEach(function(k) { pills.push({t: 'md', k: mg + ':' + k, label: modeLabel(mg, k)}); });
   Object.keys(cfilt.openings).forEach(function(o) { pills.push({t: 'o', k: o, label: o}); });
   Object.keys(cfilt.ranges).forEach(function(k) { pills.push({t: 'm', k: k, label: rangeLabel(k)}); });
   $('cfPills').innerHTML = pills.map(function(p) {
@@ -2204,8 +2298,13 @@ $('cfPills').addEventListener('click', function(e) {
   var b = e.target.closest('button[data-t]');
   if (!b) return;
   e.stopPropagation();
-  var map = {r: cfilt.results, c: cfilt.colors, o: cfilt.openings, m: cfilt.ranges}[b.getAttribute('data-t')];
-  delete map[b.getAttribute('data-k')];
+  if (b.getAttribute('data-t') === 'md') {
+    var p = b.getAttribute('data-k').split(':');
+    delete cfilt.modes[p[0]][p[1]];
+  } else {
+    var map = {r: cfilt.results, c: cfilt.colors, o: cfilt.openings, m: cfilt.ranges}[b.getAttribute('data-t')];
+    delete map[b.getAttribute('data-k')];
+  }
   renderCfInputs();
   chartFilterChanged();
 });
@@ -2222,6 +2321,7 @@ $('cf').addEventListener('click', function(e) {
     if (open) { renderCfMenu(); renderCfInputs(); setCfMore(hasKeys(cfilt.ranges)); $('cf').querySelector('.f-search').focus(); }
     return;
   }
+  if ((t = e.target.closest('.md-chip'))) { toggleMode(cfilt, t.getAttribute('data-mg'), t.getAttribute('data-mk')); chartFilterChanged(); return; }
   if ((t = e.target.closest('.f-chip[data-r]'))) { toggleKey(cfilt.results, t.getAttribute('data-r')); chartFilterChanged(); return; }
   if ((t = e.target.closest('.f-chip[data-c]'))) { toggleKey(cfilt.colors, t.getAttribute('data-c')); chartFilterChanged(); return; }
   if ((t = e.target.closest('.f-opt'))) { toggleKey(cfilt.openings, t.getAttribute('data-o')); chartFilterChanged(); return; }

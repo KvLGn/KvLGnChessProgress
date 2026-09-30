@@ -95,6 +95,11 @@ function convert(g) {
     acpl: a.acpl,
     engine,
     section: opp.aiLevel ? engine : 'Люди',
+    // режим партии — для фильтров «как на Lichess»
+    opp: opp.aiLevel ? 'ai' : 'human',             // компьютер / человек
+    lvl: opp.aiLevel || null,                      // уровень Stockfish 1–8
+    rated: !!g.rated,                              // рейтинговая / товарищеская
+    speed: g.speed,                                // ultraBullet | bullet | blitz | rapid | classical | correspondence
   };
   if (typeof me.ratingDiff === 'number') out.ir = me.ratingDiff;
   return out;

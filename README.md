@@ -86,7 +86,8 @@ data/*.js ──────────────────┴──► KvL
 window.GAMES_UPDATED = '30.09.2026 10:57';
 window.GAMES = [ {id, date:'29.09', day:'2026-09-29', opening, eco, color:'white'|'black',
                   result:'win'|'lose'|'draw', moves, acc, debut, mid, end /* null = эндшпиля не было */,
-                  inacc, mistakes, blunders, acpl, engine:'Stockfish 3', section, ir? }, ... ];   // старые → новые
+                  inacc, mistakes, blunders, acpl, engine:'Stockfish 3', section, ir?,
+                  opp:'ai'|'human', lvl /*1–8|null*/, rated, speed /*bullet|blitz|rapid|classical|correspondence…*/ }, ... ];   // старые → новые
 window.RATING_GAMES = [ {id, date, day, perf:'rapid', before, diff, after}, ... ];
 ```
 `data/puzzles.js`
@@ -119,7 +120,7 @@ window.PUZZLES = { rating, total,
 | **График показателей** | линии точность/дебют/миттельшпиль/эндшпиль/зевки по партиям, W/L, дни | слева «Средние за 5/10/20 игр»; клик по строке слева — выделить линию; клик по легенде снизу — скрыть/показать; **клик по колонке — средние только по этой партии, Ctrl+клик — добавить/убрать колонки** (остальные притухают, подпись «3 из 10», ✕ или Esc — сброс; прирост при выборе не считается) |
 | **Активность** (кнопка справа) | столбики партий по дням: неделя / 2 недели / месяц / 3 месяца (по неделям) | слева сводка к прошлому периоду и ELO за период; **клик по столбику — сводка слева только за этот день (для «3 месяцев» — неделю), Ctrl+клик — добавить/убрать**, «2 из 7» рядом с периодом, ✕ или Esc — сброс |
 | **Рекорды** (кнопка слева) | показатели: лучшая/худшая партия; активность: лучший/худший день + 🏆 плитки | «за период / за всё время»; режим сохраняется при переключении показатели⇄активность |
-| **Таблица «Последние 30 партий»** | 30 последних, по 10 на странице, новые сверху | свои фильтры (результат, цвет, дебют с поиском, показатели от–до); клик по строке — детали и ссылка на Lichess |
+| **Таблица «Последние 30 партий»** | 30 последних, по 10 на странице, новые сверху | свои фильтры (результат, цвет, **режим** — соперник / уровень Stockfish / рейтинговая или товарищеская / контроль времени, дебют с поиском, показатели от–до); клик по строке — детали и ссылка на Lichess |
 | **Футер** | дата начала, этап, время последнего обновления данных | — |
 
 Одновременно открыта только одна выдвижная панель (задачи / дебюты / итоги); открытая панель прячет карточки под собой.
@@ -160,7 +161,7 @@ window.PUZZLES = { rating, total,
 | `chart` | `renderChart` (SVG), `streaks`, `streakTitle`, `renderTitle` |
 | `tooltip` | `tooltipHtml` (выделенный показатель — первой строкой) |
 | `table filters` | `filt`, `filterGames`, `F_METRICS` |
-| `chart filter` | `cfilt`, `filterChart`, `chartFilterChanged` |
+| `chart filter` | `cfilt`, `filterChart`, `chartFilterChanged`; режимы партии — `MODE_GROUPS`, `modeMatch`, `modeChipsHtml` (общие для таблицы и графика, перед `table filters`) |
 | `table` | `renderGames` |
 | `activity mode` / `activity panel` / `period dropdown` | `PERIODS`, `activityBuckets`, `renderActivity`, `periodRange`, `renderActivityStats`, `periodElo` |
 | `records` | `setRecords`, `metricsRecordsHtml`, `activityRecordsHtml` |

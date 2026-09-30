@@ -134,18 +134,35 @@
   @media (max-width: 700px) { .profile-head.eye-out .eye-btn { transform: translate(76px, 28px) scale(0.9); } }   /* на телефоне слева нет места — выезжает вправо под ник */
   /* что показывает скрытый режим */
   .hush-na { font-size: 13px; color: var(--fg-mute); }
+  /* глаза частей: шапка (у поиска), график (у «Активность»), партии (у заголовка) */
+  .sect-eye {
+    width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid var(--border); color: var(--fg-mute); cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .sect-eye:hover { color: var(--fg); border-color: #818cf8; }
+  .sect-eye svg g { transition: transform 0.25s ease, opacity 0.2s ease; transform-origin: 12px 12px; }
+  .sect-eye .eye-shut { opacity: 0; }
+  .sect-eye.shut .eye-open { transform: scaleY(0.1); opacity: 0; }
+  .sect-eye.shut .eye-shut { opacity: 1; }
+  .sect-eye.shut { color: #a5b4fc; border-color: rgba(129,140,248,0.5); }
+  #eyeChart { position: absolute; top: 9px; z-index: 2; }
+  #eyeHead { margin-left: auto; align-self: flex-start; }   /* справа от карточки «Итоги», в свободном месте */
+  .tbl-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  .tbl-head .chart-title { margin: 0; }
   .hush-q { color: var(--fg-mute) !important; letter-spacing: 2px; }
-  body.hush .vd-card { cursor: default; }
-  body.hush .vd-card:hover { background: linear-gradient(90deg, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.03) 100%); }
-  body.hush .vd-go { visibility: hidden; }
-  body.hush .gs-box { opacity: 0.6; cursor: not-allowed; }
-  body.hush .gs-box:hover { border-color: var(--border); }
-  body.hush #gsInput { cursor: not-allowed; }
-  body.hush .gs-kbd { display: none; }
-  body.hush .records-btn, body.hush #cf .f-btn { opacity: 0.45; cursor: not-allowed; }
-  body.hush .records-btn:hover { background: none; }
-  body.hush .legend-item, body.hush .stat.toggle { pointer-events: none; }
-  body.hush .legend-item { opacity: 0.45; }
+  body.hush-head .vd-card { cursor: default; }
+  body.hush-head .vd-card:hover { background: linear-gradient(90deg, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.03) 100%); }
+  body.hush-head .vd-go { visibility: hidden; }
+  body.hush-any .gs-box { opacity: 0.6; cursor: not-allowed; }
+  body.hush-any .gs-box:hover { border-color: var(--border); }
+  body.hush-any #gsInput { cursor: not-allowed; }
+  body.hush-any .gs-kbd { display: none; }
+  body.hush-chart .records-btn, body.hush-chart #cf .f-btn { opacity: 0.45; cursor: not-allowed; }
+  body.hush-chart .records-btn:hover { background: none; }
+  body.hush-chart .legend-item, body.hush-chart .stat.toggle { pointer-events: none; }
+  body.hush-chart .legend-item { opacity: 0.45; }
   .wr-label {
     font-size: 11px;
     font-weight: 500;
@@ -978,9 +995,9 @@
   .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 12px; }
   /* скрытый режим: вместо фильтров — одна надпись той же высоты */
   .filters-na { display: none; align-items: center; height: 48px; padding: 0 16px; border: 1px dashed var(--border); border-radius: 10px; font-size: 12px; color: var(--fg-mute); }
-  body.hush #filters > :not(.filters-na) { display: none; }
-  body.hush .filters-na { display: flex; }
-  body.hush .pager { visibility: hidden; }
+  body.hush-table #filters > :not(.filters-na) { display: none; }
+  body.hush-table .filters-na { display: flex; }
+  body.hush-table .pager { visibility: hidden; }
   .f-chips { display: flex; gap: 6px; }
   #fColor { padding-left: 10px; border-left: 1px solid var(--border); }
   .f-knight { font-size: 14px; line-height: 1; margin-right: 5px; vertical-align: -1px; }
@@ -1218,7 +1235,9 @@
     .records-btn, .act-range, .activity-btn, .rec-scope { position: static; transform: none; order: 2; margin: 10px 0 0; }
     .records-btn { margin-left: 10px; }
     .act-range { margin-left: auto; margin-right: auto; height: 39px; }
-    .activity-btn { margin-left: auto; margin-right: 10px; }
+    .activity-btn { margin-left: 8px; margin-right: 10px; }
+    #eyeChart { position: static; order: 2; margin: 10px 0 0 auto; }
+    #eyeHead { align-self: flex-end; margin: 0; }
     .records-btn, .activity-btn { padding: 0 10px; letter-spacing: 0.5px; }
     .act-range { padding: 0 10px; font-size: 0; gap: 0; }   /* на телефоне только даты, без слова «Период» */
     .act-range b { font-size: 13px; }
@@ -1301,6 +1320,7 @@
       <div class="op-detail" id="opDetail" aria-hidden="true"></div>
       <div class="vd-card" id="vdCard" role="button" tabindex="0" aria-expanded="false" aria-controls="vdDetail" title="Итоги по всей статистике"></div>
       <div class="vd-detail vdx" id="vdDetail" aria-hidden="true"></div>
+      <button class="sect-eye" id="eyeHead" type="button" data-sec="head"></button>
     </div>
   </div>
 </div>
@@ -1360,6 +1380,7 @@
     <div class="cmp-hint" id="cmpHint"></div>
     <div class="rec-scope" id="recScope"></div>
     <div class="act-range activity-only"><button class="pr-nav" id="prPrev" title="Предыдущий период">‹</button>ПЕРИОД <b id="actRange" title=""></b><button class="pr-nav" id="prNext" title="Следующий период">›</button></div>
+    <button class="sect-eye" id="eyeChart" type="button" data-sec="chart"></button>
     <button class="activity-btn" id="activityBtn">Активность</button>
     <div class="chart-area" id="chart"></div>
     <div class="legend-rule"></div>
@@ -1396,7 +1417,10 @@
 
 <!-- Game table -->
 <div class="section">
-  <h2 class="chart-title" id="tableTitle" style="margin-bottom:14px">Последние 30 партий</h2>
+  <div class="tbl-head">
+    <h2 class="chart-title" id="tableTitle">Последние 30 партий</h2>
+    <button class="sect-eye" type="button" data-sec="table"></button>
+  </div>
   <!-- фильтры таблицы -->
   <div class="filters" id="filters">
     <div class="filters-na">🔒 Фильтры недоступны</div>
@@ -1578,8 +1602,15 @@ function wrColorClass(v) { return v >= 60 ? 'green' : v >= 40 ? 'yellow' : 'red'
 var PERF_RU = {bullet:'Пуля', blitz:'Блиц', rapid:'Рапид', classical:'Классика', correspondence:'Переписка'};
 var wrView, eloView;
 var showElo = false;
-var hush = false;   // скрытый режим (глаз у аватарки)
-try { hush = localStorage.getItem('hush') === '1'; } catch (e) {}
+// скрытый режим по частям: шапка, график, таблица (глаз у аватарки — всё сразу, свои глаза — по отдельности)
+var hush = {head: false, chart: false, table: false};
+try {
+  var hs = localStorage.getItem('hush');
+  if (hs === '1') hush = {head: true, chart: true, table: true};
+  else if (hs) { var hp = JSON.parse(hs); ['head', 'chart', 'table'].forEach(function(k) { hush[k] = !!hp[k]; }); }
+} catch (e) {}
+function hushAny() { return hush.head || hush.chart || hush.table; }
+function hushAll() { return hush.head && hush.chart && hush.table; }
 try { showElo = localStorage.getItem('wrMode') === 'elo'; } catch (e) {}
 
 // рейтинг по последней рейтинговой партии; изменение — сумма за последние TREND_N партий того же контроля
@@ -1614,7 +1645,7 @@ function buildEloView() {
 
 function renderWrBox() {
   var v = showElo ? eloView : wrView;
-  if (hush) v = {label: v.label, cls: 'wr-value hush-q', value: '???', sub: '<span class="hush-q">???</span>'};
+  if (hush.head) v = {label: v.label, cls: 'wr-value hush-q', value: '???', sub: '<span class="hush-q">???</span>'};
   $('wrLabel').textContent = v.label;
   $('wrValue').className = v.cls;
   $('wrValue').innerHTML = v.value;
@@ -1678,7 +1709,7 @@ try {
   if (WINDOWS.indexOf(savedWin) >= 0) avgWindow = savedWin;
 } catch (e) {}
 
-function windowGames() { return hush ? [] : cgAll.slice(-avgWindow); }
+function windowGames() { return hush.chart ? [] : cgAll.slice(-avgWindow); }
 
 /* ---------- выбор колонок графика: клик — одна партия, Ctrl+клик — несколько ---------- */
 var selCols = {};   // id партии → true
@@ -1698,7 +1729,7 @@ function cmpGames() { return windowGames().filter(function(g) { return cmpSet[g.
 function renderCmpBtn() {
   var b = $('cmpBtn'), h = $('cmpHint'), act = chartMode === 'activity';
   var mode = act ? aCmpMode : cmpMode, cnt = act ? aCmpCount() : cmpCount(), base = act ? actSelCount() : selCount();
-  var show = !hush && !showRecords && (base > 0 || mode);
+  var show = !hush.chart && !showRecords && (base > 0 || mode);
   b.style.display = show ? '' : 'none';
   h.style.display = mode === 'pick' ? '' : 'none';
   $('chartBox').classList.toggle('cmp-picking', act && !!mode);   // в активности подсказка заменяет «Период»
@@ -1844,7 +1875,7 @@ function renderStats() {
   // прирост = вторая половина окна против первой: 10 → 5 vs 5, 20 → 10 vs 10; при окне 5 не показываем
   // если партий пока мало — сравниваем по максимуму доступного (приписка покажет, сколько игр)
   var half = Math.min(avgWindow / 2, Math.floor(cgAll.length / 2));
-  var withTrend = !hush && avgWindow >= 10 && half >= 2 && !selCount();   // при выбранных колонках прирост не считаем
+  var withTrend = !hush.chart && avgWindow >= 10 && half >= 2 && !selCount();   // при выбранных колонках прирост не считаем
   function tr(fn) { return withTrend ? trend(fn, half) : null; }
   // без прироста строка остаётся пустой, чтобы высота блока не прыгала при переключении
   function th(diff, isPct, lowerIsBetter) {
@@ -1917,7 +1948,7 @@ function toggleSeries(key) {
 // клик по панели слева — выделить линию (повторный клик снимает), клик по легенде снизу — скрыть / показать
 document.addEventListener('click', function(e) {
   var t = e.target.closest && e.target.closest('.toggle[data-s]');
-  if (!t || hush) return;
+  if (!t || hush.chart) return;
   var k = t.getAttribute('data-s');
   if (t.closest('.legend')) {
     toggleSeries(k);
@@ -1984,7 +2015,7 @@ function streakTitle() {
 
 // заголовок блока: в показателях — партии за 2 недели, в активности — серия
 function renderTitle() {
-  if (hush) { $('chartTitle').textContent = 'Недавняя активность'; return; }
+  if (hush.chart) { $('chartTitle').textContent = 'Недавняя активность'; return; }
   if (chartMode === 'activity') $('chartTitle').innerHTML = streakTitle();
   else $('chartTitle').textContent = renderRecentCount();
 }
@@ -1997,7 +2028,7 @@ function renderChart() {
   $('chartBox').classList.toggle('cmp-on', !!cmpView);
   if (cmpView) { $('chart').innerHTML = cmpHtml(); return; }
   var list = chartGames, n = list.length;
-  if (hush) {
+  if (hush.chart) {
     var g0 = [];
     [100, 75, 50, 25, 0].forEach(function(p) {
       var y = 180 - p / 100 * 150;
@@ -2613,7 +2644,7 @@ $('cf').addEventListener('click', function(e) {
   e.stopPropagation();
   var t;
   if (e.target.closest('.f-btn')) {
-    if (hush) return;
+    if (hush.chart) return;
     var open = !$('cf').classList.contains('open');
     closeDrops();
     $('cf').classList.toggle('open', open);
@@ -2703,7 +2734,7 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasureT
 window.addEventListener('resize', function() { clearTimeout(window._tblT); window._tblT = setTimeout(remeasureTable, 200); });
 
 function renderGames() {
-  var ordered = hush ? [] : filterGames(games).slice(-TABLE_N).reverse();
+  var ordered = hush.table ? [] : filterGames(games).slice(-TABLE_N).reverse();
   var total = ordered.length;
   var pages = Math.max(1, Math.ceil(total / PER_PAGE));
   currentPage = Math.max(0, Math.min(pages - 1, currentPage));
@@ -2713,7 +2744,7 @@ function renderGames() {
   var tbody = $('gameRows');
   tbody.innerHTML = '';
   if (!total) tbody.innerHTML = '<tr class="no-rows"><td colspan="7">' +
-    (hush ? 'Ничего не найдено' : games.length ? 'Нет партий под выбранные фильтры' : 'Партий пока нет') + '</td></tr>';
+    (hush.table ? 'Ничего не найдено' : games.length ? 'Нет партий под выбранные фильтры' : 'Партий пока нет') + '</td></tr>';
 
   ordered.slice(start, end).forEach(function(g) {
     var R = RESULT[g.result];
@@ -2815,7 +2846,7 @@ function shiftPeriod(d) {
 
 /* ---------- легенда активности: клик выделяет результат (победы / поражения / ничьи), остальное притухает ---------- */
 var actRes = null;   // null — ничего не выделено; иначе {win: true, ...}
-function toggleRes(k) { if (!hush) setRes(k, true); }   // легенда: каждый клик добавляет / убирает
+function toggleRes(k) { if (!hush.chart) setRes(k, true); }   // легенда: каждый клик добавляет / убирает
 function setRes(k, add) {
   if (add) {
     actRes = actRes || {};
@@ -2858,7 +2889,7 @@ function activityBuckets() {
   var td = isoDay(gameToday());   // «сегодня» и «будущее» — по настоящей дате
   list.forEach(function(b) {
     var f = isoDay(b.from), t = isoDay(b.to);
-    b.games = hush ? [] : cgAll.filter(function(g) { return g.day >= f && g.day <= t; });
+    b.games = hush.chart ? [] : cgAll.filter(function(g) { return g.day >= f && g.day <= t; });
     b.today = td >= f && td <= t;
     b.future = f > td;
   });
@@ -3109,7 +3140,7 @@ function resShare(all) { return all.length ? byRes(all).length / all.length * 10
 function byRes(list) { return actRes ? list.filter(function(g) { return actRes[g.result]; }) : list; }
 
 function renderActivityStats() {
-  if (hush) {
+  if (hush.chart) {
     var none0 = '<span class="trend" style="visibility:hidden">▲</span>';
     $('actList').innerHTML = [['Партий', 'var(--yellow)'], ['Активн. дней', 'var(--c-debut)'], ['Точность', 'var(--c-acc)'], ['Винрейт', 'var(--green)']].map(function(r) {
       return '<div class="stat" style="--sc:' + r[1] + '">' + statLine(r[0], r[1], '—') + '<div class="stat-trend">' + none0 + '</div></div>';
@@ -3257,7 +3288,7 @@ function setRecords(on) {
 
 $('recordsBtn').addEventListener('click', function(e) {
   e.stopPropagation();
-  if (hush) return;
+  if (hush.chart) return;
   setRecords(!showRecords);
 });
 
@@ -3450,6 +3481,7 @@ function setMode(m) {
   $('chartBox').classList.remove('cmp-on');
   $('chartBox').classList.toggle('mode-activity', m === 'activity');
   $('activityBtn').textContent = m === 'activity' ? 'Показатели' : 'Активность';
+  if (typeof placeChartEye === 'function' && $('eyeChart')) placeChartEye();
   // режим «Рекорды» сохраняется при переключении показатели ⇄ активность
   renderTitle();
   hideTooltip();
@@ -3465,7 +3497,7 @@ $('activityBtn').addEventListener('click', function(e) {
 function renderPuzzleCard() {
   var P = window.PUZZLES;
   var head = '<div class="pz-head"><span>🧩 Задачи</span><span class="pz-go">›</span></div>';
-  if (hush) { $('pzCard').innerHTML = head + '<div class="hush-na">нет данных</div><div></div>'; startCarousel(0); return; }
+  if (hush.head) { $('pzCard').innerHTML = head + '<div class="hush-na">нет данных</div><div></div>'; startCarousel(0); return; }
   if (!P || P.rating === null) {
     $('pzCard').innerHTML = head + '<div class="pz-main"><span class="pz-rating">—</span></div><div class="pz-sub">запусти update.bat</div>';
     return;
@@ -3598,7 +3630,7 @@ function pzRow(name, list, cls) {
 
 function renderPuzzleDetail() {
   var P = window.PUZZLES;
-  if (hush) {
+  if (hush.head) {
     $('pzDetail').innerHTML = '<button class="pzd-close" aria-label="Закрыть">×</button>' +
       ['Режимы', '<span style="color:var(--green)">▲</span> Сильные темы', '<span style="color:var(--red)">▼</span> Слабые темы'].map(function(t) {
         return '<div class="pzd-col"><div class="pzd-title">' + t + '</div><div class="pzd-empty">нет данных</div></div>';
@@ -3716,7 +3748,7 @@ function renderOpeningCard() {
     $('opCard').innerHTML = head + '<div class="op-main">—</div><div class="op-sub">заполни progress/data/openings.js</div>';
     return;
   }
-  if (hush) { opN = 0; $('opCard').innerHTML = head + '<div class="hush-na">нет данных</div><div></div>'; startOpCarousel(); return; }
+  if (hush.head) { opN = 0; $('opCard').innerHTML = head + '<div class="hush-na">нет данных</div><div></div>'; startOpCarousel(); return; }
   var cur = O.current[0], st = opStats(cur);
   $('opCard').innerHTML = head +
     '<div class="op-main" title="Изучаю сейчас">' + opName(cur) + '</div>' +
@@ -3768,7 +3800,7 @@ function studyLinks(o) {
 
 function renderOpeningDetail() {
   var O = window.OPENINGS || {};
-  if (hush) {
+  if (hush.head) {
     $('opDetail').innerHTML = '<button class="pzd-close op-close" aria-label="Закрыть">×</button>' +
       '<div class="opd-col"><div class="pzd-title">Изучаю</div><div class="pzd-empty">нет данных</div></div>' +
       '<div class="opd-col"><div class="pzd-title">Следующие</div><div class="pzd-empty">нет данных</div>' +
@@ -4003,7 +4035,7 @@ function renderVerdictCard() {
   var good = V.filter(function(v) { return v.t === 'good'; });
   var tip = V.filter(function(v) { return v.t === 'tip'; });
   var head = '<div class="vd-head"><span>🎯 Итоги</span><span class="vd-go">‹</span></div>';
-  if (hush) { $('vdCard').innerHTML = head + '<div class="hush-na">нет данных</div><div></div>'; startVdCarousel(0); return; }
+  if (hush.head) { $('vdCard').innerHTML = head + '<div class="hush-na">нет данных</div><div></div>'; startVdCarousel(0); return; }
   if (!V.length) {
     $('vdCard').innerHTML = head + '<div class="vd-main">Пока мало данных</div><div class="vd-sub">сыграй несколько партий</div>';
     return;
@@ -4083,7 +4115,7 @@ function renderVerdictDetail() {
 function toggleVerdict(open) {
   var row = $('sideRow');
   if (open === undefined) open = !row.classList.contains('vd-open');
-  if (hush && open) return;   // в скрытом режиме итоги не открываются
+  if (hush.head && open) return;   // в скрытом режиме итоги не открываются
   if (open) {
     if (row.classList.contains('open')) togglePuzzleDetail(false);
     if (row.classList.contains('op-open')) toggleOpeningDetail(false);
@@ -4549,7 +4581,7 @@ function gsRender() {
 }
 var gsOpenKey = null;   // какой пункт с вариантами раскрыт
 function gsOpen() {
-  if (hush) { $('gsInput').blur(); return; }
+  if (hushAny()) { $('gsInput').blur(); return; }
   gsItems = gsIndex();
   gsOpenKey = null;
   $('gs').classList.add('open');
@@ -4597,7 +4629,7 @@ document.addEventListener('keydown', function(e) {
   var typing = /INPUT|TEXTAREA/.test(document.activeElement.tagName);
   if ((e.key === 'k' || e.key === 'K' || e.key === 'л' || e.key === 'Л') && (e.ctrlKey || e.metaKey) || (e.key === '/' && !typing)) {
     e.preventDefault();
-    if (hush) return;
+    if (hushAny()) return;
     $('gsInput').focus();
     $('gsInput').select();
   }
@@ -4605,16 +4637,23 @@ document.addEventListener('keydown', function(e) {
 
 /* ---------- скрытый режим: клик по аватарке → глаз; глаз закрыт — данные спрятаны ---------- */
 function applyHush() {
-  document.body.classList.toggle('hush', hush);
-  $('eyeBtn').classList.toggle('shut', hush);
-  $('eyeBtn').setAttribute('aria-label', hush ? 'Показать данные' : 'Скрыть данные');
-  $('eyeBtn').title = hush ? 'Показать данные' : 'Скрыть данные';
+  ['head', 'chart', 'table'].forEach(function(k) { document.body.classList.toggle('hush-' + k, hush[k]); });
+  document.body.classList.toggle('hush-any', hushAny());
+  $('eyeBtn').classList.toggle('shut', hushAll());
+  $('eyeBtn').title = hushAll() ? 'Показать всё' : 'Скрыть всё';
+  $('eyeBtn').setAttribute('aria-label', $('eyeBtn').title);
+  document.querySelectorAll('.sect-eye').forEach(function(b) {
+    var on = hush[b.getAttribute('data-sec')];
+    b.classList.toggle('shut', on);
+    b.title = (on ? 'Показать ' : 'Скрыть ') + SECT_NAME[b.getAttribute('data-sec')];
+    b.setAttribute('aria-label', b.title);
+  });
   var inp = $('gsInput');
-  inp.disabled = hush;
-  inp.placeholder = hush ? 'Поиск недоступен' : 'Поиск по всему…';
-  if (hush) { gsClose(); inp.value = ''; }
-  gsCloseSide();
-  if (hush) {
+  inp.disabled = hushAny();
+  inp.placeholder = hushAny() ? 'Поиск недоступен' : 'Поиск по всему…';
+  if (hushAny()) { gsClose(); inp.value = ''; }
+  if (hush.head) gsCloseSide();
+  if (hush.chart) {
     if (showRecords) setRecords(false);
     $('cf').classList.remove('open');
     selCols = {}; cmpMode = null; cmpSet = {};
@@ -4622,8 +4661,8 @@ function applyHush() {
     pinnedSeries = null; markPinned();
     if (actRes) { actRes = null; document.querySelectorAll('.res-toggle').forEach(function(el) { el.classList.remove('pinned', 'dim'); }); }
   }
-  $('tableTitle').textContent = hush ? 'Последние партии' : 'Последние 30 партий';
-  if (hush) closeDrops();
+  $('tableTitle').textContent = hush.table ? 'Последние партии' : 'Последние 30 партий';
+  if (hush.table) closeDrops();
   renderGames();
   renderTitle();
   renderWindow();
@@ -4633,6 +4672,26 @@ function applyHush() {
   renderOpeningCard();
   renderVerdictCard();
 }
+var SECT_NAME = {head: 'шапку', chart: 'график', table: 'партии'};
+function saveHush() { try { localStorage.setItem('hush', JSON.stringify(hush)); } catch (err) {} }
+var EYE_SVG = $('eyeBtn').innerHTML;
+document.querySelectorAll('.sect-eye').forEach(function(b) {
+  b.innerHTML = EYE_SVG;
+  b.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var k = b.getAttribute('data-sec');
+    b.classList.toggle('shut', !hush[k]);
+    setTimeout(function() { hush[k] = !hush[k]; saveHush(); applyHush(); }, 250);
+  });
+});
+// глаз графика стоит слева от «Активность / Показатели» — ширина кнопки меняется, пересчитываем
+function placeChartEye() {
+  var b = $('activityBtn'), e = $('eyeChart');
+  if (getComputedStyle(b).position !== 'absolute') { e.style.right = ''; return; }
+  e.style.right = (b.parentNode.clientWidth - b.offsetLeft + 8) + 'px';
+}
+window.addEventListener('resize', placeChartEye);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeChartEye);
 function setEyeOut(on) { $('avatar').parentNode.classList.toggle('eye-out', on); }
 $('avatar').addEventListener('click', function(e) {
   e.stopPropagation();
@@ -4641,10 +4700,11 @@ $('avatar').addEventListener('click', function(e) {
 $('eyeBtn').addEventListener('click', function(e) {
   e.stopPropagation();
   var btn = this;
-  btn.classList.toggle('shut', !hush);   // глаз закрывается / открывается
+  var all = !hushAll();                   // что-то видно — скрыть всё; всё скрыто — показать всё
+  btn.classList.toggle('shut', all);     // глаз закрывается / открывается
   setTimeout(function() {
-    hush = !hush;
-    try { localStorage.setItem('hush', hush ? '1' : ''); } catch (err) {}
+    hush = {head: all, chart: all, table: all};
+    saveHush();
     setEyeOut(false);                    // и уезжает обратно за аватарку
     applyHush();
   }, 350);
@@ -4665,7 +4725,8 @@ renderMetricInputs();
 renderFilterBar();
 renderGames();
 if (chartMode === 'activity') setMode('activity');
-if (hush) applyHush();
+applyHush();
+placeChartEye();
 </script>
 
 </body>

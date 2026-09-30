@@ -514,6 +514,8 @@
   .md-n { font-size: 10px; color: var(--fg-mute); margin-left: 5px; font-weight: 500; }
   .md-chip.on .md-n { color: inherit; opacity: 0.75; }
   .md-zero { opacity: 0.45; }
+  .md-disabled { opacity: 0.25; pointer-events: none; }
+  .md-off-note { text-transform: none; letter-spacing: 0; }
   .md-zero.on { opacity: 1; }
   .f-menu-mode { width: 380px; padding: 10px; }
   .md-lvl { flex-wrap: nowrap; }
@@ -1982,10 +1984,12 @@ function modeLabel(grp, k) {
 // кнопки-переключатели; число — сколько партий с таким значением
 function modeChipsHtml(modes) {
   modes = modes || {};
+  var humansOnly = !!(modes.opp && modes.opp.human && !modes.opp.ai);
   return MODE_GROUPS.map(function(G) {
     var cnt = {};
     games.forEach(function(g) { var v = modeVal(g, G.g); if (v) cnt[v] = (cnt[v] || 0) + 1; });
-    return '<div class="md-sec">' + G.title + '</div><div class="md-chips' + (G.g === 'lvl' ? ' md-lvl' : '') + '">' + G.items.map(function(it) {
+    var off = G.g === 'lvl' && humansOnly;
+    return '<div class="md-sec">' + G.title + (off ? ' <span class="md-off-note">— только для игр с компьютером</span>' : '') + '</div><div class="md-chips' + (G.g === 'lvl' ? ' md-lvl' : '') + (off ? ' md-disabled' : '') + '">' + G.items.map(function(it) {
       var on = !!(modes[G.g] && modes[G.g][it.k]), n = cnt[it.k] || 0;
       return '<button class="f-chip md-chip' + (on ? ' on' : '') + (n ? '' : ' md-zero') + '" data-mg="' + G.g + '" data-mk="' + it.k + '"' +
         ' title="Партий: ' + n + '">' + it.label + (n ? '<span class="md-n">' + n + '</span>' : '') + '</button>';
@@ -1994,9 +1998,12 @@ function modeChipsHtml(modes) {
 }
 function toggleMode(f, grp, k) {
   f.modes = f.modes || {};
+  var hOnly = f.modes.opp && f.modes.opp.human && !f.modes.opp.ai;
+  if (grp === 'lvl' && hOnly) return;   // уровни неактивны, когда выбраны только люди
   f.modes[grp] = f.modes[grp] || {};
   if (f.modes[grp][k]) delete f.modes[grp][k]; else f.modes[grp][k] = true;
-  if (grp === 'lvl' && f.modes.lvl[k]) { f.modes.opp = f.modes.opp || {}; }   // уровень подразумевает компьютер — отдельно не требуется
+  // выбрали только людей — выбранные уровни Stockfish снимаются
+  if (f.modes.opp && f.modes.opp.human && !f.modes.opp.ai) f.modes.lvl = {};
 }
 
 function filterGames(list) {
@@ -2318,7 +2325,7 @@ $('cf').addEventListener('click', function(e) {
     closeDrops();
     $('cf').classList.toggle('open', open);
     $('cf').querySelector('.f-btn').setAttribute('aria-expanded', String(open));
-    if (open) { renderCfMenu(); renderCfInputs(); setCfMore(hasKeys(cfilt.ranges)); $('cf').querySelector('.f-search').focus(); }
+    if (open) { renderCfMenu(); renderCfInputs(); setCfMore(hasKeys(cfilt.ranges)); }
     return;
   }
   if ((t = e.target.closest('.md-chip'))) { toggleMode(cfilt, t.getAttribute('data-mg'), t.getAttribute('data-mk')); chartFilterChanged(); return; }

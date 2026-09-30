@@ -1074,14 +1074,19 @@
     padding: 8px 20px 8px 42px;
     background: rgba(0,0,0,0.18);
     display: flex;
-    gap: 20px;
+    gap: 4px 14px;
     align-items: baseline;
     flex-wrap: wrap;
   }
-  .detail-item { font-size: 12px; display: flex; gap: 4px; align-items: baseline; }
+  .detail-item { font-size: 12px; display: flex; gap: 3px; align-items: baseline; }
   .detail-label { color: var(--fg-dim); }
   .detail-value { font-weight: 600; font-size: 13px; }
-  .detail-link { margin-left: auto; font-size: 12px; color: var(--c-debut); text-decoration: none; }
+  .detail-d { font-size: 10.5px; color: var(--fg-dim); }
+  .detail-d.up { color: #4ade80; }
+  .detail-d.down { color: #f87171; }
+  .detail-links { flex-basis: 100%; justify-content: flex-end; display: flex; gap: 12px; align-items: baseline; white-space: nowrap; }
+  .detail-link { font-size: 12px; color: var(--c-debut); text-decoration: none; }
+  button.detail-link { background: none; border: 0; padding: 0; font: inherit; font-size: 12px; cursor: pointer; }
   .detail-link:hover { text-decoration: underline; }
 
   .pager { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; }
@@ -2546,9 +2551,43 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') $('cf
 /* ---------- table (newest first) ---------- */
 var currentPage = 0;
 
-function detailItem(label, value, color) {
+function detailItem(label, value, color, delta) {
   return '<div class="detail-item"><div class="detail-label">' + label + '</div>' +
-         '<div class="detail-value"' + (color ? ' style="color:' + color + '"' : '') + '>' + value + '</div></div>';
+         '<div class="detail-value"' + (color ? ' style="color:' + color + '"' : '') + '>' + value + '</div>' + (delta || '') + '</div>';
+}
+// «(+9)» — насколько партия лучше / хуже твоего среднего по остальным партиям
+function detailDelta(g, key, pct, lower) {
+  if (typeof g[key] !== 'number') return '';
+  var others = games.filter(function(x) { return x !== g; }), m = avg(others, key);
+  if (m === null) return '';
+  var d = g[key] - m, r = Math.round(Math.abs(d) * (pct ? 1 : 10)) / (pct ? 1 : 10);
+  var mTxt = (Math.round(m * 10) / 10) + (pct ? '%' : '');
+  if (!r) return '<span class="detail-d" title="Как в среднем (' + mTxt + ')">(=)</span>';
+  var good = lower ? d < 0 : d > 0;
+  return '<span class="detail-d ' + (good ? 'up' : 'down') + '" title="Твоё среднее по остальным партиям: ' + mTxt + '">(' +
+    (d > 0 ? '+' : '−') + r + ')</span>';
+}
+
+// 2. «Показать на графике»: выделить колонку партии (расширить окно / снять фильтр графика, если нужно)
+function chartReach(g) {
+  var i = games.indexOf(g);
+  return i >= 0 && games.length - i <= WINDOWS[WINDOWS.length - 1];
+}
+function showOnChart(g) {
+  if (cgAll.indexOf(g) < 0) {   // партию скрывает фильтр графика — снимаем его
+    cfilt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}};
+    renderCfInputs();
+    chartFilterChanged();
+  }
+  var fromEnd = cgAll.length - cgAll.indexOf(g);
+  if (fromEnd > avgWindow) {
+    avgWindow = WINDOWS.filter(function(w) { return w >= fromEnd; })[0] || WINDOWS[WINDOWS.length - 1];
+    try { localStorage.setItem('avgWindow', String(avgWindow)); } catch (e) {}
+  }
+  gsChart('metrics', false);
+  selCols = {}; cmpMode = null; cmpSet = {};
+  selCols[g.id] = true;
+  renderWindow();
 }
 
 function irCell(ir) {
@@ -2612,17 +2651,22 @@ function renderGames() {
     detail.className = 'game-detail';
     detail.innerHTML = '<td colspan="7"><div class="detail-inner">' +
       detailItem('Ходы', g.moves) +
-      detailItem('Точность', g.acc + '%') +
-      detailItem('Дебют', g.debut + '%', '#60a5fa') +
-      detailItem('Миттельшпиль', g.mid + '%', '#f59e0b') +
-      detailItem('Эндшпиль', hasEnd(g) ? g.end + '%' : '—') +
-      detailItem('Неточности', g.inacc, 'var(--yellow)') +
-      detailItem('Ошибки', g.mistakes, '#fb923c') +
-      detailItem('Зевки', g.blunders, 'var(--red)') +
+      detailItem('Точность', g.acc + '%', null, detailDelta(g, 'acc', true)) +
+      detailItem('Дебют', g.debut + '%', '#60a5fa', detailDelta(g, 'debut', true)) +
+      detailItem('Миттельшпиль', g.mid + '%', '#f59e0b', detailDelta(g, 'mid', true)) +
+      detailItem('Эндшпиль', hasEnd(g) ? g.end + '%' : '—', null, hasEnd(g) ? detailDelta(g, 'end', true) : '') +
+      detailItem('Неточности', g.inacc, 'var(--yellow)', detailDelta(g, 'inacc', false, true)) +
+      detailItem('Ошибки', g.mistakes, '#fb923c', detailDelta(g, 'mistakes', false, true)) +
+      detailItem('Зевки', g.blunders, 'var(--red)', detailDelta(g, 'blunders', false, true)) +
+      '<span class="detail-links">' +
+      (chartReach(g) ? '<button class="detail-link detail-chart" type="button" title="Переключить на график и выделить колонку этой партии">Показать на графике</button>' : '') +
       (g.id ? '<a class="detail-link" href="https://lichess.org/' + g.id + '" target="_blank" rel="noopener">Партия на Lichess ↗</a>' : '') +
+      '</span>' +
       '</div></td>';
 
     function toggle() { row.classList.toggle('open'); }
+    var chBtn = detail.querySelector('.detail-chart');
+    if (chBtn) chBtn.addEventListener('click', function(e) { e.stopPropagation(); showOnChart(g); });
     row.addEventListener('click', toggle);
     row.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }

@@ -473,11 +473,10 @@
   .bl-info.on { color: #11131a; background: #f87171; border-color: #f87171; }
   .stat-blunders .stat-line { padding-right: 26px; }
   .bl-legend { display: none; }
-  .bl-on .bl-legend { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 11px; font-size: 11px; color: var(--fg-dim); }
-  .bl-on .legend-wr { visibility: hidden; }
+  .bl-on .bl-legend { display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 8px; position: relative; top: -24px; }
   .bl-on .legend .legend-item.metrics-only { display: none; }
-  .bl-leg-h { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #f87171; }
-  .bl-leg { display: inline-flex; align-items: center; gap: 5px; cursor: help; }
+  .bl-leg { display: inline-flex; align-items: center; gap: 6px; cursor: help; white-space: nowrap; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--c);
+    padding: 1px 9px; line-height: 16px; border-radius: 999px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); }
   .bl-leg i { width: 10px; height: 10px; border-radius: 2px; }
   .bl-leg b { color: var(--fg); }
   .bl-leg-x { background: none; border: 1px solid var(--border); color: var(--fg-mute); border-radius: 6px; padding: 1px 7px; cursor: pointer; font-size: 11px; }
@@ -2662,6 +2661,7 @@ document.addEventListener('pointermove', function(e) { if (e.target.closest && e
 document.addEventListener('pointerout', function(e) {
   if (e.target.closest && e.target.closest('.mr-graph svg') && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.mr-graph svg'))) mrLeave(e);
 });
+var BL_SHORT = {mateAllowed: 'Мат соперника', hang: 'Под боем', tactic: 'Тактика', missedWin: 'Упущено', mateMissed: 'Пропущен мат', other: 'Позиционная'};   // в легенде коротко, полностью — в подсказке
 var BL_ORDER = ['mateAllowed', 'hang', 'tactic', 'missedWin', 'mateMissed', 'other'];
 function renderBlLegend(list) {
   var el = $('blLegend');
@@ -2669,8 +2669,8 @@ function renderBlLegend(list) {
   if (!blMode) { el.innerHTML = ''; return; }
   var cnt = {}, total = 0;
   list.forEach(function(g) { (g.bl || []).forEach(function(b) { cnt[b.t] = (cnt[b.t] || 0) + 1; total++; }); });
-  el.innerHTML = '<span class="bl-leg-h">Зевки по типам · ' + total + '</span>' + BL_ORDER.filter(function(t) { return cnt[t]; }).map(function(t) {
-    return '<span class="bl-leg" title="' + esc(BL_TYPES[t].tip) + '"><i style="background:' + BL_TYPES[t].color + '"></i>' + BL_TYPES[t].ru + ' <b>' + cnt[t] + '</b></span>';
+  el.innerHTML = BL_ORDER.filter(function(t) { return cnt[t]; }).map(function(t) {
+    return '<span class="bl-leg" style="--c:' + BL_TYPES[t].color + '" title="' + esc(BL_TYPES[t].ru + ': ' + BL_TYPES[t].tip) + ' · всего зевков в окне: ' + total + '"><i style="background:' + BL_TYPES[t].color + '"></i>' + BL_SHORT[t] + ' <b>' + cnt[t] + '</b></span>';
   }).join('') + '<button class="bl-leg-x" type="button" title="Вернуть обычный график">✕</button>';
 }
 document.addEventListener('click', function(e) {

@@ -429,9 +429,11 @@
     font: 600 11px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: #34d399;
     background: transparent; border: 1px solid #34d399; cursor: pointer; transition: background 0.15s; }
   .cmp-btn:hover { background: rgba(52,211,153,0.1); }
+  .cmp-x { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin: 0 -6px 0 10px; border-radius: 4px; font-size: 11px; letter-spacing: 0; color: #6ee7b7; background: rgba(52,211,153,0.12); vertical-align: 1px; }
+  .cmp-x:hover { color: #fff; background: rgba(239,68,68,0.5); }
   .cmp-btn.on { color: #34d399; border-color: #34d399; background: rgba(52,211,153,0.12); }
   .records-on .cmp-btn, .mode-activity .cmp-btn, .records-on .cmp-hint, .mode-activity .cmp-hint { display: none !important; }
-  .cmp-hint { position: absolute; top: 18px; left: calc(200px + (100% - 200px) / 2); transform: translateX(-50%); z-index: 2;
+  .cmp-hint { position: absolute; top: 19px; left: auto; right: 150px; transform: none; z-index: 2;
     font-size: 12px; color: #6ee7b7; white-space: nowrap; }
   .cmp-hint b { color: #fff; }
   .cmp-view { padding: 0 18px 0 28px; }
@@ -1620,13 +1622,14 @@ function renderCmpBtn() {
   h.style.display = cmpMode === 'pick' ? '' : 'none';
   if (!show) return;
   if (!cmpMode) b.textContent = 'Сравнить';
-  else if (cmpMode === 'pick') b.textContent = cmpCount() ? 'Показать · ' + cmpCount() : 'Отмена';
+  else if (cmpMode === 'pick') b.innerHTML = cmpCount() ? 'Показать · ' + cmpCount() + '<span class="cmp-x" title="Отменить сравнение (Esc)">✕</span>' : 'Отмена';
   else b.textContent = 'К выбору';
   b.classList.toggle('on', !!cmpMode);
   h.innerHTML = cmpCount() ? 'Отмечено для сравнения: <b>' + cmpCount() + '</b> — нажми «Показать»' : 'Выбери партии для сравнения — клик по колонкам';
 }
 $('cmpBtn').addEventListener('click', function(e) {
   e.stopPropagation();
+  if (e.target.closest('.cmp-x')) { cmpMode = null; cmpSet = {}; renderWindow(); return; }   // крестик — отмена сравнения
   if (!cmpMode) { cmpMode = 'pick'; cmpSet = {}; }
   else if (cmpMode === 'pick') cmpMode = cmpCount() ? 'view' : null;
   else cmpMode = 'pick';

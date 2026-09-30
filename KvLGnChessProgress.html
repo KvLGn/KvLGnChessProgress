@@ -2091,6 +2091,8 @@ function renderChart() {
 
   var X0 = 40, W = 550, TOP = 30, BOT = 180, H = BOT - TOP;
   var colW = W / n;
+  // режим дня с парой партий: колонки обычной ширины (как при 10), по центру графика
+  if (dayView && n < 10) { colW = W / 10; X0 = 40 + (W - colW * n) / 2; }
   var badgeW = Math.min(38, colW - 8);
   var narrow = colW < 24, tiny = colW < 14;   // 20+ колонок (режим дня) — значки мельче / только цвет
   var maxB = Math.max.apply(null, list.map(function(g) { return g.blunders; }));

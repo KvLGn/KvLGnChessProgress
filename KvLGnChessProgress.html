@@ -3874,6 +3874,68 @@ function gsIndex() {
     chartFilterChanged(); filtersChanged();
   });
 
+  /* --- режимы партии (как на Lichess) — только те, что реально встречаются --- */
+  MODE_GROUPS.forEach(function(G) {
+    G.items.forEach(function(it) {
+      var n = games.filter(function(g) { return modeVal(g, G.g) === it.k; }).length;
+      if (!n) return;
+      var title = G.g === 'lvl' ? 'Против Stockfish ' + it.k : G.g === 'opp' ? (it.k === 'ai' ? 'Против компьютера' : 'Против людей') : it.label.replace(/^[^А-Яа-я]+/, '');
+      add('Режим партии', G.g === 'lvl' || it.k === 'ai' ? '🤖' : it.k === 'human' ? '👤' : '⏱', title,
+        n + ' ' + plural(n, 'партия', 'партии', 'партий') + ' · фильтр графика и таблицы',
+        G.title + ' режим ' + it.label + ' ' + it.k, function() {
+          cfilt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}};
+          filt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}};
+          toggleMode(cfilt, G.g, it.k); toggleMode(filt, G.g, it.k);
+          renderCfInputs(); renderMetricInputs();
+          chartFilterChanged(); filtersChanged();
+          gsChart(chartMode, false);
+        });
+    });
+  });
+
+  /* --- активность: прошлые периоды, конкретные дни, результат --- */
+  [['week', 'Прошлая неделя'], ['2weeks', 'Прошлые 2 недели'], ['month', 'Прошлый месяц'], ['3months', 'Прошлые 3 месяца']].forEach(function(p) {
+    add('Активность', '⏮', p[1], 'график активности на период назад', 'прошлый прошлая период назад ' + p[1], function() {
+      period = p[0]; periodOffset = -1; selDays = {};
+      try { localStorage.setItem('activityPeriod', period); } catch (e) {}
+      gsChart('activity', false);
+      renderActivity();
+    });
+  });
+  [['lose', 'Показать поражения по дням'], ['win', 'Показать победы по дням']].forEach(function(p) {
+    add('Активность', p[0] === 'win' ? '🟩' : '🟥', p[1], 'выделить на графике активности', 'активность выделить ' + p[1], function() {
+      gsChart('activity', false);
+      actRes = null; setRes(p[0], false);
+    });
+  });
+  var dayMap = {};
+  games.forEach(function(g) { (dayMap[g.day] = dayMap[g.day] || []).push(g); });
+  Object.keys(dayMap).sort().reverse().forEach(function(d) {
+    var gl = dayMap[d], dd = fromIso(d), w = gl.filter(function(g) { return g.result === 'win'; }).length;
+    add('Дни', '📅', DOW[dd.getDay()] + ' ' + ddmm(dd) + ' · ' + gl.length + ' ' + plural(gl.length, 'партия', 'партии', 'партий'),
+      w + 'W / ' + (gl.length - w) + 'L · точность ' + Math.round(avg(gl, 'acc')) + '% · открыть день на графике активности',
+      ddmm(dd) + ' ' + d + ' день ' + DOW[dd.getDay()], function() {
+        period = 'week';
+        periodOffset = Math.round((mondayOf(dd) - mondayOf(gameToday())) / (7 * 864e5));
+        gsChart('activity', false);
+        selDays = {}; renderActivity();
+        var idx = (dd.getDay() + 6) % 7;
+        selDays[idx] = true; renderActivity();
+      });
+  });
+
+  /* --- тренировки задач: дебютные и по темам (из истории задач) --- */
+  if (P2 && P2.attempts) {
+    var trs = {};
+    P2.attempts.forEach(function(a) { if (a.mode !== 'mix') (trs[pzKey(a)] = trs[pzKey(a)] || {a: a, n: 0, w: 0, last: a.date}).n++; });
+    P2.attempts.forEach(function(a) { var t = trs[pzKey(a)]; if (t) { if (a.win) t.w++; t.last = a.date; } });
+    Object.keys(trs).forEach(function(k) {
+      var t = trs[k], name = pzLabel(t.a, P2.themeNames || {});
+      add('Задачи', '🧩', 'Тренировка: ' + name, t.n + ' задач · ' + t.w + '✓ ' + (t.n - t.w) + '✗ · последний раз ' + t.last,
+        'задачи тренировка ' + name + ' ' + (t.a.tr || ''), function() { gsCloseSide(); togglePuzzleDetail(true); gsFlash($('sideRow')); });
+    });
+  }
+
   /* --- действия на Lichess --- */
   function ext(title, sub, keys, url) { add('Lichess', '↗', title, sub, keys, function() { window.open(url, '_blank'); }); }
   if (PROFILE.goal) ext('Сыграть с ' + PROFILE.goal.engine, 'откроется окно игры с компьютером — выбери уровень ' + PROFILE.goal.engine.replace(/\D+/g, '') + ' и ' + (PROFILE.goal.color === 'white' ? 'белые' : 'чёрные'), 'играть сыграть stockfish бот компьютер', 'https://lichess.org/#ai');

@@ -940,9 +940,14 @@
   }
   .f-num::-webkit-outer-spin-button, .f-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .f-num:focus { border-color: #818cf8; }
-  .f-count { font-size: 12px; color: var(--fg-mute); margin-left: auto; }
-  .f-reset { display: none; }
-  .filters.any .f-reset { display: inline-block; }
+  /* сводка справа от фильтров таблицы */
+  .f-summary { margin-left: auto; display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 10px; white-space: nowrap; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); }
+  .f-cond { display: inline-flex; align-items: center; font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+  .f-count { font-size: 12px; color: var(--fg-mute); white-space: nowrap; padding-left: 10px; border-left: 1px solid var(--border); }
+  .f-count b { color: var(--fg); }
+  .f-reset { font: 600 12px Inter, sans-serif; color: #818cf8; background: rgba(129,140,248,0.1); border: 1px solid rgba(129,140,248,0.35); border-radius: 6px; padding: 4px 10px; cursor: pointer; white-space: nowrap; }
+  .f-reset:hover { background: rgba(129,140,248,0.2); }
+  .f-reset:disabled { color: var(--fg-mute); background: none; border-color: var(--border); cursor: default; opacity: 0.6; }
   .no-rows td { text-align: center; color: var(--fg-mute); padding: 24px; cursor: default; }
 
   /* ---------- Table ---------- */
@@ -1266,8 +1271,12 @@
         <div class="f-foot"><button class="f-link" data-act="clear">Сбросить показатели</button></div>
       </div>
     </div>
-    <span class="f-count" id="fCount"></span>
-    <button class="f-link f-reset" id="fReset">Сбросить всё</button>
+    <!-- справа: условий, найдено, сброс -->
+    <div class="f-summary">
+      <span class="f-cond" id="fCond"></span>
+      <span class="f-count" id="fCount"></span>
+      <button class="f-reset" id="fReset" title="Сбросить все фильтры таблицы">Сброс</button>
+    </div>
   </div>
   <div class="table-wrap">
     <table>
@@ -2186,7 +2195,12 @@ function renderFilterButtons() {
   var any = mc > 0 || hasKeys(filt.results) || hasKeys(filt.colors) || names.length > 0 || mk > 0;
   $('filters').classList.toggle('any', any);
   var shown = filterGames(games).length;
-  $('fCount').textContent = any ? 'Найдено ' + shown + ' из ' + games.length : '';
+  var cond = Object.keys(filt.results).length + Object.keys(filt.colors).length + names.length + mk + mc;
+  $('fCond').innerHTML = cond ? '<span class="cf-cnt">' + cond + '</span>' + plural(cond, 'фильтр', 'фильтра', 'фильтров') : 'Без фильтров';
+  var inTable = Math.min(shown, TABLE_N);
+  $('fCount').innerHTML = '<b>' + shown + '</b> из ' + games.length;
+  $('fCount').title = 'Найдено партий: ' + shown + ' из ' + games.length + (shown > TABLE_N ? ' (в таблице — последние ' + inTable + ')' : '');
+  $('fReset').disabled = !any;
 }
 
 function renderFilterBar() {

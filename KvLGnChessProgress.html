@@ -1692,7 +1692,11 @@ function renderSummary() {
   };
   eloView = buildEloView();
   renderWrBox();
-  $('footer').textContent = 'KvLGn Chess Progress | Дата начала: ' + PROFILE.start + ' | ' + PROFILE.stage +
+  renderFooter();
+}
+// в скрытом режиме подвал — только название (без даты начала, этапа и времени обновления)
+function renderFooter() {
+  $('footer').textContent = hush.mode ? 'KvLGn Chess Progress' : 'KvLGn Chess Progress | Дата начала: ' + PROFILE.start + ' | ' + PROFILE.stage +
     (window.GAMES_UPDATED ? ' | Обновлено: ' + window.GAMES_UPDATED : '');
 }
 
@@ -4672,6 +4676,7 @@ function applyHush() {
   ['head', 'chart', 'table'].forEach(function(k) { document.body.classList.toggle('hush-' + k, hush[k]); });
   document.body.classList.toggle('hush-all', hushAll());
   $('eyeBtn').classList.toggle('shut', hush.mode);
+  renderFooter();
   $('avatar').parentNode.classList.toggle('can-all', !hush.mode && hushAny());
   $('eyeBtn').title = hush.mode ? 'Выйти из скрытого режима' : 'Скрытый режим';
   $('eyeBtn').setAttribute('aria-label', $('eyeBtn').title);

@@ -749,6 +749,8 @@
   .stat.toggle.pinned, #statsBlunders.pinned { background: linear-gradient(90deg, color-mix(in srgb, var(--sc, #f87171) 16%, transparent), transparent 85%); }
   .res-toggle { cursor: pointer; user-select: none; transition: opacity 0.15s; }
   .res-toggle.dim { opacity: 0.35; }
+  #chart .seg { cursor: pointer; }
+  #chart .seg:hover { fill: rgba(255,255,255,0.08); }
   .legend-item.pinned { border-color: currentColor; background: color-mix(in srgb, currentColor 12%, transparent); }
   .toggle { user-select: none; }
   .stat.off::before { opacity: 0.25; box-shadow: none; }
@@ -1941,6 +1943,10 @@ function bindTooltip() {
         selectColumn(chartGames[+el.getAttribute('data-i')], e.ctrlKey || e.metaKey);
         return;
       }
+      if (el.hasAttribute('data-res')) {   // график активности: клик по победам / поражениям в столбике
+        setRes(el.getAttribute('data-res'), e.ctrlKey || e.metaKey);
+        return;
+      }
       if (el.hasAttribute('data-b')) {   // график активности: выбор дней
         selectBucket(+el.getAttribute('data-b'), e.ctrlKey || e.metaKey);
         return;
@@ -2520,10 +2526,15 @@ function shiftPeriod(d) {
 
 /* ---------- легенда активности: клик выделяет результат (победы / поражения / ничьи), остальное притухает ---------- */
 var actRes = null;   // null — ничего не выделено; иначе {win: true, ...}
-function toggleRes(k) {
-  actRes = actRes || {};
-  if (actRes[k]) delete actRes[k]; else actRes[k] = true;
-  if (!hasKeys(actRes)) actRes = null;
+function toggleRes(k) { setRes(k, true); }   // легенда: каждый клик добавляет / убирает
+function setRes(k, add) {
+  if (add) {
+    actRes = actRes || {};
+    if (actRes[k]) delete actRes[k]; else actRes[k] = true;
+  } else {
+    actRes = actRes && actRes[k] && Object.keys(actRes).length === 1 ? null : (function() { var o = {}; o[k] = true; return o; })();
+  }
+  if (actRes && !hasKeys(actRes)) actRes = null;
   document.querySelectorAll('.res-toggle').forEach(function(el) {
     var on = !!(actRes && actRes[el.getAttribute('data-res')]);
     el.classList.toggle('pinned', on);
@@ -2603,6 +2614,7 @@ function renderActivity() {
   }
   // столбики: победы снизу, затем ничьи, поражения сверху
   var bw = Math.min(colW * 0.62, 34);
+  var segs = [];   // части столбиков — кликабельны поверх областей дней
   list.forEach(function(b, i) {
     var cnt = {win: 0, draw: 0, lose: 0};
     b.games.forEach(function(g) { cnt[g.result]++; });
@@ -2613,6 +2625,7 @@ function renderActivity() {
       var h = cnt[p[0]] / yMax * H;
       s.push('<rect x="' + r2(cx(i) - bw / 2) + '" y="' + r2(base - h + gap / 2) + '" width="' + r2(bw) + '" height="' + r2(Math.max(h - gap, 1)) + '" rx="' + (dense ? 1.5 : 4) + '" fill="url(#gBar-' + p[0] + ')" stroke="' + p[1] + '" stroke-opacity="0.55" stroke-width="0.8"' +
         (actRes && !actRes[p[0]] ? ' opacity="0.15"' : '') + '/>');
+      segs.push({i: i, res: p[0], x: r2(cx(i) - bw / 2), y: r2(base - h), w: r2(bw), h: r2(h)});
       base -= h;
     });
     if (b.games.length) {
@@ -2637,6 +2650,9 @@ function renderActivity() {
   // области наведения
   list.forEach(function(b, i) {
     s.push('<rect class="hit" data-b="' + i + '" x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="200" fill="rgba(0,0,0,0)"/>');
+  });
+  segs.forEach(function(g) {
+    s.push('<rect class="hit seg" data-b="' + g.i + '" data-res="' + g.res + '" x="' + g.x + '" y="' + g.y + '" width="' + g.w + '" height="' + g.h + '" fill="rgba(0,0,0,0)"/>');
   });
 
   var defs = '<defs>' +

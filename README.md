@@ -22,7 +22,7 @@ progress/
 │   ├── games.js            партии + рейтинговые партии    ← создаёт update.bat, руками не править
 │   ├── puzzles.js          задачи, темы, история рейтинга ← создаёт update.bat, руками не править
 │   └── openings.js         изучаемые дебюты               ← правится ВРУЧНУЮ
-├── assets/                 avatar.jpg, lichess.png, chesstempo.png/.ico, favicon.png/.svg
+├── assets/                 avatar.jpg, lichess.png, chesstempo.png/.ico, favicon.png (вкладка), apple-touch-icon.png (экран «Домой» iPhone)
 ├── scripts/
 │   ├── update.mjs          скрипт обновления (Node.js)
 │   ├── package.json        зависимость: chess.js (определение дебютов задач)

@@ -437,7 +437,9 @@
   .cmp-hint { position: absolute; top: 7px; height: 39px; display: flex; align-items: center; left: calc(200px + (100% - 200px) / 2 + 60px); transform: translateX(-50%); z-index: 2;
     font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
   .cmp-hint b { color: var(--fg); margin: 0 3px; }
-  .cmp-view { padding: 0 18px 0 28px; }
+  .cmp-view { padding: 12px 18px 14px 28px; }
+  /* экран сравнения: без легенды снизу */
+  .cmp-on .legend .legend-item.metrics-only { visibility: hidden; }
   .cmp-head { display: grid; grid-template-columns: 1fr 40px 1fr; align-items: stretch; gap: 8px; margin-bottom: 8px; }
   .cmp-side { min-width: 0; padding: 7px 12px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-top: 2px solid; }
   .cmp-side.a { border-top-color: #e4e4e7; } .cmp-side.b { border-top-color: #34d399; }
@@ -1630,7 +1632,7 @@ function renderCmpBtn() {
 }
 $('cmpBtn').addEventListener('click', function(e) {
   e.stopPropagation();
-  if (e.target.closest('.cmp-x')) { cmpMode = null; cmpSet = {}; renderWindow(); return; }   // крестик — отмена сравнения
+  if (e.target.closest('.cmp-x')) { cmpMode = null; cmpSet = {}; selCols = {}; renderWindow(); return; }   // крестик — отмена сравнения и выбора колонок   // крестик — отмена сравнения
   if (!cmpMode) { cmpMode = 'pick'; cmpSet = {}; }
   else if (cmpMode === 'pick') cmpMode = cmpCount() ? 'view' : null;
   else cmpMode = 'pick';
@@ -1901,7 +1903,9 @@ function renderChart() {
   renderCmpBtn();
   if (showRecords) { renderRecords(); return; }
   chartGames = windowGames();
-  if (cmpMode === 'view' && selCount() && cmpCount()) { $('chart').innerHTML = cmpHtml(); return; }
+  var cmpView = cmpMode === 'view' && selCount() && cmpCount();
+  $('chartBox').classList.toggle('cmp-on', !!cmpView);
+  if (cmpView) { $('chart').innerHTML = cmpHtml(); return; }
   var list = chartGames, n = list.length;
   if (!n) {
     $('chart').innerHTML = '<div class="rec-view"><div class="rec-empty">' + (games.length ? 'Нет партий под фильтр графика' : 'Партий пока нет') + '</div></div>';
@@ -3233,6 +3237,7 @@ function activityRecordsHtml() {
 function setMode(m) {
   chartMode = m;
   try { localStorage.setItem('chartMode', m); } catch (e) {}
+  $('chartBox').classList.remove('cmp-on');
   $('chartBox').classList.toggle('mode-activity', m === 'activity');
   $('activityBtn').textContent = m === 'activity' ? 'Показатели' : 'Активность';
   // режим «Рекорды» сохраняется при переключении показатели ⇄ активность

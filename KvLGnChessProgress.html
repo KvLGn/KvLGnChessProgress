@@ -745,6 +745,8 @@
   }
   .stat.toggle:hover { background: linear-gradient(90deg, rgba(255,255,255,0.045), transparent 80%); }
   .stat.toggle.pinned, #statsBlunders.pinned { background: linear-gradient(90deg, color-mix(in srgb, var(--sc, #f87171) 16%, transparent), transparent 85%); }
+  .res-toggle { cursor: pointer; user-select: none; transition: opacity 0.15s; }
+  .res-toggle.dim { opacity: 0.35; }
   .legend-item.pinned { border-color: currentColor; background: color-mix(in srgb, currentColor 12%, transparent); }
   .toggle { user-select: none; }
   .stat.off::before { opacity: 0.25; box-shadow: none; }
@@ -1219,9 +1221,9 @@
     <div class="legend">
       <div class="legend-wr metrics-only"><span class="legend-wr-label">Винрейт</span><span class="legend-wr-val" id="legendWr"></span></div>
       <!-- легенда режима «Активность» -->
-      <div class="legend-item activity-only" style="color:var(--green)"><span class="legend-sq" style="background:var(--green)"></span>ПОБЕДЫ</div>
-      <div class="legend-item activity-only" style="color:var(--red)"><span class="legend-sq" style="background:var(--red)"></span>ПОРАЖЕНИЯ</div>
-      <div class="legend-item activity-only" style="color:var(--fg-dim)"><span class="legend-sq" style="background:#6b7280"></span>НИЧЬИ</div>
+      <div class="legend-item activity-only res-toggle" data-res="win" role="button" tabindex="0" style="color:var(--green)"><span class="legend-sq" style="background:var(--green)"></span>ПОБЕДЫ</div>
+      <div class="legend-item activity-only res-toggle" data-res="lose" role="button" tabindex="0" style="color:var(--red)"><span class="legend-sq" style="background:var(--red)"></span>ПОРАЖЕНИЯ</div>
+      <div class="legend-item activity-only res-toggle" data-res="draw" role="button" tabindex="0" style="color:var(--fg-dim)"><span class="legend-sq" style="background:#6b7280"></span>НИЧЬИ</div>
       <!-- порядок как в панели средних слева -->
       <div class="legend-item toggle metrics-only" role="button" tabindex="0" data-s="acc" style="color:var(--c-acc);font-weight:400">
         <svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#9ca3af" stroke-width="2" stroke-dasharray="4,3"/></svg>
@@ -2510,6 +2512,24 @@ function shiftPeriod(d) {
   renderActivity();
 }
 
+/* ---------- легенда активности: клик выделяет результат (победы / поражения / ничьи), остальное притухает ---------- */
+var actRes = null;   // null — ничего не выделено; иначе {win: true, ...}
+function toggleRes(k) {
+  actRes = actRes || {};
+  if (actRes[k]) delete actRes[k]; else actRes[k] = true;
+  if (!hasKeys(actRes)) actRes = null;
+  document.querySelectorAll('.res-toggle').forEach(function(el) {
+    var on = !!(actRes && actRes[el.getAttribute('data-res')]);
+    el.classList.toggle('pinned', on);
+    el.classList.toggle('dim', !!actRes && !on);
+  });
+  renderActivity();
+}
+document.querySelectorAll('.res-toggle').forEach(function(el) {
+  el.addEventListener('click', function(e) { e.stopPropagation(); toggleRes(el.getAttribute('data-res')); });
+  el.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleRes(el.getAttribute('data-res')); } });
+});
+
 function activityBuckets() {
   var today = periodAnchor(), list = [], i, d;
   function day(d, top, bottom) {
@@ -2585,7 +2605,8 @@ function renderActivity() {
     [['win', '#22c55e'], ['draw', '#9ca3af'], ['lose', '#ef4444']].forEach(function(p) {
       if (!cnt[p[0]]) return;
       var h = cnt[p[0]] / yMax * H;
-      s.push('<rect x="' + r2(cx(i) - bw / 2) + '" y="' + r2(base - h + gap / 2) + '" width="' + r2(bw) + '" height="' + r2(Math.max(h - gap, 1)) + '" rx="' + (dense ? 1.5 : 4) + '" fill="url(#gBar-' + p[0] + ')" stroke="' + p[1] + '" stroke-opacity="0.55" stroke-width="0.8"/>');
+      s.push('<rect x="' + r2(cx(i) - bw / 2) + '" y="' + r2(base - h + gap / 2) + '" width="' + r2(bw) + '" height="' + r2(Math.max(h - gap, 1)) + '" rx="' + (dense ? 1.5 : 4) + '" fill="url(#gBar-' + p[0] + ')" stroke="' + p[1] + '" stroke-opacity="0.55" stroke-width="0.8"' +
+        (actRes && !actRes[p[0]] ? ' opacity="0.15"' : '') + '/>');
       base -= h;
     });
     if (b.games.length) {

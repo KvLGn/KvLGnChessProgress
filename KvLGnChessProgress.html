@@ -139,6 +139,12 @@
   @media (max-width: 700px) { .profile-head.eye-out .eye-btn { transform: translate(76px, 28px) scale(0.9); } .profile-head.eye-out.can-all .eye-all { transform: translate(116px, 28px) scale(0.75); } }   /* на телефоне слева нет места — выезжает вправо под ник */
   /* что показывает скрытый режим */
   .hush-na { font-size: 13px; color: var(--fg-mute); }
+  .plan-alert { position: relative; max-width: 1100px; margin: 12px auto 0; padding: 10px 40px 10px 16px; border-radius: 10px; font-size: 13px; line-height: 1.45; }
+  .plan-alert.err { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.5); color: #fecaca; }
+  .plan-alert.warn { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.4); color: #fde68a; }
+  .plan-alert ul { margin: 4px 0 4px 18px; }
+  .plan-alert span { color: var(--fg-dim); font-size: 12px; }
+  .plan-alert-x { position: absolute; top: 6px; right: 8px; background: none; border: none; color: inherit; font-size: 18px; cursor: pointer; }
   /* дебют в таблице: ✓ от Lichess (голубая) и ✓ из плана (зелёная) */
   .ck { font-style: normal; font-weight: 700; font-size: 11px; margin-left: 3px; cursor: help; }
   .ck-l { color: #7dd3fc; }
@@ -1347,6 +1353,7 @@
 </head>
 <body>
 
+<div class="plan-alert" id="planAlert" hidden></div>
 <div class="main-container">
 
 <!-- Profile + links -->
@@ -1568,6 +1575,8 @@
 <script src="data/games.js"></script>
 <script src="data/puzzles.js"></script>
 <script src="data/plan.js"></script>
+<script src="data/progress.js"></script>
+<script src="lib/stages.js"></script>
 <script>
 /* =====================================================================
    ОГЛАВЛЕНИЕ — ищи разделы по заголовкам «/* ---------- … ---------- *\/»
@@ -1598,61 +1607,31 @@
    ===================================================================== */
 var games = window.GAMES || [];
 
-/* ---------- план: этапы и дебюты из data/plan.js — текущий этап считается сам ---------- */
-var PLAN = window.PLAN || {start: '—', stages: [], openings: []};
-var RULE = PLAN.rule || {games: 5, blocks: 2, wins: 4, medianAcc: 70, lossMinAcc: 55, lossMaxBlunders: 2};
-function median(a) {
-  if (!a.length) return null;
-  var s = a.slice().sort(function(x, y) { return x - y; }), m = s.length >> 1;
-  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+/* ---------- план: этапы и дебюты из data/plan.js — текущий этап считается сам (логика — lib/stages.js) ---------- */
+// проверка plan.js: сломан — берём последнюю рабочую копию из браузера и показываем плашку с причиной
+var PLAN_CHECK = STAGES.validatePlan(window.PLAN, window.PROGRESS), PLAN_FALLBACK = null;
+var PLAN = window.PLAN;
+if (PLAN_CHECK.ok) {
+  try { localStorage.setItem('planGood', JSON.stringify({plan: PLAN, at: new Date().toLocaleString('ru-RU')})); } catch (e) {}
+} else {
+  try { PLAN_FALLBACK = JSON.parse(localStorage.getItem('planGood') || 'null'); } catch (e) {}
+  PLAN = PLAN_FALLBACK && STAGES.validatePlan(PLAN_FALLBACK.plan).ok ? PLAN_FALLBACK.plan : null;
+  if (!PLAN) PLAN_FALLBACK = null;
+  PLAN = PLAN || {start: '—', rule: STAGES.DEFAULT_RULE, stages: [], openings: []};
 }
-// «честная» невыигранная партия: не позорная (точность и зевки в пределах)
-function honestLoss(g) { return g.result === 'win' || (g.acc >= RULE.lossMinAcc && g.blunders <= RULE.lossMaxBlunders); }
-// одна пятёрка: что выполнено, что нет
-function blockCheck(list) {
-  var wins = list.filter(function(g) { return g.result === 'win'; }).length;
-  var med = median(list.map(function(g) { return g.acc; }));
-  var bad = list.filter(function(g) { return !honestLoss(g); });
-  var full = list.length === RULE.games;
-  return {games: list, full: full, wins: wins, med: med, bad: bad,
-          ok: full && wins >= RULE.wins && med >= RULE.medianAcc && !bad.length};
-}
-// последние blocks × games партий → пятёрки (старшая первой)
-function splitBlocks(rel) {
-  var need = RULE.blocks * RULE.games, tail = rel.slice(-need), out = [];
-  for (var b = 0; b < RULE.blocks; b++) out.push(blockCheck(tail.slice(b * RULE.games, (b + 1) * RULE.games)));
-  return out;
-}
-function stageGame(S, c) { return function(g) { return g.opp === 'ai' && g.lvl === S.engine && g.color === c; }; }
-// проход по этапам: этап выполнен, когда правило выполнено для всех его цветов (цвет, выполненный раньше, засчитан)
-function evalStages() {
-  var hist = [], from = 0;
-  for (var k = 0; k < PLAN.stages.length; k++) {
-    var S = PLAN.stages[k], colors = {}, all = true, last = -1;
-    S.colors.forEach(function(c) {
-      var rel = [], at = -1, isC = stageGame(S, c);
-      for (var i = from; i < games.length; i++) {
-        if (!isC(games[i])) continue;
-        rel.push(games[i]);
-        if (at < 0 && rel.length >= RULE.blocks * RULE.games && splitBlocks(rel).every(function(b) { return b.ok; })) at = i;
-      }
-      colors[c] = {color: c, done: at >= 0, doneGame: at >= 0 ? games[at] : null, rel: at >= 0 ? rel.slice(0, rel.indexOf(games[at]) + 1) : rel};
-      colors[c].blocks = splitBlocks(colors[c].rel);
-      if (at < 0) all = false; else last = Math.max(last, at);
-    });
-    if (!all) return {idx: k, stage: S, from: from, colors: S.colors.map(function(c) { return colors[c]; }), hist: hist};
-    hist.push({idx: k, name: S.name, date: games[last].date, day: games[last].day});
-    from = last + 1;
-  }
-  return {idx: PLAN.stages.length, stage: null, from: from, colors: [], hist: hist};
-}
+var RULE = STAGES.makeRule(PLAN);
+var median = STAGES.median;
+function honestLoss(g) { return STAGES.honestLoss(g, RULE); }
+function blockCheck(list) { return STAGES.blockCheck(list, RULE); }
+function splitBlocks(rel) { return STAGES.splitBlocks(rel, RULE); }
+function evalStages() { return STAGES.evalStages(games, PLAN, window.PROGRESS); }
 var CUR = evalStages();
 var COLOR_WORD = {white: 'белыми', black: 'чёрными'};
 function stageRuleText() {
   return 'Переход на следующий этап: ' + RULE.blocks + ' пятёрки партий подряд против бота этапа (каждым цветом этапа). В каждой: ' +
     RULE.wins + '+ побед, медиана точности ≥ ' + RULE.medianAcc + '%, проигрыш — точность ≥ ' + RULE.lossMinAcc + '% и зевков ≤ ' + RULE.lossMaxBlunders + '.';
 }
-function stageTitle() { return CUR.stage ? 'Этап ' + (CUR.idx + 1) + ': ' + CUR.stage.name : 'План выполнен — добавь этап в plan.js'; }
+function stageTitle() { if (!PLAN.stages.length) return 'План не загружен — исправь data/plan.js'; return CUR.stage ? 'Этап ' + (CUR.idx + 1) + ': ' + CUR.stage.name : 'План выполнен — добавь этап в plan.js'; }
 // короткая строка прогресса цвета: «пятёрок 1 из 2 · сейчас 3/5»
 function colorLine(c) {
   if (c.done) return 'выполнено ' + c.doneGame.date;
@@ -4218,7 +4197,7 @@ function buildVerdicts() {
   var lastDone = CUR.hist[CUR.hist.length - 1];
   if (lastDone && daysBetween(fromIso(lastDone.day), gameToday()) <= 7)
     add('good', 97, 'Этап ' + (lastDone.idx + 1) + ' выполнен ' + lastDone.date + '!', null, lastDone.name + ' — дальше: ' + stageTitle());
-  if (!CUR.stage) add('tip', 96, 'План выполнен — добавь этап', null, 'Все этапы из data/plan.js пройдены — допиши следующий (см. AI-PROMPT.md)');
+  if (!CUR.stage && PLAN.stages.length) add('tip', 96, 'План выполнен — добавь этап', null, 'Все этапы из data/plan.js пройдены — допиши следующий (см. AI-PROMPT.md)');
   else CUR.colors.forEach(function(c) {
     var who = twoColors ? (c.color === 'white' ? 'Белыми' : 'Чёрными') : 'Цель этапа';
     var cur = c.blocks.filter(function(b) { return !b.ok; })[0] || c.blocks[c.blocks.length - 1];
@@ -5425,6 +5404,18 @@ document.addEventListener('click', function(e) {
 });
 
 /* ---------- go ---------- */
+(function renderPlanAlert() {
+  var el = $('planAlert'), C = PLAN_CHECK;
+  if (C.ok && !C.warnings.length) return;
+  var bad = !C.ok;
+  el.className = 'plan-alert ' + (bad ? 'err' : 'warn');
+  el.innerHTML = '<b>' + (bad ? '⚠ data/plan.js с ошибкой' + (PLAN_FALLBACK ? ' — сайт работает на последней рабочей версии (' + esc(PLAN_FALLBACK.at) + ')' : ' — этапы и дебюты не показаны') : 'data/plan.js: предупреждения') + '</b>' +
+    '<ul>' + C.errors.concat(C.warnings).map(function(t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
+    (bad ? '<span>Исправь файл или верни прошлую версию: GitHub → data/plan.js → History.</span>' : '') +
+    '<button class="plan-alert-x" aria-label="Скрыть">×</button>';
+  el.hidden = false;
+  el.querySelector('.plan-alert-x').addEventListener('click', function() { el.hidden = true; });
+})();
 renderSummary();
 renderPuzzleCard();
 renderOpeningCard();

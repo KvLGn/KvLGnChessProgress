@@ -10,6 +10,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import vm from 'node:vm';
 
 const USER = 'KvLGn';
 const TZ = 'Europe/Moscow';
@@ -22,6 +23,9 @@ const ROOT = join(PROGRESS, '..');   // Chess/
 const DATA = join(PROGRESS, 'data');
 const TOKEN_FILE = join(ROOT, 'claude', '.lichess-token');
 const GAMES_JS = join(DATA, 'games.js');
+const PLAN_JS = join(DATA, 'plan.js');
+const PROGRESS_JS = join(DATA, 'progress.js');
+const STAGES_JS = join(PROGRESS, 'lib', 'stages.js');
 const GAME_LOG = join(ROOT, 'claude', 'game-log.md');
 
 const FINISHED = new Set(['mate', 'resign', 'stalemate', 'timeout', 'draw', 'outoftime', 'cheat', 'variantEnd', 'insufficientMaterialClaim']);
@@ -121,6 +125,41 @@ function writeGamesJs(games, ratings, stamp) {
     'window.GAMES = [\n' + rows(games) + '\n];\n' +
     '// рейтинговые партии для ELO на дашборде (анализ не обязателен)\n' +
     'window.RATING_GAMES = [\n' + rows(ratings) + '\n];\n');
+}
+
+/* ---------- progress.js: выполненные этапы плана (расчёт — тот же lib/stages.js, что на сайте) ---------- */
+
+// загрузить браузерный файл вида window.X = … в песочнице
+function loadWindowFile(file, ctx) {
+  if (!existsSync(file)) return;
+  try { vm.runInContext(readFileSync(file, 'utf8'), ctx, { filename: file }); }
+  catch (e) { console.log(`  ! ${file.split(/[\\/]/).pop()}: ${e.message}`); }
+}
+
+function updateProgress(games) {
+  const ctx = vm.createContext({});
+  ctx.window = ctx;
+  loadWindowFile(STAGES_JS, ctx);
+  loadWindowFile(PLAN_JS, ctx);
+  loadWindowFile(PROGRESS_JS, ctx);
+  const S = ctx.STAGES, plan = ctx.PLAN, progress = ctx.PROGRESS || { stages: [] };
+  if (!S) { console.log('  ! lib/stages.js не загрузился — этапы не обновлены'); return; }
+  const check = S.validatePlan(plan, progress);
+  if (!check.ok) {
+    console.log('  ! data/plan.js с ошибкой — этапы не обновлены:');
+    check.errors.forEach((e) => console.log('    - ' + e));
+    return;
+  }
+  const cur = S.evalStages(games, plan, progress);
+  const fresh = cur.hist.filter((h) => !h.recorded);
+  if (!fresh.length) return;
+  const stages = progress.stages.concat(fresh.map((h) => ({ idx: h.idx, name: h.name, date: h.date + '.' + h.day.slice(0, 4), day: h.day, game: h.game })));
+  writeFileSync(PROGRESS_JS,
+    '// Создаётся автоматически скриптом update.mjs — не редактировать вручную.\n' +
+    '// Выполненные этапы плана: записываются один раз и больше не пересчитываются,\n' +
+    '// чтобы правка правила или plan.js не «откатила» пройденное.\n' +
+    'window.PROGRESS = {\n  stages: [\n' + stages.map((x) => '    ' + JSON.stringify(x)).join(',\n') + '\n  ]\n};\n');
+  fresh.forEach((h) => console.log(`  ✓ Этап ${h.idx + 1} выполнен ${h.date}: ${h.name}`));
 }
 
 /* ---------- game-log.md ---------- */
@@ -481,6 +520,7 @@ const added = games.filter((g) => !before.has(g.id));
 const stamp = stampFmt.format(new Date()).replace(',', '');
 
 writeGamesJs(games, ratings, stamp);
+updateProgress(games);
 // заметки Claude (claude/*.md) есть только на ПК; в облаке их нет — пропускаем
 const HAS_NOTES = existsSync(join(ROOT, 'claude'));
 if (HAS_NOTES) writeGameLog(games, pending, stamp);

@@ -824,7 +824,9 @@
   .ai-s { font: 11px Inter, sans-serif; color: var(--fg-dim); }
   .ai-own { border-top: 1px solid rgba(74,222,128,0.18); margin-top: 8px; padding-top: 8px; }
   .ai-own textarea { width: 100%; box-sizing: border-box; resize: vertical; font: 13px Inter, sans-serif; color: var(--fg); background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
-  .ai-own-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+  .ai-own-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+  .ai-own-hint { flex: 1 1 200px; font-size: 11px; color: var(--fg-mute); }
+  .ai-own-btns { display: flex; gap: 8px; justify-content: flex-end; }
   .ai-own-btns button { font: 600 11px Inter, sans-serif; color: #86efac; background: none; border: 1px solid rgba(74,222,128,0.35); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
   .ai-own-btns button[data-own="plan"] { color: #fcd34d; border-color: rgba(251,191,36,0.35); }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); z-index: 100; max-width: calc(100% - 32px);
@@ -4659,8 +4661,9 @@ function renderAiMenu() {
         }).join('');
     }).join('') + '</div>' +
     '<div class="ai-own"><textarea id="aiOwn" rows="2" placeholder="' + (aiLang === 'en' ? 'Your own question…' : 'Свой вопрос…') + '"></textarea>' +
-      '<div class="ai-own-btns"><button data-own="advice">' + (aiLang === 'en' ? 'Copy · advice' : 'Скопировать · совет') + '</button>' +
-      '<button data-own="plan">' + (aiLang === 'en' ? 'Copy · change plan' : 'Скопировать · изменить план') + '</button></div></div>' +
+      '<div class="ai-own-row"><span class="ai-own-hint">' + (aiLang === 'en' ? 'advice — answer in words; change plan — AI returns a new plan.js for the site' : 'совет — ответ словами; изменить план — ИИ вернёт новый plan.js для сайта') + '</span>' +
+      '<div class="ai-own-btns"><button data-own="advice">' + (aiLang === 'en' ? '💬 Ask for advice' : '💬 Спросить совет') + '</button>' +
+      '<button data-own="plan">' + (aiLang === 'en' ? '✏️ Change plan' : '✏️ Изменить план') + '</button></div></div></div>' +
   '</div>';
 }
 function openAiMenu() { renderAiMenu(); $('aiMenu').classList.add('open'); }

@@ -1,0 +1,17 @@
+{
+  "name": "chess-progress-update",
+  "version": "1.0.0",
+  "description": "Скрипт обновления данных дашборда из Lichess",
+  "main": "update.mjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "chess.js": "^1.4.0"
+  },
+  "private": true
+}

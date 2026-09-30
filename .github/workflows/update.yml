@@ -1,0 +1,46 @@
+# Каждый час забирает свежие данные с Lichess и публикует их на GitHub Pages.
+# Токен Lichess — в Settings → Secrets and variables → Actions → LICHESS_TOKEN.
+name: Обновление данных с Lichess
+
+on:
+  schedule:
+    - cron: '7 * * * *'      # каждый час в :07 (UTC)
+  workflow_dispatch:          # кнопка «Run workflow» — запустить вручную
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Установить зависимости
+        working-directory: scripts
+        run: npm ci --no-audit --no-fund
+
+      - name: Забрать данные с Lichess
+        env:
+          LICHESS_TOKEN: ${{ secrets.LICHESS_TOKEN }}
+        run: node scripts/update.mjs
+
+      - name: Сохранить изменения
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data scripts/cache
+          if git diff --cached --quiet; then
+            echo "Нет изменений"
+          else
+            git commit -m "Обновление данных $(TZ=Europe/Moscow date '+%d.%m.%Y %H:%M')"
+            git push
+          fi

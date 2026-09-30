@@ -1,0 +1,3576 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KvLGn Chess Progress</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg-card: #1a1d27;
+    --bg-card-hover: #222632;
+    --fg: #e4e4e7;
+    --fg-dim: #9ca3af;
+    --fg-mute: #6b7280;
+    --fg-num: #c8c9cd;
+    --green: #22c55e;
+    --green-bg: rgba(34,197,94,0.12);
+    --red: #ef4444;
+    --red-bg: rgba(239,68,68,0.12);
+    --grey-bg: rgba(156,163,175,0.12);
+    --yellow: #eab308;
+    --yellow-bg: rgba(234,179,8,0.12);
+    --up: #00e676;
+    --border: #2a2d3a;
+    --divider: rgba(46,50,68,0.9);
+    --c-acc: #9ca3af;
+    --c-debut: #60a5fa;
+    --c-mid: #f59e0b;
+    --c-end: #a78bfa;
+    --c-blunder: #f87171;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    background:
+      linear-gradient(to right, #080a10 0%, transparent 20%, transparent 80%, #080a10 100%),
+      radial-gradient(ellipse at 15% 30%, rgba(124,58,237,0.2) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 60%, rgba(168,85,247,0.15) 0%, transparent 50%),
+      #0a0c12;
+    min-height: 100%;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: transparent;
+    color: var(--fg);
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .main-container {
+    background: var(--bg);
+    padding: 0 24px 14px;
+    margin-top: 56px;
+    border-radius: 16px;
+    border-left: 1px solid rgba(124,58,237,0.18);
+    border-right: 1px solid rgba(124,58,237,0.18);
+    box-shadow: 0 0 80px rgba(124,58,237,0.08);
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .green { color: var(--green); }
+  .red { color: var(--red); }
+  .yellow { color: var(--yellow); }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    margin-top: 8px;
+  }
+
+  .section { margin-bottom: 36px; }
+  .section:last-child { margin-bottom: 0; }
+
+  /* ---------- Profile ---------- */
+  .profile-row {
+    display: flex;
+    align-items: stretch;
+    margin: 0 -32px 32px;
+    padding: 0 32px;
+  }
+  .profile-card {
+    min-width: 240px;
+    margin-left: -32px;
+    border-top-right-radius: 0;
+    border-right: none;
+    padding: 16px 20px;
+  }
+  .profile-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    margin-left: -10px;
+  }
+  .avatar {
+    width: 94px;
+    height: 94px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+  }
+  .nick { font-size: 36px; font-weight: 700; position: relative; top: -22px; }
+  .wr-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--fg-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 2px -4px;
+  }
+  .wr-value { font-size: 30px; font-weight: 700; margin-left: -4px; line-height: 1; }
+  .wr-sub { font-size: 12px; color: var(--fg-dim); margin: 3px 0 0 -4px; }
+  .trend { font-weight: 600; }
+  .trend-n { font-weight: 400; color: var(--fg-mute); font-size: 9px; }
+  .wr-value .trend { font-size: 14px; }
+  .wr-box { cursor: pointer; user-select: none; border-radius: 6px; outline: none; }
+  .wr-box:hover .wr-label, .wr-box:focus-visible .wr-label { color: var(--fg); }
+  .wr-label::after { content: ' ⇄'; opacity: 0; transition: opacity 0.15s; }
+  .wr-box:hover .wr-label::after, .wr-box:focus-visible .wr-label::after { opacity: 0.6; }
+  .wr-box.swap { animation: wrSwap 0.2s ease; }
+  @keyframes wrSwap { from { opacity: 0.2; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+
+  .profile-side { flex: 1; min-width: 0; display: flex; flex-direction: column; margin-right: -24px; }   /* ровно по правой рамке страницы */
+  .links {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: none;
+  }
+  /* ссылки — «приподнятые» кнопки: тень снизу, при наведении поднимаются и подсвечиваются цветом сервиса */
+  .link {
+    --c: var(--fg-dim);
+    display: flex; align-items: center; gap: 10px;
+    flex: none;
+    padding: 6px 14px 6px 7px;
+    color: var(--fg); text-decoration: none;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.45), 0 4px 10px rgba(0,0,0,0.25);
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .link:hover, .link:focus-visible {
+    transform: translateY(-2px);
+    border-color: var(--c);
+    box-shadow: 0 4px 0 rgba(0,0,0,0.45), 0 8px 18px rgba(0,0,0,0.35), 0 0 0 1px var(--c) inset;
+    outline: none;
+  }
+  .link:active { transform: translateY(0); box-shadow: 0 1px 0 rgba(0,0,0,0.45); }
+  .link img { width: 30px; height: 30px; border-radius: 7px; }
+  .link-glyph { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 22px; line-height: 1; border-radius: 7px; background: rgba(167,139,250,0.15); color: #c4b5fd; }
+  .link-name { font-size: 13px; font-weight: 600; line-height: 1.2; }
+  .link-sub { font-size: 10px; color: var(--fg-dim); }
+  .link-go { margin-left: 6px; font-size: 11px; color: var(--fg-mute); transition: color 0.15s; }
+  .link:hover .link-go { color: var(--c); }
+  .link-sep { display: none; }
+  /* задачи: карточка + выдвижная панель подробностей справа */
+  .side-row { display: flex; align-items: stretch; gap: 12px; margin: 8px 16px 2px 20px; min-height: 124px; }
+  .pz-card {
+    flex: 0 0 240px;
+    min-width: 0; width: 240px;   /* лента карусели не должна растягивать карточку */
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 8px 14px;
+    border-left: 3px solid rgba(139,92,246,0.75);
+    border-radius: 0 10px 10px 0;
+    background: linear-gradient(90deg, rgba(124,58,237,0.14) 0%, rgba(124,58,237,0.04) 100%);
+    color: var(--fg);
+    cursor: pointer; user-select: none; outline: none;
+    transition: background 0.15s;
+  }
+  .pz-card:hover, .pz-card:focus-visible, .side-row.open .pz-card { background: linear-gradient(90deg, rgba(124,58,237,0.22) 0%, rgba(124,58,237,0.08) 100%); }
+  .pz-head { display: flex; justify-content: space-between; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #a78bfa; }
+  .pz-go { color: var(--fg-mute); letter-spacing: 0; font-size: 13px; line-height: 1; transition: transform 0.25s; }
+  .side-row.open .pz-go { transform: rotate(180deg); color: #a78bfa; }
+  .pz-main { display: flex; align-items: baseline; gap: 8px; }
+  .pz-rating { font-size: 28px; font-weight: 700; color: var(--fg-num); line-height: 1.1; }
+  .pz-main .trend { font-size: 12px; }
+  .pz-spark { display: block; width: 100%; height: 20px; }
+  .pz-split { display: flex; align-items: baseline; gap: 10px; font-size: 11px; color: var(--fg-dim); white-space: nowrap; }
+  .pz-split b { color: var(--fg); font-weight: 600; }
+  .pz-mix { flex-shrink: 0; }
+  .pz-car { flex: 1; min-width: 0; overflow: hidden; }
+  .pz-track { display: flex; }
+  .pz-slide { flex: 0 0 100%; min-width: 0; display: flex; justify-content: flex-end; align-items: baseline; gap: 5px; }
+  .pz-sl-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .pz-split b.pz-ok { color: var(--green); }
+  .pz-split b.pz-bad { color: var(--red); }
+  .pz-dots { flex-shrink: 0; display: flex; flex-direction: column; gap: 2px; align-self: center; }
+  .pz-dots i { width: 3px; height: 3px; border-radius: 50%; background: var(--fg-mute); opacity: 0.5; transition: opacity 0.3s, background 0.3s; }
+  .pz-dots i.on { background: #a78bfa; opacity: 1; }
+  .pz-sub { font-size: 11px; color: var(--fg-dim); }
+
+  .pz-detail {
+    position: absolute; top: 0; bottom: 0; left: 252px; right: 0;   /* 240 карточка + 12 отступ; накрывает «Дебюты» */
+    z-index: 15;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;
+    padding: 8px 16px 24px;
+    border: 1px solid rgba(139,92,246,0.22);
+    border-radius: 10px;
+    background: #19162b;
+    opacity: 0; transform: translateX(-28px); pointer-events: none; visibility: hidden;
+    transition: opacity 0.25s ease, transform 0.3s ease, visibility 0s linear 0.3s;
+  }
+  .side-row.open .pz-detail { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition: opacity 0.25s ease, transform 0.3s ease; }
+  .pzd-col { min-width: 0; }
+  .pzd-title { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 6px; }
+  .pzd-row { display: flex; align-items: baseline; gap: 8px; font-size: 12px; color: var(--fg-dim); line-height: 1.7; }
+  .pzd-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--fg); }
+  .pzd-row b { color: var(--fg-num); font-weight: 600; }
+  .pzd-row.good b { color: var(--green); }
+  .pzd-row.bad b { color: var(--red); }
+  .pzd-n { font-size: 10px; color: var(--fg-mute); min-width: 42px; text-align: right; }
+  .pzd-more, .pzd-empty { font-size: 11px; color: var(--fg-mute); }
+  .pzd-close { position: absolute; top: 6px; right: 8px; font-size: 22px; line-height: 1; padding: 2px 6px; color: var(--fg-mute); background: none; border: none; cursor: pointer; }
+  .pzd-close:hover { color: var(--fg); }
+  .pzd-link { position: absolute; right: 12px; bottom: 5px; font-size: 11px; color: #a78bfa; text-decoration: none; }
+  .pzd-toggle { position: absolute; left: 16px; bottom: 4px; font: 11px Inter, sans-serif; color: var(--fg-dim); background: none; border: none; padding: 0; cursor: pointer; }
+  .pzd-toggle:hover { color: var(--fg); }
+  .side-row { position: relative; }
+  .pz-detail.expanded {
+    bottom: auto; min-height: 100%;
+    padding-bottom: 28px;
+    background: #1b1830;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .pz-detail.expanded .pzd-row { animation: pzdIn 0.2s ease; }
+  @keyframes pzdIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+  .pzd-link:hover { text-decoration: underline; }
+
+  /* ---------- Tooltip ---------- */
+  #tooltip {
+    display: none;
+    position: fixed;
+    background: var(--bg-card);
+    border: 1px solid #3a3d4a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    max-width: 260px;
+  }
+  #tt-title { font-weight: 600; margin-bottom: 6px; }
+  #tt-body { line-height: 1.6; }
+
+  /* ---------- Chart ---------- */
+  .chart-title {
+    text-transform: uppercase;
+    font-size: 14px;
+    letter-spacing: 1.5px;
+    color: var(--fg);
+  }
+  .title-note { font-size: 12px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--fg-mute); margin-left: 8px; }
+  .chart-container {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    background:
+      radial-gradient(ellipse at 70% 0%, rgba(124,58,237,0.07) 0%, transparent 55%),
+      linear-gradient(180deg, #1d2030 0%, #171a25 100%);
+    border: 1px solid #2d3143;
+    border-radius: 14px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 32px rgba(0,0,0,0.35);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  /* vertical divider between stats panel and chart (split around the legend border) */
+  .chart-container::after {
+    content: '';
+    position: absolute;
+    left: 200px;
+    top: 0;
+    bottom: 36px;
+    width: 3px;
+    background: var(--divider);
+  }
+  .chart-container::before {
+    content: '';
+    position: absolute;
+    left: 200px;
+    bottom: 0;
+    height: 36px;
+    width: 3px;
+    background: var(--divider);
+    z-index: 1;
+  }
+
+  .stats-panel {
+    width: 200px;
+    flex-shrink: 0;
+    padding: 8px 20px 10px;
+    display: flex;
+    flex-direction: column;
+  }
+  .stats-head { display: flex; align-items: baseline; gap: 6px; }
+  .stats-title { font-size: 16px; font-weight: 700; color: var(--fg-dim); letter-spacing: 2px; }
+
+  /* dropdown: средние за N игр */
+  .win-pick { position: relative; }
+  .win-toggle {
+    font: 400 13px Inter, sans-serif;
+    color: var(--fg-mute);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .win-toggle:hover, .win-pick.open .win-toggle { color: var(--fg); }
+  .win-toggle .caret { font-size: 12px; margin-left: 3px; display: inline-block; transition: transform 0.15s; }
+  .win-pick.open .caret { transform: rotate(180deg); }
+  .win-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: -8px;
+    z-index: 20;
+    min-width: 96px;
+    padding: 4px;
+    background: var(--bg-card);
+    border: 1px solid #3a3d4a;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .win-pick.open .win-menu { display: block; }
+  .win-opt {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font: 500 13px Inter, sans-serif;
+    color: var(--fg-dim);
+    background: none;
+    border: none;
+    border-radius: 5px;
+    padding: 6px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .win-opt:hover, .win-opt:focus-visible { background: var(--bg-card-hover); color: var(--fg); outline: none; }
+  .win-opt.on { color: var(--fg); font-weight: 600; }
+  .win-opt.on::after { content: ' ✓'; color: var(--up); }
+  .stats-rule { border-bottom: 3px solid var(--divider); margin: 6px -20px 0; }
+  .stats-rule-thin { border-bottom: 2px solid var(--divider); margin: 0 -20px; }
+  .stats-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-top: 6px;
+  }
+  .stat { margin: 0 -20px; padding: 0 20px 5px; border-bottom: 1px solid rgba(46,50,68,0.4); }
+  .stat:last-child { border-bottom: none; }
+  .stat-line { display: flex; align-items: center; }
+  .stat-name { display: flex; align-items: center; gap: 5px; font-size: 15px; white-space: nowrap; }
+  .stat-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+  .stat-fill { flex: 1; border-bottom: 1px dashed rgba(100,110,130,0.3); margin: 0 6px; height: 0; }
+  .stat-val { font-size: 18px; font-weight: 600; color: var(--fg-num); }
+  .stat-val small { font-size: 12px; color: var(--fg-dim); }
+  .stat-trend { font-size: 11px; margin-left: 13px; }
+  .stat-trend .trend-n { font-size: 9px; }
+  .stat-blunders { padding-top: 5px; }
+  .stat-blunders .stat-name { font-size: 16px; }
+
+  .chart-area { flex: 1; min-width: 0; padding: 46px 8px 6px; }
+
+  /* кнопка режима «Активность» (правый верхний угол графика) */
+  .activity-btn {
+    position: absolute;
+    top: 7px;
+    right: 14px;
+    z-index: 2;
+    font: 600 11px Inter, sans-serif;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--yellow);
+    background: transparent;
+    border: 1px solid var(--yellow);
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .activity-btn:hover { background: var(--yellow-bg); }
+  /* в режиме активности кнопка ведёт назад к показателям — тот же стиль, зелёный */
+  .mode-activity .activity-btn { color: var(--green); border-color: var(--green); }
+  .mode-activity .activity-btn:hover { background: var(--green-bg); }
+
+  /* кнопка «Рекорды» (левый верхний угол графика) */
+  .records-btn {
+    position: absolute;
+    top: 7px;
+    left: 217px;
+    z-index: 2;
+    font: 600 11px Inter, sans-serif;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #a78bfa;
+    background: transparent;
+    border: 1px solid #a78bfa;
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .records-btn:hover, .records-on .records-btn { background: rgba(167,139,250,0.12); }
+
+  /* переключатель «за период | за всё время» */
+  .rec-scope {
+    display: none;
+    position: absolute;
+    top: 7px;
+    left: calc(200px + (100% - 200px) / 2);
+    transform: translateX(-50%);
+    z-index: 2;
+    gap: 2px;
+    padding: 2px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .records-on .rec-scope { display: flex; }
+  .rec-scope button {
+    font: 600 11px Inter, sans-serif;
+    color: var(--fg-mute);
+    background: none;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .rec-scope button:hover { color: var(--fg); }
+  .rec-scope button.on { background: var(--bg-card-hover); color: var(--fg); }
+
+  /* карточки рекордов */
+  .rec-view { display: flex; flex-direction: column; gap: 12px; padding: 14px 14px 10px 30px; }
+  .rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .rec-card {
+    min-width: 0;
+    padding: 12px 16px 14px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-top: 2px solid;
+    border-radius: 10px;
+  }
+  .rec-card.best { border-top-color: var(--green); }
+  .rec-card.worst { border-top-color: var(--red); }
+  .rec-head { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .rec-card.best .rec-head { color: var(--green); }
+  .rec-card.worst .rec-head { color: var(--red); }
+  .rec-meta { font-size: 12px; color: var(--fg-dim); }
+  .rec-title { font-size: 15px; font-weight: 600; margin: 4px 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rec-big { font-size: 28px; font-weight: 700; color: var(--fg-num); line-height: 1.15; margin-top: 4px; }
+  .rec-big small { font-size: 15px; color: var(--fg-dim); }
+  .rec-big > span:not(.w):not(.l) { font-size: 12px; font-weight: 400; color: var(--fg-mute); margin-left: 6px; }
+  .rec-big .w { color: var(--green); }
+  .rec-big .l { color: var(--red); }
+  .rec-row { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; margin-top: 8px; }
+  .rec-row.dim { color: var(--fg-dim); margin-top: 4px; }
+  .rec-link { display: inline-block; margin-top: 10px; font-size: 12px; color: var(--c-debut); text-decoration: none; }
+  .rec-link:hover { text-decoration: underline; }
+  .rec-empty { font-size: 13px; color: var(--fg-mute); padding: 18px 0; }
+  .rec-section { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--yellow); margin: 4px 0 -4px; }
+  .rec-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .rec-tile { min-width: 0; padding: 10px 12px; background: rgba(234,179,8,0.03); border: 1px solid var(--border); border-radius: 8px; }
+  .rec-tile-label { font-size: 10px; color: var(--fg-mute); text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.3; min-height: 2.6em; }
+  .rec-tile-val { font-size: 20px; font-weight: 700; color: var(--yellow); margin-top: 4px; }
+  .rec-tile-sub { font-size: 11px; color: var(--fg-dim); margin-top: 2px; }
+
+  /* фильтр графика — в строке заголовка, общий для показателей и активности */
+  .chart-head { display: flex; align-items: center; gap: 10px; margin: 8px 0 16px; min-height: 30px; }
+  .chart-head .chart-title { margin: 0; flex-shrink: 0; }
+  .cf-pills { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; min-width: 0; }
+  .cf-pill {
+    display: inline-flex; align-items: center; gap: 2px;
+    max-width: 220px;
+    font-size: 12px; color: var(--fg);
+    background: rgba(129,140,248,0.1);
+    border: 1px solid rgba(129,140,248,0.4);
+    border-radius: 999px;
+    padding: 2px 4px 2px 10px;
+  }
+  .cf-pill-t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cf-pill button { font-size: 14px; line-height: 1; color: var(--fg-dim); background: none; border: none; padding: 0 4px; cursor: pointer; }
+  .cf-pill button:hover { color: var(--fg); }
+  .cf { flex-shrink: 0; }
+  .cf-pills:empty + .cf { margin-left: auto; }
+  .cf .f-menu { left: auto; right: 0; width: 340px; }
+  .cf-sec { font-size: 10px; color: var(--fg-mute); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 2px 6px; }
+  .cf-results, .cf-colors { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .cf-more {
+    display: flex; align-items: center; justify-content: space-between; width: 100%;
+    font: 600 12px Inter, sans-serif; color: var(--fg-dim);
+    background: none; border: none; border-top: 1px solid var(--border);
+    margin-top: 6px; padding: 8px 4px 4px; cursor: pointer;
+  }
+  .cf-more:hover { color: var(--fg); }
+  .cf-more .caret { transition: transform 0.15s; }
+  .cf.more .cf-more .caret { transform: rotate(90deg); }
+  .cf-metrics { display: none; }
+  .cf.more .cf-metrics { display: grid; }
+  .cf .f-list { max-height: 180px; }
+
+  /* карточка «Дебюты» — синий акцент, как линия «Дебют» на графике */
+  .op-card {
+    flex: 0 0 240px; min-width: 0; width: 240px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 8px 14px;
+    border-left: 3px solid rgba(96,165,250,0.75);
+    border-radius: 0 10px 10px 0;
+    background: linear-gradient(90deg, rgba(59,130,246,0.14) 0%, rgba(59,130,246,0.04) 100%);
+    color: var(--fg);
+    cursor: pointer; user-select: none; outline: none;
+    transition: background 0.15s, opacity 0.25s;
+  }
+  .op-card:hover, .op-card:focus-visible, .side-row.op-open .op-card { background: linear-gradient(90deg, rgba(59,130,246,0.22) 0%, rgba(59,130,246,0.08) 100%); }
+  .op-head { display: flex; justify-content: space-between; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #60a5fa; }
+  .op-go { color: var(--fg-mute); letter-spacing: 0; font-size: 13px; line-height: 1; transition: transform 0.25s; }
+  .side-row.op-open .op-go { transform: rotate(180deg); color: #60a5fa; }
+  .op-main { font-size: 20px; font-weight: 700; color: var(--fg-num); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .op-kn { font-size: 15px; font-weight: 400; color: var(--fg-dim); }
+  .op-line { font-size: 11px; color: var(--fg-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .op-next .op-kn { font-size: 11px; }
+  .op-sub { font-size: 11px; color: var(--fg-mute); }
+  /* панель задач накрывает карточку дебютов */
+  .side-row.open .op-card { opacity: 0; pointer-events: none; }
+
+  .op-detail {
+    position: absolute; top: 0; min-height: 100%; left: 504px; right: 0;   /* после двух карточек; длиннее — вниз поверх страницы */
+    z-index: 14;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 16px;
+    padding: 8px 16px 10px;
+    border: 1px solid rgba(96,165,250,0.25);
+    border-radius: 10px;
+    background: #141b2b;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    opacity: 0; transform: translateX(-28px); pointer-events: none; visibility: hidden;
+    transition: opacity 0.25s ease, transform 0.3s ease, visibility 0s linear 0.3s;
+  }
+  .side-row.op-open .op-detail { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition: opacity 0.25s ease, transform 0.3s ease; }
+  .opd-col { min-width: 0; }
+  .opd-name { font-size: 13px; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .opd-name .op-kn { font-size: 12px; }
+  .opd-row { font-size: 11px; color: var(--fg-dim); line-height: 1.5; }
+  .opd-row .w { color: var(--green); font-weight: 600; }
+  .opd-row .l { color: var(--red); font-weight: 600; }
+  .opd-links a { color: #60a5fa; text-decoration: none; margin-right: 6px; }
+  .opd-links a:hover { text-decoration: underline; }
+  .op-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .op-chip { display: inline-flex; align-items: center; gap: 3px; height: 19px; line-height: 1; }
+  .op-chip {
+    font-size: 11px; color: var(--fg); text-decoration: none; white-space: nowrap;
+    padding: 0 7px; border-radius: 999px;
+    background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.25);
+  }
+  .op-chip:hover { background: rgba(96,165,250,0.18); }
+  .op-chip .op-kn { font-size: 10px; line-height: 1; }
+
+  /* карточка «Итоги» — зелёный акцент; панель выезжает влево поверх «Задач» и «Дебютов» */
+  .vd-card {
+    flex: 0 0 240px; min-width: 0; width: 240px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 8px 14px;
+    border-left: 3px solid rgba(34,197,94,0.7);
+    border-radius: 0 10px 10px 0;
+    background: linear-gradient(90deg, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.03) 100%);
+    color: var(--fg);
+    cursor: pointer; user-select: none; outline: none;
+    transition: background 0.15s, opacity 0.25s;
+  }
+  .vd-card:hover, .vd-card:focus-visible, .side-row.vd-open .vd-card { background: linear-gradient(90deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.07) 100%); }
+  .vd-head { display: flex; justify-content: space-between; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #4ade80; }
+  .vd-go { color: var(--fg-mute); letter-spacing: 0; font-size: 13px; line-height: 1; transition: transform 0.25s; }
+  .side-row.vd-open .vd-go { transform: rotate(180deg); color: #4ade80; }
+  .vd-main { font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  /* карусель итогов: слайды сменяются снизу вверх */
+  .vd-car { position: relative; height: 54px; overflow: hidden; }
+  .vd-slide { position: absolute; inset: 0; opacity: 0; transform: translateY(12px); transition: opacity 0.4s ease, transform 0.45s ease; }
+  .vd-slide.on { opacity: 1; transform: none; }
+  .vd-slide.out { opacity: 0; transform: translateY(-12px); }
+  .vd-kind { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 2px; }
+  .vd-dots { margin-left: auto; display: flex; gap: 3px; align-items: center; }
+  .vd-dots i { width: 5px; height: 5px; border-radius: 50%; opacity: 0.3; transition: opacity 0.3s; }
+  .vd-dots i.bad { background: var(--red); } .vd-dots i.good { background: var(--green); } .vd-dots i.tip { background: #fbbf24; }
+  .vd-dots i.on { opacity: 1; }
+  .vd-counts { font-size: 12px; font-weight: 600; display: flex; gap: 10px; }
+  .vd-counts .w { color: var(--green); }
+  .vd-counts .l { color: var(--red); }
+  .vd-counts .t { color: #fbbf24; }
+  .vd-sub { font-size: 11px; color: var(--fg-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .vd-detail {
+    position: absolute; top: 0; bottom: 0; left: 0; right: 0;   /* вся ширина ряда, высота — как у карточек */
+    z-index: 16;
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 8px 14px 10px;
+    border: 1px solid rgba(34,197,94,0.25);
+    border-radius: 10px;
+    background: #121c17;
+    opacity: 0; transform: translateX(28px); pointer-events: none; visibility: hidden;
+    transition: opacity 0.25s ease, transform 0.3s ease, visibility 0s linear 0.3s;
+  }
+  .side-row.vd-open .vd-detail { opacity: 1; transform: none; pointer-events: auto; visibility: visible; transition: opacity 0.25s ease, transform 0.3s ease; }
+  .vd-tabs { display: flex; align-items: center; gap: 4px; }
+  .vd-tab {
+    font: 600 11px Inter, sans-serif; color: var(--fg-mute);
+    background: none; border: 1px solid transparent; border-radius: 6px;
+    padding: 3px 8px; cursor: pointer; white-space: nowrap;
+  }
+  .vd-tab span { font-weight: 400; opacity: 0.8; }
+  .vd-tab:hover { color: var(--fg); }
+  .vd-tab.on { color: var(--c); border-color: var(--c); background: rgba(255,255,255,0.03); }
+  .vd-close { position: static; margin-left: 8px; font-size: 22px; line-height: 1; padding: 2px 6px; }
+  .vd-sp { flex: 1; }
+  .vd-pager { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--fg-dim); }
+  .vd-pager button { font: 14px Inter, sans-serif; color: var(--fg); background: none; border: 1px solid var(--border); border-radius: 5px; width: 22px; height: 20px; line-height: 1; cursor: pointer; }
+  .vd-pager button:disabled { opacity: 0.3; cursor: default; }
+
+  .vd-list { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: min-content; gap: 6px 22px; align-content: start; }
+  .vd-item { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: 13px; line-height: 1.35; color: var(--fg); padding: 3px 0 3px 10px; border-left: 2px solid; }
+  .vd-tx { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vd-item.vd-bad { border-color: rgba(239,68,68,0.7); }
+  .vd-item.vd-good { border-color: rgba(34,197,94,0.7); }
+  .vd-item.vd-tip { border-color: rgba(251,191,36,0.7); }
+  .vd-item a { flex-shrink: 0; font-size: 12px; color: #60a5fa; text-decoration: none; white-space: nowrap; }
+  .vd-item a:hover { text-decoration: underline; }
+  /* открытая панель прячет карточки под собой */
+  .side-row.vd-open .pz-card, .side-row.vd-open .op-card, .side-row.vd-open .vd-card,
+  .side-row.op-open .vd-card, .side-row.open .vd-card { opacity: 0; pointer-events: none; }
+
+  /* глобальный поиск в полосе ссылок */
+  .gs { position: relative; flex: 1; min-width: 200px; margin-left: 8px; }
+  .gs-box {
+    display: flex; align-items: center; gap: 8px;
+    height: 44px; padding: 0 12px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .gs.open .gs-box, .gs-box:hover { border-color: #818cf8; }
+  .gs.open .gs-box { box-shadow: 0 0 0 3px rgba(129,140,248,0.15); }
+  .gs-box .gs-lens { color: var(--fg-mute); font-size: 14px; }
+  #gsInput { flex: 1; min-width: 0; font: 14px Inter, sans-serif; color: var(--fg); background: none; border: none; outline: none; }
+  #gsInput::placeholder { color: var(--fg-mute); }
+  .gs-kbd { font: 600 10px Inter, sans-serif; color: var(--fg-mute); border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; white-space: nowrap; }
+  .gs.open .gs-kbd { display: none; }
+  .gs-drop {
+    display: none;
+    position: absolute; top: calc(100% + 6px); right: 0; width: 440px; z-index: 40;
+    max-height: 420px; overflow-y: auto;
+    padding: 6px;
+    background: var(--bg-card);
+    border: 1px solid #3a3d4a;
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+  }
+  .gs.open .gs-drop { display: block; }
+  .gs-group { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); padding: 8px 8px 4px; }
+  .gs-group span { font-weight: 400; letter-spacing: 0; text-transform: none; margin-left: 6px; }
+  .gs-item {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 6px 8px; border: none; border-radius: 6px; background: none;
+    text-align: left; cursor: pointer; color: var(--fg);
+  }
+  .gs-item.on, .gs-item:hover { background: var(--bg-card-hover); }
+  .gs-item.on { box-shadow: inset 2px 0 0 #818cf8; }
+  .gs-ic { width: 20px; text-align: center; font-size: 14px; flex-shrink: 0; }
+  .gs-tx { min-width: 0; display: flex; flex-direction: column; }
+  .gs-title { font: 13px Inter, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gs-sub { font: 11px Inter, sans-serif; color: var(--fg-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gs-empty { font-size: 13px; color: var(--fg-mute); padding: 14px 10px; }
+  /* подсветка найденного */
+  .gs-flash { animation: gsFlash 1.4s ease; }
+  @keyframes gsFlash { 0%, 40% { box-shadow: 0 0 0 2px #818cf8, 0 0 24px rgba(129,140,248,0.45); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+  /* ---------- освежённый блок графика ---------- */
+  .stat { position: relative; transition: background 0.15s; }
+  .stat::before {
+    content: ''; position: absolute; left: 0; top: 7px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0;
+    background: var(--sc, transparent); opacity: 0.85; box-shadow: 0 0 8px var(--sc, transparent);
+  }
+  .stat.toggle:hover { background: linear-gradient(90deg, rgba(255,255,255,0.045), transparent 80%); }
+  .stat.toggle.pinned, #statsBlunders.pinned { background: linear-gradient(90deg, color-mix(in srgb, var(--sc, #f87171) 16%, transparent), transparent 85%); }
+  .legend-item.pinned { border-color: currentColor; background: color-mix(in srgb, currentColor 12%, transparent); }
+  .toggle { user-select: none; }
+  .stat.off::before { opacity: 0.25; box-shadow: none; }
+  #statsBlunders { position: relative; }
+  #statsBlunders::before { content: ''; position: absolute; left: -20px; top: 8px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: #fb7185; box-shadow: 0 0 8px #fb7185; opacity: 0.85; }
+  #statsBlunders.off::before { opacity: 0.25; box-shadow: none; }
+  #actElo { position: relative; }
+  #actElo::before { content: ''; position: absolute; left: -20px; top: 8px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: #818cf8; box-shadow: 0 0 8px #818cf8; opacity: 0.85; }
+  /* период активности — по центру над графиком, на уровне кнопок */
+  .act-range { position: absolute; top: 7px; height: 39px; box-sizing: border-box; left: calc(200px + (100% - 200px) / 2); transform: translateX(-50%); z-index: 2; white-space: nowrap; font-size: 11px; font-weight: 600; letter-spacing: 1.5px; color: var(--fg-mute);
+    display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 8px;
+    background: rgba(255,255,255,0.03); border: 1px solid #2d3143; }
+  .records-on .act-range { display: none !important; }
+  .act-range b { color: #f3f4f6; font-size: 13px; letter-spacing: 0.3px; }
+  .stat-val { color: #f3f4f6; font-size: 19px; font-weight: 700; }
+  .stat-name { font-weight: 500; }
+  .stat-trend .trend {
+    display: inline-block; padding: 0 6px; line-height: 16px; border-radius: 999px;
+    background: color-mix(in srgb, currentColor 14%, transparent);
+  }
+  .stat-trend .trend[style*="hidden"] { background: none; }
+  .stats-title { color: #cbd0da; }
+
+  /* линии: подсветка с заливкой под линией */
+  svg .area { opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+  svg.focus .series.hl .area { opacity: 1; }
+
+  /* кнопки «Рекорды» / «Активность» — плоские, без объёма */
+  /* кнопки и плашка периода — одна высота (39px, как у кнопок с загруженным шрифтом Inter) */
+  .records-btn, .activity-btn { border-radius: 8px; padding: 0 14px; height: 39px; box-shadow: none; transform: none; }
+
+  /* легенда — «таблетки» */
+  .legend-item {
+    padding: 1px 9px; line-height: 16px; border-radius: 999px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .legend-item.toggle:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); }
+  .legend-wr-val { font-size: 24px; color: #f3f4f6; }
+  .stats-rule, .stats-rule-thin { border-color: #2a2e3f !important; }
+
+  /* переключение режимов */
+  .chart-container:not(.mode-activity) .activity-only,
+  .chart-container.mode-activity .metrics-only { display: none !important; }
+  .panel-stack { display: grid; width: 200px; flex-shrink: 0; }
+  .panel-stack > .stats-panel { grid-area: 1 / 1; width: 200px; min-width: 0; }
+  /* скрытая панель остаётся в сетке невидимой — держит высоту */
+  .chart-container:not(.mode-activity) .stats-panel.activity-only,
+  .chart-container.mode-activity .stats-panel.metrics-only { display: flex !important; visibility: hidden; }
+  .stat-empty { min-height: 40px; }
+  .stat-blunders.stat-empty { min-height: 44px; }
+  .legend-sq { display: inline-block; width: 10px; height: 10px; border-radius: 2px; opacity: 0.85; }
+  .period-toggle { font: 700 16px Inter, sans-serif; letter-spacing: 2px; color: var(--fg-dim); text-transform: uppercase; }
+  .period-toggle .caret { font-size: 12px; letter-spacing: 0; }
+  .period-pick .win-menu { left: -8px; right: auto; min-width: 130px; }
+  .chart-area svg { display: block; width: 100%; height: auto; }
+  svg text { font-family: 'Inter', sans-serif; }
+  .hit { cursor: pointer; }
+  .hit:hover, .hit.active { fill: rgba(255,255,255,0.035); }
+
+  /* черта над нижней строкой — только под панелью «Средние» (над винрейтом), над легендой её нет */
+  .legend-rule { width: 100%; height: 3px; background: linear-gradient(to right, #2a2e3f 0, #2a2e3f 203px, transparent 203px); }
+  .legend .legend-item { position: relative; top: -24px; }
+  .legend {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 20px 8px 220px;
+    width: 100%;
+    position: relative;
+  }
+  .legend-wr { position: absolute; left: 20px; display: flex; align-items: center; gap: 6px; }
+  /* подпись «Винрейт» — в стиле заголовков блока: капс, разрядка, зелёная точка-акцент */
+  .legend-wr { gap: 10px; }
+  .legend-wr-label { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #4ade80; }
+  .legend-wr-label::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+  .legend-wr-val { font-size: 22px; font-weight: 700; color: var(--fg-num); }
+  .legend-wr-val small { font-size: 14px; color: var(--fg-dim); }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; }
+
+  /* show / hide series */
+  .toggle { cursor: pointer; user-select: none; outline: none; transition: opacity 0.15s; }
+  .toggle:hover { filter: brightness(1.15); }
+  .toggle:focus-visible { box-shadow: inset 0 0 0 1px var(--border); }
+  .toggle.off { opacity: 0.3; }
+  .toggle.off:hover { opacity: 0.5; }
+  .series.off { display: none; }
+  .avg-line { transition: opacity 0.15s; }
+  svg.focus .series { opacity: 0.15; transition: opacity 0.15s; }
+  svg.focus .series.hl { opacity: 1; }
+  /* линии средних скрыты, пока не наведёшь на показатель */
+  svg .series.avg-line, svg.focus .series.avg-line { opacity: 0; }
+  svg.focus .series.avg-line.hl { opacity: 1; }
+  .lock { vertical-align: -1px; margin-left: 2px; }
+  .win-toggle.filtered, .win-toggle.filtered:hover { color: #818cf8; }
+  .avg-line text { display: none; }
+  svg.focus .avg-line.hl text { display: inline; }
+  .win-short { color: var(--fg-mute); font-weight: 400; font-size: 11px; margin-left: 4px; }
+
+  /* ---------- Table filters ---------- */
+  .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 12px; }
+  .f-chips { display: flex; gap: 6px; }
+  #fColor { padding-left: 10px; border-left: 1px solid var(--border); }
+  .f-knight { font-size: 14px; line-height: 1; margin-right: 5px; vertical-align: -1px; }
+  .f-chip, .f-btn {
+    font: 600 12px Inter, sans-serif;
+    color: var(--fg-dim);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+  }
+  .f-chip:hover, .f-btn:hover { color: var(--fg); }
+  .f-chip.on { color: var(--c, var(--fg)); background: var(--bg-c, var(--bg-card-hover)); border-color: var(--c, var(--fg-mute)); }
+  .f-btn { border-radius: 8px; max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+  .f-btn .caret { font-size: 11px; margin-left: 4px; }
+  .f-btn.active { color: var(--fg); border-color: var(--accent-light, #818cf8); background: rgba(129,140,248,0.1); }
+  .f-drop { position: relative; }
+  .f-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 30;
+    width: 320px;
+    padding: 8px;
+    background: var(--bg-card);
+    border: 1px solid #3a3d4a;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  }
+  .f-drop.open .f-menu { display: block; }
+  .f-search {
+    width: 100%;
+    font: 13px Inter, sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    outline: none;
+  }
+  .f-search:focus { border-color: #818cf8; }
+  .f-list { max-height: 260px; overflow-y: auto; margin-top: 6px; }
+  .f-opt {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%;
+    font: 13px Inter, sans-serif;
+    color: var(--fg-dim);
+    background: none; border: none; border-radius: 6px;
+    padding: 6px 8px;
+    text-align: left; cursor: pointer;
+  }
+  .f-opt:hover { background: var(--bg-card-hover); color: var(--fg); }
+  .f-opt.on { color: var(--fg); }
+  .f-box {
+    flex-shrink: 0; width: 14px; height: 14px;
+    border: 1px solid var(--fg-mute); border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; line-height: 1;
+  }
+  .f-opt.on .f-box { background: #818cf8; border-color: #818cf8; color: #0f1117; }
+  .f-opt-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .f-opt-n { color: var(--fg-mute); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .f-empty { font-size: 12px; color: var(--fg-mute); padding: 10px 8px; }
+  .f-foot { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 6px; }
+  .f-link { font: 12px Inter, sans-serif; color: #818cf8; background: none; border: none; padding: 4px 6px; cursor: pointer; }
+  .f-link:hover { text-decoration: underline; }
+  .f-menu-metrics { width: 300px; }
+  .f-metrics { display: grid; grid-template-columns: 1fr auto 10px auto; gap: 6px 6px; align-items: center; padding: 4px; }
+  .f-metrics label { font-size: 13px; }
+  .f-metrics .dash { color: var(--fg-mute); text-align: center; }
+  .f-num {
+    width: 64px;
+    font: 13px Inter, sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+  .f-num::-webkit-outer-spin-button, .f-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .f-num:focus { border-color: #818cf8; }
+  .f-count { font-size: 12px; color: var(--fg-mute); margin-left: auto; }
+  .f-reset { display: none; }
+  .filters.any .f-reset { display: inline-block; }
+  .no-rows td { text-align: center; color: var(--fg-mute); padding: 24px; cursor: default; }
+
+  /* ---------- Table ---------- */
+  .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th {
+    background: var(--bg-card);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--fg-dim);
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .game-row { cursor: pointer; transition: background 0.15s; }
+  .game-row:hover, .game-row:focus-visible { background: var(--bg-card-hover); outline: none; }
+  .game-row td:first-child::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: 6px;
+    color: var(--fg-dim);
+    font-size: 10px;
+    transition: transform 0.2s;
+  }
+  .game-row.open td:first-child::before { transform: rotate(90deg); }
+  .game-detail { display: none; }
+  .game-row.open + .game-detail { display: table-row; }
+  .game-detail td { padding: 0; }
+  /* no double border against the wrapper at the bottom */
+  #gameRows tr.game-row:nth-last-child(2):not(.open) td,
+  #gameRows tr.game-detail:last-child td { border-bottom: none; }
+  .td-knight { font-size: 18px; }
+  .td-dim { color: var(--fg-dim); font-size: 12px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  /* ---------- освежённая таблица ---------- */
+  .table-wrap {
+    background: linear-gradient(180deg, #1b1e2c 0%, #161924 100%);
+    border-color: #2d3143;
+    border-radius: 14px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 32px rgba(0,0,0,0.3);
+  }
+  th { background: rgba(255,255,255,0.025); border-bottom-color: #2d3143; }
+  td { border-bottom-color: rgba(45,49,67,0.7); }
+  /* цветная кромка слева — результат партии */
+  .game-row td:first-child { box-shadow: inset 3px 0 0 transparent; }
+  .game-row.r-win td:first-child { box-shadow: inset 3px 0 0 rgba(34,197,94,0.7); }
+  .game-row.r-lose td:first-child { box-shadow: inset 3px 0 0 rgba(239,68,68,0.7); }
+  .game-row.r-draw td:first-child { box-shadow: inset 3px 0 0 rgba(156,163,175,0.7); }
+  .game-row:hover, .game-row:focus-visible { background: rgba(255,255,255,0.035); }
+  .game-row.open { background: rgba(255,255,255,0.04); }
+  .badge { border: 1px solid currentColor; border-color: color-mix(in srgb, currentColor 35%, transparent); }
+  .detail-inner {
+    padding: 8px 20px 8px 42px;
+    background: rgba(0,0,0,0.18);
+    display: flex;
+    gap: 20px;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+  .detail-item { font-size: 12px; display: flex; gap: 4px; align-items: baseline; }
+  .detail-label { color: var(--fg-dim); }
+  .detail-value { font-weight: 600; font-size: 13px; }
+  .detail-link { margin-left: auto; font-size: 12px; color: var(--c-debut); text-decoration: none; }
+  .detail-link:hover { text-decoration: underline; }
+
+  .pager { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; }
+  .pager button {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    border-radius: 6px;
+    padding: 4px 12px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .pager button:disabled { opacity: 0.4; cursor: default; }
+  #pageInfo { color: var(--fg-dim); font-size: 13px; }
+
+  .footer { text-align: center; color: var(--fg-dim); font-size: 12px; padding: 24px; }
+
+  /* ---------- Narrow screens ---------- */
+  @media (max-width: 760px) {
+    .main-container { margin-top: 16px; padding: 0 12px 12px; border-radius: 12px; }
+    .profile-row { flex-direction: column; margin: 0 0 24px; padding: 0; }
+    .profile-card { margin-left: 0; min-width: 0; border-radius: 12px 12px 0 0; }
+    .profile-side { margin-right: 0; }
+    .links { border-radius: 0 0 12px 12px; flex-wrap: wrap; gap: 12px; padding: 10px 12px; justify-content: space-around; }
+    .link-sep { display: none; }
+    .gs { flex-basis: 100%; margin-left: 0; }
+    .side-row { flex-direction: column; margin: 12px 0 4px; }
+    .pz-card { flex-basis: auto; }
+    .pz-detail { display: none; grid-template-columns: 1fr; gap: 10px; }
+    .side-row.open .pz-detail { display: grid; }
+    .pz-detail, .op-detail, .vd-detail { position: static; width: auto; }
+    .vd-card { width: auto; flex-basis: auto; }
+    .vd-detail { display: none; }
+    .side-row.vd-open .vd-detail { display: flex; }
+    .side-row.vd-open .pz-card, .side-row.vd-open .op-card, .side-row.op-open .vd-card, .side-row.open .vd-card { opacity: 1; pointer-events: auto; }
+    .op-card { width: auto; flex-basis: auto; }
+    .op-detail { display: none; grid-template-columns: 1fr; gap: 10px; }
+    .side-row.op-open .op-detail { display: grid; }
+    .side-row.open .op-card { opacity: 1; pointer-events: auto; }
+    .chart-container::before, .chart-container::after { display: none; }
+    .panel-stack { width: 100%; }
+    .panel-stack > .stats-panel { width: 100%; }
+    .stats-panel { width: 100%; border-bottom: 3px solid var(--divider); }
+    .stats-list .stat { padding-top: 6px; }
+    .chart-area { flex-basis: 100%; padding: 12px 2px 4px; }
+    .legend { padding: 8px 12px; flex-wrap: wrap; gap: 8px 16px; }
+    .legend-wr { position: static; width: 100%; justify-content: center; }
+    .records-btn { left: auto; right: 132px; }
+    .rec-scope { top: auto; bottom: 48px; left: 50%; }
+    .rec-view { padding: 36px 8px 8px; }
+    .rec-grid { grid-template-columns: 1fr; }
+    .rec-tiles { grid-template-columns: 1fr 1fr; }
+    .footer { padding: 16px; }
+  }
+
+  /* ---------- телефон (≤760px): доработка 30.09.2026 ---------- */
+  @media (max-width: 760px) {
+    body { overflow-x: hidden; }
+    /* заголовок блока: фильтр переносится под заголовок */
+    .chart-head { flex-wrap: wrap; gap: 8px; }
+    .chart-head .chart-title { flex-basis: 100%; }
+    .cf-pills { margin-left: 0; justify-content: flex-start; }
+    .cf-pills:empty + .cf { margin-left: 0; }
+    .cf .f-menu { left: 0; right: auto; width: min(340px, calc(100vw - 40px)); }
+    /* кнопки «Рекорды» / период / «Активность» — строкой между панелью и графиком */
+    .panel-stack { order: 1; }
+    .records-btn, .act-range, .activity-btn, .rec-scope { position: static; transform: none; order: 2; margin: 10px 0 0; }
+    .records-btn { margin-left: 10px; }
+    .act-range { margin-left: auto; margin-right: auto; height: 39px; }
+    .activity-btn { margin-left: auto; margin-right: 10px; }
+    .records-btn, .activity-btn { padding: 0 10px; letter-spacing: 0.5px; }
+    .act-range { padding: 0 10px; font-size: 0; gap: 0; }   /* на телефоне только даты, без слова «Период» */
+    .act-range b { font-size: 13px; }
+    .records-on .rec-scope { display: flex; margin-left: auto; margin-right: auto; }
+    .chart-area { order: 3; }
+    .legend-rule { order: 4; background: #2a2e3f; }
+    .legend { order: 5; }
+    .legend .legend-item { top: 0; }
+    /* график: прокрутка вбок, чтобы подписи не были микроскопическими */
+    .chart-area { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 8px 4px 4px; }
+    .chart-area > svg { min-width: 580px; }
+    .rec-view { padding: 8px 4px; }
+    /* панели карточек — в одну колонку */
+    .pz-detail, .op-detail { grid-template-columns: 1fr !important; }
+    .vd-list { grid-template-columns: 1fr; }
+    .pz-card, .op-card, .vd-card { width: auto !important; min-height: 120px; }
+    /* поиск — выпадающий список по ширине экрана */
+    .gs-drop { width: auto; left: 0; right: 0; }
+    /* таблица */
+    .filters { gap: 6px; }
+    .f-menu { width: min(320px, calc(100vw - 40px)); }
+  }
+</style>
+</head>
+<body>
+
+<div class="main-container">
+
+<!-- Profile + links -->
+<div class="profile-row">
+  <div class="card profile-card">
+    <div class="profile-head">
+      <img class="avatar" src="assets/avatar.jpg" alt="avatar">
+      <span class="nick">KvLGn</span>
+    </div>
+    <div class="wr-box" id="wrBox" role="button" tabindex="0" title="Нажми: винрейт ⇄ рейтинг ELO">
+      <div class="wr-label" id="wrLabel"></div>
+      <div class="wr-value" id="wrValue"></div>
+      <div class="wr-sub" id="wrSub"></div>
+    </div>
+  </div>
+  <div class="profile-side">
+    <div class="card links">
+      <a class="link" href="https://lichess.org" target="_blank" rel="noopener" style="--c:#e4e4e7">
+        <img src="assets/lichess.png" alt="Lichess">
+        <div><div class="link-name">Lichess</div><div class="link-sub">игра и задачи</div></div><span class="link-go">↗</span>
+      </a>
+      <div class="link-sep"></div>
+      <a class="link" href="https://chesstempo.com" target="_blank" rel="noopener" style="--c:#f59e0b">
+        <img src="assets/chesstempo.png" alt="ChessTempo">
+        <div><div class="link-name">ChessTempo</div><div class="link-sub">тренировка репертуара</div></div><span class="link-go">↗</span>
+      </a>
+      <div class="link-sep"></div>
+      <a class="link" href="https://www.pgnmentor.com/files.html" target="_blank" rel="noopener" style="--c:#a78bfa">
+        <div class="link-glyph">♝</div>
+        <div><div class="link-name">PGN Mentor</div><div class="link-sub">партии мастеров</div></div><span class="link-go">↗</span>
+      </a>
+      <div class="gs" id="gs">
+        <label class="gs-box"><span class="gs-lens">🔍</span>
+          <input id="gsInput" type="search" autocomplete="off" placeholder="Поиск по всему…" title="Партии, дебюты, разделы, темы задач, итоги" aria-label="Поиск по дашборду">
+          <span class="gs-kbd">Ctrl K</span>
+        </label>
+        <div class="gs-drop" id="gsList" role="listbox"></div>
+      </div>
+    </div>
+    <div class="side-row" id="sideRow">
+      <div class="pz-card" id="pzCard" role="button" tabindex="0" aria-expanded="false" aria-controls="pzDetail" title="Подробнее о задачах"></div>
+      <div class="op-card" id="opCard" role="button" tabindex="0" aria-expanded="false" aria-controls="opDetail" title="Изучаемые дебюты"></div>
+      <div class="pz-detail" id="pzDetail" aria-hidden="true"></div>
+      <div class="op-detail" id="opDetail" aria-hidden="true"></div>
+      <div class="vd-card" id="vdCard" role="button" tabindex="0" aria-expanded="false" aria-controls="vdDetail" title="Итоги по всей статистике"></div>
+      <div class="vd-detail" id="vdDetail" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"><div id="tt-title"></div><div id="tt-body"></div></div>
+
+<!-- Chart (Dota 2 style) -->
+<div class="section">
+  <div class="chart-head">
+    <h2 class="chart-title" id="chartTitle"></h2>
+    <div class="cf-pills" id="cfPills"></div>
+    <div class="f-drop cf" id="cf">
+      <button class="f-btn" aria-haspopup="true" aria-expanded="false" title="Фильтр для графика показателей и активности"></button>
+      <div class="f-menu">
+        <div class="cf-sec">Результат</div><div class="cf-results"></div>
+        <div class="cf-sec">Цвет</div><div class="cf-colors"></div>
+        <div class="cf-sec">Дебют</div>
+        <input class="f-search" type="search" placeholder="Поиск дебюта…" autocomplete="off">
+        <div class="f-list"></div>
+        <button class="cf-more" aria-expanded="false">Показатели <span class="caret">▸</span></button>
+        <div class="f-metrics cf-metrics"></div>
+        <div class="f-foot"><button class="f-link" data-act="clear">Сбросить фильтр графика</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="chart-container" id="chartBox">
+    <!-- обе панели в одной ячейке: высота блока одинакова в обоих режимах -->
+    <div class="panel-stack">
+    <!-- режим «Активность»: сводка за период -->
+    <div class="stats-panel activity-only">
+      <div class="stats-head"><span class="win-pick period-pick" id="periodPick"></span></div>
+      <div class="stats-rule"></div>
+      <div class="stats-list" id="actList"></div>
+      <div class="stats-rule-thin"></div>
+      <div class="stat-blunders" id="actElo" style="--sc:#818cf8"></div>
+    </div>
+    <div class="stats-panel metrics-only">
+      <div class="stats-head"><span class="stats-title">СРЕДНИЕ</span><span class="win-pick" id="winPick" role="group" aria-label="Средние за N игр"></span></div>
+      <div class="stats-rule"></div>
+      <div class="stats-list" id="statsList"></div>
+      <div class="stats-rule-thin"></div>
+      <div class="stat-blunders toggle" id="statsBlunders" data-s="blunders" role="button" tabindex="0"></div>
+    </div>
+    </div>
+    <button class="records-btn" id="recordsBtn">Рекорды</button>
+    <div class="rec-scope" id="recScope"></div>
+    <div class="act-range activity-only">ПЕРИОД <b id="actRange"></b></div>
+    <button class="activity-btn" id="activityBtn">Активность</button>
+    <div class="chart-area" id="chart"></div>
+    <div class="legend-rule"></div>
+    <div class="legend">
+      <div class="legend-wr metrics-only"><span class="legend-wr-label">Винрейт</span><span class="legend-wr-val" id="legendWr"></span></div>
+      <!-- легенда режима «Активность» -->
+      <div class="legend-item activity-only" style="color:var(--green)"><span class="legend-sq" style="background:var(--green)"></span>ПОБЕДЫ</div>
+      <div class="legend-item activity-only" style="color:var(--red)"><span class="legend-sq" style="background:var(--red)"></span>ПОРАЖЕНИЯ</div>
+      <div class="legend-item activity-only" style="color:var(--fg-dim)"><span class="legend-sq" style="background:#6b7280"></span>НИЧЬИ</div>
+      <!-- порядок как в панели средних слева -->
+      <div class="legend-item toggle metrics-only" role="button" tabindex="0" data-s="acc" style="color:var(--c-acc);font-weight:400">
+        <svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#9ca3af" stroke-width="2" stroke-dasharray="4,3"/></svg>
+        ТОЧНОСТЬ
+      </div>
+      <div class="legend-item toggle metrics-only" role="button" tabindex="0" data-s="debut" style="color:var(--c-debut)">
+        <svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#60a5fa" stroke-width="2.5"/><circle cx="12" cy="5" r="3" fill="#60a5fa"/></svg>
+        ДЕБЮТ
+      </div>
+      <div class="legend-item toggle metrics-only" role="button" tabindex="0" data-s="mid" style="color:var(--c-mid)">
+        <svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#f59e0b" stroke-width="2.5"/><circle cx="12" cy="5" r="3" fill="#f59e0b"/></svg>
+        МИТТЕЛЬШПИЛЬ
+      </div>
+      <div class="legend-item toggle metrics-only" role="button" tabindex="0" data-s="end" style="color:var(--c-end)">
+        <svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#a78bfa" stroke-width="2"/><circle cx="12" cy="5" r="3" fill="#a78bfa"/></svg>
+        ЭНДШПИЛЬ
+      </div>
+      <div class="legend-item toggle metrics-only" role="button" tabindex="0" data-s="blunders" style="color:var(--c-blunder)">
+        <svg width="24" height="10"><line x1="0" y1="5" x2="24" y2="5" stroke="#f87171" stroke-width="2" stroke-dasharray="3,3"/><circle cx="12" cy="5" r="3" fill="#f87171"/></svg>
+        ЗЕВКИ
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Game table -->
+<div class="section">
+  <h2 class="chart-title" style="margin-bottom:14px">Последние 30 партий</h2>
+  <!-- фильтры таблицы -->
+  <div class="filters" id="filters">
+    <div class="f-chips" id="fResult" role="group" aria-label="Результат"></div>
+    <div class="f-chips" id="fColor" role="group" aria-label="Цвет"></div>
+    <div class="f-drop" id="fOpening">
+      <button class="f-btn" aria-haspopup="listbox" aria-expanded="false"></button>
+      <div class="f-menu">
+        <input class="f-search" type="search" placeholder="Поиск дебюта…" autocomplete="off">
+        <div class="f-list" role="listbox" aria-multiselectable="true"></div>
+        <div class="f-foot"><button class="f-link" data-act="clear">Сбросить дебюты</button></div>
+      </div>
+    </div>
+    <div class="f-drop" id="fMetrics">
+      <button class="f-btn" aria-haspopup="true" aria-expanded="false"></button>
+      <div class="f-menu f-menu-metrics">
+        <div class="f-metrics"></div>
+        <div class="f-foot"><button class="f-link" data-act="clear">Сбросить показатели</button></div>
+      </div>
+    </div>
+    <span class="f-count" id="fCount"></span>
+    <button class="f-link f-reset" id="fReset">Сбросить всё</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+      <tr>
+        <th>№ партии</th>
+        <th></th>
+        <th>Дата</th>
+        <th>Дебют</th>
+        <th>Соперник</th>
+        <th>Результат</th>
+        <th>ИР</th>
+      </tr>
+      </thead>
+      <tbody id="gameRows"></tbody>
+    </table>
+  </div>
+  <div class="pager">
+    <button id="prevPage" aria-label="Предыдущая страница">◀</button>
+    <span id="pageInfo"></span>
+    <button id="nextPage" aria-label="Следующая страница">▶</button>
+  </div>
+</div>
+
+</div><!-- end main-container -->
+
+<div class="footer" id="footer"></div>
+
+<script src="data/games.js"></script>
+<script src="data/puzzles.js"></script>
+<script src="data/openings.js"></script>
+<script>
+/* =====================================================================
+   ОГЛАВЛЕНИЕ — ищи разделы по заголовкам «/* ---------- … ---------- *\/»
+   Полная карта проекта и принятые решения: progress/README.md
+
+   PROFILE + константы ........ этап, цель этапа, окна средних, размер таблицы
+   helpers .................... $, esc, plural, avg, winrate, trend
+   winrate ⇄ ELO .............. карточка профиля
+   stats panel / averages ..... панель «Средние», окно 5/10/20
+   show / hide chart series ... выделение (клик слева) и скрытие (клик по легенде)
+   chart ...................... SVG графика показателей, серия дней, заголовок
+   tooltip .................... подсказка по партии
+   table filters .............. фильтры таблицы
+   chart filter ............... фильтр графика (общий для показателей и активности)
+   table ...................... таблица партий
+   activity mode / panel ...... график активности, сводка за период, ELO за период
+   records .................... рекорды партий и активности
+   switch ..................... переключение показатели ⇄ активность
+   карточка задач / подробности  карточка и панель задач
+   дебюты ..................... карточка и панель дебютов (data/openings.js)
+   итоги ...................... buildVerdicts — все правила выводов
+   глобальный поиск ........... gsIndex — все команды поиска
+   go ......................... первичная отрисовка
+
+   Данные: data/games.js и data/puzzles.js создаёт update.bat (не править),
+   data/openings.js правится вручную. Здесь правится только PROFILE.
+   ===================================================================== */
+var PROFILE = {
+  start: '26.09.2026',
+  stage: 'Этап 1: Итальянская за белых vs Stockfish 3',
+  goal: {engine: 'Stockfish 3', color: 'white', need: 4, of: 5}   // цель этапа — для «Итогов»
+};
+
+var games = window.GAMES || [];
+var cgAll = games;   // партии для графика с учётом фильтра графика
+
+/* ===================================================================== */
+
+var CHART_N = 10;   // окно по умолчанию: средние и график за N последних партий (5 / 10 / 20)
+var TREND_N = 5;    // тренд: последние N против предыдущих N
+var TABLE_N = 30;   // сколько последних партий в таблице
+var PER_PAGE = 10;  // партий на страницу таблицы
+
+var RESULT = {
+  win:  {letter:'W', label:'Победа',    short:'Win',  color:'#22c55e', badge:'#2d5a3d', col:'rgba(34,197,94,0.14)',   bg:'var(--green-bg)'},
+  lose: {letter:'L', label:'Поражение', short:'Lose', color:'#ef4444', badge:'#5a2d2d', col:'rgba(239,68,68,0.14)',   bg:'var(--red-bg)'},
+  draw: {letter:'D', label:'Ничья',     short:'Draw', color:'#d1d5db', badge:'#3a3d4a', col:'rgba(156,163,175,0.1)', bg:'var(--grey-bg)'}
+};
+var COLOR_NAME = {white:'Белые', black:'Чёрные'};
+var KNIGHT = {white:'♞', black:'♘'};
+
+games.forEach(function(g, i) { g.n = i + 1; });
+
+/* ---------- helpers ---------- */
+function $(id) { return document.getElementById(id); }
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+function plural(n, one, few, many) {
+  var m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
+
+function hasEnd(g) { return typeof g.end === 'number'; }
+
+function avg(list, key) {
+  var vals = list.filter(function(g) { return typeof g[key] === 'number'; })
+                 .map(function(g) { return g[key]; });
+  if (!vals.length) return null;
+  return vals.reduce(function(a, b) { return a + b; }, 0) / vals.length;
+}
+
+function winrate(list) {
+  if (!list.length) return null;
+  return list.filter(function(g) { return g.result === 'win'; }).length / list.length * 100;
+}
+
+// last TREND_N vs previous TREND_N; null if not enough games or data
+// последние n партий против предыдущих n (по умолчанию TREND_N)
+function trend(fn, n, list) {
+  n = n || TREND_N;
+  list = list || cgAll;
+  if (list.length < n * 2) return null;
+  var last = fn(list.slice(-n));
+  var prev = fn(list.slice(-n * 2, -n));
+  return (last === null || prev === null) ? null : last - prev;
+}
+
+function r1(v) { return Math.round(v * 10) / 10; }        // 17 / 14.2
+function r2(v) { return Math.round(v * 100) / 100; }      // svg coords
+
+function trendHtml(diff, isPct, lowerIsBetter, n) {
+  if (diff === null) return '';
+  n = n || TREND_N;
+  var d = r1(diff);
+  var good = lowerIsBetter ? d < 0 : d > 0;
+  var color = d === 0 ? 'var(--fg-mute)' : good ? 'var(--up)' : 'var(--red)';
+  var arrow = d > 0 ? '▲' : d < 0 ? '▼' : '■';
+  var sign = d > 0 ? '+' : d < 0 ? '−' : '';
+  var val = isPct ? Math.abs(d) + '%' : Math.abs(d).toFixed(1);
+  return '<span class="trend" style="color:' + color + '">' + arrow + ' ' + sign + val +
+         ' <span class="trend-n">' + n + ' ' + plural(n, 'игра', 'игры', 'игр') + '</span></span>';
+}
+
+function wrColorClass(v) { return v >= 60 ? 'green' : v >= 40 ? 'yellow' : 'red'; }
+
+/* ---------- profile card + legend ---------- */
+/* ---------- winrate ⇄ ELO (click) ---------- */
+var PERF_RU = {bullet:'Пуля', blitz:'Блиц', rapid:'Рапид', classical:'Классика', correspondence:'Переписка'};
+var wrView, eloView;
+var showElo = false;
+try { showElo = localStorage.getItem('wrMode') === 'elo'; } catch (e) {}
+
+// рейтинг по последней рейтинговой партии; изменение — сумма за последние TREND_N партий того же контроля
+function buildEloView() {
+  var all = window.RATING_GAMES || [];
+  var nTxt = '<span class="trend-n">' + TREND_N + ' ' + plural(TREND_N, 'игра', 'игры', 'игр') + '</span>';
+  if (!all.length) {
+    return {
+      label: 'Рейтинг ELO',
+      cls: 'wr-value',
+      value: '? <span class="trend" style="color:var(--fg-mute)">? ' + nTxt + '</span>',
+      sub: 'рейтинговых партий пока нет'
+    };
+  }
+  var perf = all[all.length - 1].perf;
+  var list = all.filter(function(r) { return r.perf === perf; });
+  var cur = list[list.length - 1].after;
+  var recent = list.slice(-TREND_N);
+  var diff = recent.reduce(function(s, r) { return s + r.diff; }, 0);
+  var color = diff > 0 ? 'var(--up)' : diff < 0 ? 'var(--red)' : 'var(--fg-mute)';
+  var arrow = diff > 0 ? '▲ +' : diff < 0 ? '▼ −' : '■ ';
+  var k = recent.length;
+  var peak = Math.max.apply(null, list.map(function(r) { return r.after; }));
+  return {
+    label: 'Рейтинг ELO' + (PERF_RU[perf] ? ' · ' + PERF_RU[perf] : ''),
+    cls: 'wr-value',
+    value: cur + ' <span class="trend" style="color:' + color + '">' + arrow + Math.abs(diff) +
+           ' <span class="trend-n">' + k + ' ' + plural(k, 'игра', 'игры', 'игр') + '</span></span>',
+    sub: 'Пик ' + peak + ' — ' + list.length + ' ' + plural(list.length, 'рейтинговая партия', 'рейтинговые партии', 'рейтинговых партий')
+  };
+}
+
+function renderWrBox() {
+  var v = showElo ? eloView : wrView;
+  $('wrLabel').textContent = v.label;
+  $('wrValue').className = v.cls;
+  $('wrValue').innerHTML = v.value;
+  $('wrSub').innerHTML = v.sub;
+}
+
+function toggleWr() {
+  showElo = !showElo;
+  try { localStorage.setItem('wrMode', showElo ? 'elo' : 'wr'); } catch (e) {}
+  renderWrBox();
+  var box = $('wrBox');
+  box.classList.remove('swap'); void box.offsetWidth; box.classList.add('swap');
+}
+$('wrBox').addEventListener('click', toggleWr);
+$('wrBox').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWr(); }
+});
+
+function renderSummary() {
+  var n = games.length;
+  var w = games.filter(function(g) { return g.result === 'win'; }).length;
+  var l = games.filter(function(g) { return g.result === 'lose'; }).length;
+  var d = n - w - l;
+  var wr = n ? Math.round(winrate(games)) : 0;
+
+  wrView = {
+    label: 'Общий винрейт',
+    // без партий — нейтральный прочерк, а не красные «0%»
+    cls: 'wr-value ' + (n ? wrColorClass(wr) : ''),
+    value: n ? wr + '% ' + trendHtml(trend(winrate, TREND_N, games), true, false) : '—',
+    sub: w + '<span class="green">W</span> / ' + l + '<span class="red">L</span>' +
+      (d ? ' / ' + d + '<span style="color:var(--fg)">D</span>' : '') +
+      ' — ' + n + ' ' + plural(n, 'партия', 'партии', 'партий')
+  };
+  eloView = buildEloView();
+  renderWrBox();
+  $('footer').textContent = 'KvLGn Chess Progress | Дата начала: ' + PROFILE.start + ' | ' + PROFILE.stage +
+    (window.GAMES_UPDATED ? ' | Обновлено: ' + window.GAMES_UPDATED : '');
+}
+
+/* ---------- stats panel ---------- */
+var STATS = [
+  {key:'acc',   label:'Точность',   color:'var(--c-acc)',   dotOpacity:0.4},
+  {key:'debut', label:'Дебют',      color:'var(--c-debut)'},
+  {key:'mid',   label:'Миттельшп.', color:'var(--c-mid)'},
+  {key:'end',   label:'Эндшпиль',   color:'var(--c-end)'}
+];
+
+function statLine(label, color, value, dotOpacity) {
+  return '<div class="stat-line"><div class="stat-name">' +
+    '<span class="stat-dot" style="background:' + color + (dotOpacity ? ';opacity:' + dotOpacity : '') + '"></span>' +
+    '<span style="color:' + color + '">' + label + '</span></div>' +
+    '<span class="stat-fill"></span><span class="stat-val">' + value + '</span></div>';
+}
+
+/* ---------- averages window: 5 / 10 / 20 games (panel + chart + legend winrate) ---------- */
+var WINDOWS = [5, 10, 20];
+var avgWindow = CHART_N;
+try {
+  var savedWin = +localStorage.getItem('avgWindow');
+  if (WINDOWS.indexOf(savedWin) >= 0) avgWindow = savedWin;
+} catch (e) {}
+
+function windowGames() { return cgAll.slice(-avgWindow); }
+
+function winLabel(w) { return 'за ' + w + ' ' + plural(w, 'игру', 'игры', 'игр'); }
+var LOCK = '<svg class="lock" viewBox="0 0 16 16" width="10" height="10" aria-hidden="true"><path fill="currentColor" d="M4 7V5a4 4 0 0 1 8 0v2h1v8H3V7h1zm2 0h4V5a2 2 0 0 0-4 0v2z"/></svg>';
+// фактическое окно: сколько партий реально вошло в средние (меньше выбранного — замок)
+function winActualLabel() {
+  var k = Math.min(avgWindow, cgAll.length);
+  return k < avgWindow ? k + ' из ' + avgWindow + LOCK : winLabel(avgWindow);
+}
+
+function renderWinPick() {
+  $('winPick').innerHTML =
+    '<button class="win-toggle' + (cfActive() ? ' filtered' : '') + '" aria-haspopup="listbox" aria-expanded="false" title="' +
+      (cgAll.length < avgWindow ? 'Выбрано ' + avgWindow + ', подходит только ' + cgAll.length : 'Средние и график за N последних партий') +
+      (cfActive() ? ' · с фильтром графика' : '') + '">' +
+      winActualLabel() + '<span class="caret">▾</span></button>' +
+    '<div class="win-menu" role="listbox">' + WINDOWS.map(function(w) {
+      var short = cgAll.length < w;
+      return '<button class="win-opt' + (w === avgWindow ? ' on' : '') + '" role="option" aria-selected="' + (w === avgWindow) + '" data-w="' + w + '">' +
+        winLabel(w) + (short ? ' <span class="win-short">' + LOCK + ' ' + cgAll.length + '</span>' : '') + '</button>';
+    }).join('') + '</div>';
+}
+
+function setWinMenu(open) {
+  $('winPick').classList.toggle('open', open);
+  var t = $('winPick').querySelector('.win-toggle');
+  if (t) t.setAttribute('aria-expanded', String(open));
+}
+
+$('winPick').addEventListener('click', function(e) {
+  e.stopPropagation();
+  var opt = e.target.closest('.win-opt');
+  if (opt) {
+    avgWindow = +opt.getAttribute('data-w');
+    try { localStorage.setItem('avgWindow', String(avgWindow)); } catch (err) {}
+    setWinMenu(false);
+    renderWindow();
+    return;
+  }
+  if (e.target.closest('.win-toggle')) setWinMenu(!$('winPick').classList.contains('open'));
+});
+document.addEventListener('click', function() { setWinMenu(false); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') setWinMenu(false); });
+
+function renderWindow() {
+  renderWinPick();
+  renderStats();
+  renderChart();
+  var wr = winrate(windowGames());
+  $('legendWr').innerHTML = (wr === null ? '—' : Math.round(wr)) + '<small>%</small>';
+  applySeries();
+}
+
+function renderStats() {
+  var list = windowGames();
+  // прирост = вторая половина окна против первой: 10 → 5 vs 5, 20 → 10 vs 10; при окне 5 не показываем
+  // если партий пока мало — сравниваем по максимуму доступного (приписка покажет, сколько игр)
+  var half = Math.min(avgWindow / 2, Math.floor(cgAll.length / 2));
+  var withTrend = avgWindow >= 10 && half >= 2;
+  function tr(fn) { return withTrend ? trend(fn, half) : null; }
+  // без прироста строка остаётся пустой, чтобы высота блока не прыгала при переключении
+  function th(diff, isPct, lowerIsBetter) {
+    // пусто и когда партий пока меньше, чем нужно для сравнения
+    return (withTrend && trendHtml(diff, isPct, lowerIsBetter, half)) || '<span class="trend" style="visibility:hidden">▲</span>';
+  }
+
+  $('statsList').innerHTML = STATS.map(function(s) {
+    var v = avg(list, s.key);
+    var value = v === null ? '—' : v.toFixed(1) + '<small>%</small>';
+    var diff = tr(function(l) { return avg(l, s.key); });
+    return '<div class="stat toggle" data-s="' + s.key + '" role="button" tabindex="0" style="--sc:' + s.color + '">' + statLine(s.label, s.color, value, s.dotOpacity) +
+           '<div class="stat-trend">' + th(diff, true, false) + '</div></div>';
+  }).join('');
+
+  var b = avg(list, 'blunders');
+  $('statsBlunders').innerHTML = statLine('Зевки', 'var(--c-blunder)', b === null ? '—' : b.toFixed(1)) +
+    '<div class="stat-trend">' +
+    th(tr(function(l) { return avg(l, 'blunders'); }), false, true) + '</div>';
+}
+
+/* ---------- show / hide chart series (side panel + legend) ---------- */
+var DEFAULT_HIDDEN = {end: true};   // эндшпиль по умолчанию скрыт, включается кликом
+var hiddenSeries = DEFAULT_HIDDEN;
+try {
+  var saved = localStorage.getItem('hiddenSeries.v2');
+  if (saved !== null) hiddenSeries = JSON.parse(saved) || {};
+} catch (e) {}
+
+// наведение на строку панели или легенду — эта серия ярче, остальные притухают
+function focusSeries(key) {
+  var svg = $('chart').querySelector('svg');
+  if (!svg) return;
+  svg.classList.toggle('focus', !!key);
+  svg.querySelectorAll('.series').forEach(function(g) { g.classList.toggle('hl', g.getAttribute('data-s') === key); });
+}
+// закреплённое выделение (один клик) — держится, пока не кликнешь снова
+var pinnedSeries = null;
+document.addEventListener('mouseover', function(e) {
+  var t = e.target.closest && e.target.closest('.toggle[data-s]');
+  var k = t && !hiddenSeries[t.getAttribute('data-s')] ? t.getAttribute('data-s') : null;
+  focusSeries(k || pinnedSeries);
+});
+function markPinned() {
+  document.querySelectorAll('.toggle[data-s]').forEach(function(el) { el.classList.toggle('pinned', el.getAttribute('data-s') === pinnedSeries); });
+}
+function pinSeries(key) {
+  if (hiddenSeries[key]) toggleSeries(key);
+  pinnedSeries = pinnedSeries === key ? null : key;
+  markPinned();
+  focusSeries(pinnedSeries);
+}
+
+function applySeries() {
+  document.querySelectorAll('[data-s]').forEach(function(el) {
+    el.classList.toggle('off', !!hiddenSeries[el.getAttribute('data-s')]);
+  });
+  if (typeof pinnedSeries !== 'undefined' && pinnedSeries) { markPinned(); focusSeries(pinnedSeries); }
+}
+
+function toggleSeries(key) {
+  if (hiddenSeries[key]) delete hiddenSeries[key]; else hiddenSeries[key] = true;
+  try { localStorage.setItem('hiddenSeries.v2', JSON.stringify(hiddenSeries)); } catch (e) {}
+  applySeries();
+}
+
+// делегирование: панель и легенда перерисовываются, обработчик один
+// клик по панели слева — выделить линию (повторный клик снимает), клик по легенде снизу — скрыть / показать
+document.addEventListener('click', function(e) {
+  var t = e.target.closest && e.target.closest('.toggle[data-s]');
+  if (!t) return;
+  var k = t.getAttribute('data-s');
+  if (t.closest('.legend')) {
+    toggleSeries(k);
+    if (hiddenSeries[k] && pinnedSeries === k) { pinnedSeries = null; markPinned(); }
+    focusSeries(pinnedSeries);
+  } else {
+    pinSeries(k);
+  }
+});
+document.addEventListener('keydown', function(e) {
+  var t = e.target.closest && e.target.closest('.toggle[data-s]');
+  if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); t.click(); }
+});
+
+/* ---------- chart ---------- */
+var chartGames = [];
+
+// партии за последние 14 игровых дней, включая сегодня (день начинается в 05:00, как в update.mjs)
+var RECENT_DAYS = 14;
+function renderRecentCount() {
+  function iso(d) {
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  var today = new Date(Date.now() - 5 * 3600e3);
+  var from = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (RECENT_DAYS - 1));
+  var k = games.filter(function(g) { return g.day && g.day >= iso(from); }).length;
+  return k + ' ' + plural(k, 'партия', 'партии', 'партий') + ' за последние 2 недели';
+}
+
+// серия: дни подряд с партиями, заканчивая сегодня (или вчера — сегодня ещё можно сыграть)
+function streaks() {
+  var days = games.map(function(g) { return g.day; }).filter(Boolean)
+    .filter(function(d, i, a) { return a.indexOf(d) === i; }).sort();
+  var best = 0, run = 0, prev = null;
+  days.forEach(function(d) {
+    var p = d.split('-'), cur = new Date(+p[0], p[1] - 1, +p[2]);
+    run = prev && Math.round((cur - prev) / 864e5) === 1 ? run + 1 : 1;
+    best = Math.max(best, run);
+    prev = cur;
+  });
+  var set = {};
+  days.forEach(function(d) { set[d] = true; });
+  var day = gameToday();
+  var playedToday = !!set[isoDay(day)];
+  if (!playedToday) day = addDays(day, -1);
+  var current = 0;
+  while (set[isoDay(day)]) { current++; day = addDays(day, -1); }
+  return {current: current, best: best, playedToday: playedToday};
+}
+
+// главное крупно (число дней), пояснение — мелким серым справа
+function streakTitle() {
+  var st = streaks();
+  function days(n) { return n + ' ' + plural(n, 'день', 'дня', 'дней'); }
+  function note(t) { return ' <span class="title-note">' + t + '</span>'; }
+  if (st.current > 0) {
+    var tail = !st.playedToday ? 'сыграй сегодня, чтобы продлить'
+             : st.current >= st.best ? 'новый рекорд!'
+             : 'рекорд ' + days(st.best);
+    return '🔥 ' + days(st.current) + ' подряд' + note(tail);
+  }
+  return st.best > 0 ? 'Серия прервана' + note('рекорд ' + days(st.best)) : 'Начни серию сегодня';
+}
+
+// заголовок блока: в показателях — партии за 2 недели, в активности — серия
+function renderTitle() {
+  if (chartMode === 'activity') $('chartTitle').innerHTML = streakTitle();
+  else $('chartTitle').textContent = renderRecentCount();
+}
+
+function renderChart() {
+  if (showRecords) { renderRecords(); return; }
+  chartGames = windowGames();
+  var list = chartGames, n = list.length;
+  if (!n) {
+    $('chart').innerHTML = '<div class="rec-view"><div class="rec-empty">' + (games.length ? 'Нет партий под фильтр графика' : 'Партий пока нет') + '</div></div>';
+    return;
+  }
+
+  var X0 = 40, W = 550, TOP = 30, BOT = 180, H = BOT - TOP;
+  var colW = W / n;
+  var badgeW = Math.min(38, colW - 8);
+  var maxB = Math.max.apply(null, list.map(function(g) { return g.blunders; }));
+  var bMax = Math.max(15, Math.ceil(maxB / 5) * 5);
+
+  function colX(i) { return r2(X0 + i * colW); }
+  function cx(i) { return r2(X0 + i * colW + colW / 2); }
+  function yPct(v) { return r2(BOT - v / 100 * H); }
+  function yBl(v) { return r2(BOT - Math.min(v, bMax) / bMax * H); }
+
+  var s = [];
+
+  // column tint
+  list.forEach(function(g, i) {
+    s.push('<rect x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="200" fill="' + RESULT[g.result].col + '"/>');
+  });
+  // перегородки между партиями (между днями — толще, ниже)
+  for (var i = 1; i < n; i++) {
+    s.push('<line x1="' + colX(i) + '" y1="-5" x2="' + colX(i) + '" y2="195" stroke="#0f1119" stroke-width="1.5" stroke-opacity="0.9"/>');
+  }
+  // day groups: thick separator at each date change + centered date label
+  var groups = [];
+  list.forEach(function(g, i) {
+    var cur = groups[groups.length - 1];
+    if (cur && cur.date === g.date) cur.to = i;
+    else groups.push({date: g.date, from: i, to: i});
+  });
+  groups.forEach(function(gr, k) {
+    if (k > 0) s.push('<line x1="' + colX(gr.from) + '" y1="-5" x2="' + colX(gr.from) + '" y2="195" stroke="#6b7280" stroke-width="2"/>');
+    s.push('<text x="' + r2((cx(gr.from) + cx(gr.to)) / 2) + '" y="214" text-anchor="middle" font-size="9" fill="#9ca3af">' + esc(gr.date) + '</text>');
+  });
+  // W/L/D badges
+  list.forEach(function(g, i) {
+    var R = RESULT[g.result];
+    s.push('<rect x="' + r2(cx(i) - badgeW / 2) + '" y="3" width="' + r2(badgeW) + '" height="20" rx="4" fill="' + R.badge + '"/>');
+    s.push('<text x="' + cx(i) + '" y="17" text-anchor="middle" font-size="12" font-weight="700" fill="' + R.color + '">' + R.letter + '</text>');
+  });
+  // grid + % axis (left) + blunders axis (right)
+  [100, 75, 50, 25, 0].forEach(function(p) {
+    var y = yPct(p);
+    s.push('<line x1="40" y1="' + y + '" x2="590" y2="' + y + '" stroke="#2a2d3a" stroke-width="0.5"/>');
+    if (p > 0) s.push('<text x="34" y="' + (y + 3.5) + '" text-anchor="end" font-size="9" fill="#9ca3af">' + p + '%</text>');
+  });
+  // шкала зевков прячется вместе с линией зевков
+  s.push('<g class="series' + (hiddenSeries.blunders ? ' off' : '') + '" data-s="blunders">');
+  [1, 2 / 3, 1 / 3].forEach(function(f) {
+    var v = Math.round(bMax * f);
+    s.push('<text x="595" y="' + (yBl(v) + 3) + '" font-size="8" fill="#f87171" opacity="0.6">' + v + '</text>');
+  });
+  s.push('</g>');
+  // knights (side played)
+  list.forEach(function(g, i) {
+    s.push('<text x="' + cx(i) + '" y="198" text-anchor="middle" font-size="16" fill="#d1d5db">' + KNIGHT[g.color] + '</text>');
+  });
+
+  // одна серия = <g data-s> с линией и точками; null (фаза не наступила) рвёт линию
+  function series(key, y, line, dot, color) {
+    var runs = [[]];
+    list.forEach(function(g, i) {
+      var v = y(g);
+      if (v === null) { if (runs[runs.length - 1].length) runs.push([]); }
+      else runs[runs.length - 1].push(cx(i) + ',' + v);
+    });
+    var out = '<g class="series' + (hiddenSeries[key] ? ' off' : '') + '" data-s="' + key + '">';
+    runs.forEach(function(r) {
+      if (r.length < 2) return;
+      // заливка под линией — видна, когда показатель подсвечен наведением
+      if (color) out += '<polygon class="area" points="' + r.join(' ') + ' ' + r[r.length - 1].split(',')[0] + ',' + BOT + ' ' + r[0].split(',')[0] + ',' + BOT + '" fill="url(#ga-' + key + ')"/>';
+      out += '<polyline points="' + r.join(' ') + '" fill="none" stroke-linejoin="round" stroke-linecap="round" ' + line + '/>';
+    });
+    list.forEach(function(g, i) {
+      var v = y(g);
+      if (v !== null) out += '<circle cx="' + cx(i) + '" cy="' + v + '" ' + dot + '/>';
+    });
+    return out + '</g>';
+  }
+  function pct(key) { return function(g) { return typeof g[key] === 'number' ? yPct(g[key]) : null; }; }
+
+  // порядок = слои: нижние первыми
+  s.push(series('acc', pct('acc'), 'stroke="#9ca3af" stroke-width="2" stroke-dasharray="6,4" opacity="0.7"', 'r="3" fill="#9ca3af" opacity="0.5"', '#9ca3af'));
+  s.push(series('blunders', function(g) { return yBl(g.blunders); }, 'stroke="#f87171" stroke-width="2" stroke-dasharray="3,3" opacity="0.7"', 'r="3" fill="#f87171" opacity="0.85"', '#f87171'));
+  s.push(series('end', pct('end'), 'stroke="#a78bfa" stroke-width="2" opacity="0.8"', 'r="3.5" fill="#a78bfa" opacity="0.9"', '#a78bfa'));
+  s.push(series('debut', pct('debut'), 'stroke="#60a5fa" stroke-width="2.5" opacity="0.8"', 'r="4" fill="#60a5fa" opacity="0.9"', '#60a5fa'));
+  s.push(series('mid', pct('mid'), 'stroke="#f59e0b" stroke-width="2.5" opacity="0.8"', 'r="4" fill="#f59e0b" opacity="0.9"', '#f59e0b'));
+
+  // линии средних: ровно по тем партиям, что на графике (= число в панели слева)
+  [['acc', '#9ca3af', yPct, '%'], ['debut', '#60a5fa', yPct, '%'], ['mid', '#f59e0b', yPct, '%'],
+   ['end', '#a78bfa', yPct, '%'], ['blunders', '#f87171', yBl, '']].forEach(function(a) {
+    var v = avg(list, a[0]);
+    if (v === null) return;
+    var yy = a[2](v);
+    s.push('<g class="series avg-line' + (hiddenSeries[a[0]] ? ' off' : '') + '" data-s="' + a[0] + '">' +
+      '<line x1="40" y1="' + yy + '" x2="590" y2="' + yy + '" stroke="' + a[1] + '" stroke-width="1" stroke-dasharray="2,4"/>' +
+      '<text x="588" y="' + r2(yy - 3) + '" text-anchor="end" font-size="8" font-weight="600" fill="' + a[1] + '">ср. ' + v.toFixed(1) + a[3] + '</text></g>');
+  });
+
+  // hover / tap areas: the whole column, on top of everything
+  list.forEach(function(g, i) {
+    s.push('<rect class="hit" data-i="' + i + '" x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="200" fill="rgba(0,0,0,0)"/>');
+  });
+
+  var defs = '<defs>' +
+    '<filter id="glow" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
+    [['acc', '#9ca3af'], ['blunders', '#f87171'], ['end', '#a78bfa'], ['debut', '#60a5fa'], ['mid', '#f59e0b']].map(function(a) {
+      return '<linearGradient id="ga-' + a[0] + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + a[1] + '" stop-opacity="0.32"/><stop offset="1" stop-color="' + a[1] + '" stop-opacity="0"/></linearGradient>';
+    }).join('') +
+    [['win', '#2f7a4a', '#1d4a2f'], ['lose', '#7a2f36', '#4a1d22'], ['draw', '#4b5063', '#2c3040']].map(function(a) {
+      return '<linearGradient id="gb-' + a[0] + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + a[1] + '"/><stop offset="1" stop-color="' + a[2] + '"/></linearGradient>';
+    }).join('') + '</defs>';
+  $('chart').innerHTML = '<svg viewBox="10 -10 600 245" role="img" aria-label="График последних партий">' + defs + s.join('') + '</svg>';
+  bindTooltip();
+}
+
+/* ---------- tooltip ---------- */
+function tooltipHtml(g) {
+  var R = RESULT[g.result];
+  $('tt-title').innerHTML = '#' + g.n + ' — ' + esc(g.date) + ' <span style="color:' + R.color + ';font-weight:700">' + R.label + '</span>';
+  var rows = [
+    {k: 'acc', html: '<span style="color:#9ca3af">Точность: <span style="color:#e4e4e7;font-weight:600">' + g.acc + '%</span></span>'},
+    {k: 'debut', html: '<span style="color:#60a5fa">Дебют: ' + g.debut + '%</span>'},
+    {k: 'mid', html: '<span style="color:#f59e0b">Миттельшпиль: ' + (typeof g.mid === 'number' ? g.mid + '%' : '—') + '</span>'},
+    {k: 'end', html: '<span style="color:#a78bfa">Эндшпиль: <span style="color:#e4e4e7">' + (hasEnd(g) ? g.end + '%' : '—') + '</span></span>'},
+    {k: 'blunders', html: '<span style="color:#ef4444">Зевки: ' + g.blunders + '</span>'}
+  ];
+  // выделенный слева показатель — первым строкой и крупнее
+  if (pinnedSeries) rows.sort(function(a, b) { return (b.k === pinnedSeries) - (a.k === pinnedSeries); });
+  $('tt-body').innerHTML =
+    rows.map(function(r) {
+      return '<div' + (r.k === pinnedSeries ? ' style="font-size:14px;font-weight:700;margin-bottom:3px"' : '') + '>' + r.html + '</div>';
+    }).join('') +
+    '<div style="color:var(--fg-dim);margin-top:4px;font-size:11px">' + esc(g.opening) + '</div>' +
+    '<div style="color:#6b7080;margin-top:3px;font-size:10px">' + esc(g.engine) + ' · ' + COLOR_NAME[g.color] + '</div>';
+}
+
+function placeTooltip(x, y) {
+  var tt = $('tooltip');
+  var w = tt.offsetWidth, h = tt.offsetHeight;
+  var left = x + 14, top = y - 10;
+  if (left + w > window.innerWidth - 8) left = Math.max(8, x - 14 - w);
+  if (top + h > window.innerHeight - 8) top = Math.max(8, window.innerHeight - 8 - h);
+  tt.style.left = left + 'px';
+  tt.style.top = top + 'px';
+}
+
+var activeHit = null;
+function showTooltip(el, x, y) {
+  if (activeHit) activeHit.classList.remove('active');
+  activeHit = el;
+  el.classList.add('active');
+  if (el.hasAttribute('data-b')) activityTip(actBuckets[+el.getAttribute('data-b')]);
+  else tooltipHtml(chartGames[+el.getAttribute('data-i')]);
+  $('tooltip').style.display = 'block';
+  placeTooltip(x, y);
+}
+function hideTooltip() {
+  if (activeHit) activeHit.classList.remove('active');
+  activeHit = null;
+  $('tooltip').style.display = 'none';
+}
+
+function bindTooltip() {
+  document.querySelectorAll('#chart .hit').forEach(function(el) {
+    el.addEventListener('mouseenter', function(e) { showTooltip(el, e.clientX, e.clientY); });
+    el.addEventListener('mousemove', function(e) { placeTooltip(e.clientX, e.clientY); });
+    el.addEventListener('mouseleave', hideTooltip);
+    // touch: tap toggles
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (activeHit === el && e.pointerType !== 'mouse') hideTooltip();
+      else showTooltip(el, e.clientX, e.clientY);
+    });
+  });
+}
+document.addEventListener('click', hideTooltip);
+window.addEventListener('scroll', hideTooltip, {passive: true});
+
+/* ---------- table filters: результат, дебют (поиск), показатели от–до ---------- */
+var filt = {results: {}, colors: {}, openings: {}, ranges: {}};
+var F_RESULTS = [
+  {key: 'win',  label: 'Победа',    c: 'var(--green)', bg: 'var(--green-bg)'},
+  {key: 'lose', label: 'Поражение', c: 'var(--red)',   bg: 'var(--red-bg)'},
+  {key: 'draw', label: 'Ничья',     c: '#d1d5db',      bg: 'var(--grey-bg)'}
+];
+var F_METRICS = [
+  {key: 'acc',      label: 'Точность, %',     color: '#9ca3af'},
+  {key: 'debut',    label: 'Дебют, %',        color: '#60a5fa'},
+  {key: 'mid',      label: 'Миттельшпиль, %', color: '#f59e0b'},
+  {key: 'end',      label: 'Эндшпиль, %',     color: '#a78bfa'},
+  {key: 'blunders', label: 'Зевки',           color: '#f87171'},
+  {key: 'mistakes', label: 'Ошибки',          color: '#fb923c'},
+  {key: 'inacc',    label: 'Неточности',      color: '#eab308'},
+  {key: 'moves',    label: 'Ходы',            color: '#e4e4e7'}
+];
+
+function hasKeys(o) { return Object.keys(o).length > 0; }
+
+function filterGames(list) {
+  return list.filter(function(g) {
+    if (hasKeys(filt.results) && !filt.results[g.result]) return false;
+    if (hasKeys(filt.colors) && !filt.colors[g.color]) return false;
+    if (hasKeys(filt.openings) && !filt.openings[g.opening]) return false;
+    for (var k in filt.ranges) {
+      var r = filt.ranges[k], v = g[k];
+      if (typeof v !== 'number') return false;   // например, эндшпиля не было
+      if (r.min !== null && v < r.min) return false;
+      if (r.max !== null && v > r.max) return false;
+    }
+    return true;
+  });
+}
+
+function filtersChanged() {
+  currentPage = 0;
+  renderFilterBar();
+  renderGames();
+}
+
+/* результат — кнопки-переключатели */
+function renderResultChips() {
+  $('fResult').innerHTML = F_RESULTS.map(function(r) {
+    var on = !!filt.results[r.key];
+    return '<button class="f-chip' + (on ? ' on' : '') + '" data-r="' + r.key + '" aria-pressed="' + on + '" style="--c:' + r.c + ';--bg-c:' + r.bg + '">' + r.label + '</button>';
+  }).join('');
+}
+$('fResult').addEventListener('click', function(e) {
+  var b = e.target.closest('.f-chip');
+  if (!b) return;
+  var k = b.getAttribute('data-r');
+  if (filt.results[k]) delete filt.results[k]; else filt.results[k] = true;
+  filtersChanged();
+});
+
+/* цвет — белые / чёрные (кони как в таблице) */
+function renderColorChips() {
+  $('fColor').innerHTML = ['white', 'black'].map(function(c) {
+    var on = !!filt.colors[c];
+    return '<button class="f-chip f-chip-color' + (on ? ' on' : '') + '" data-c="' + c + '" aria-pressed="' + on + '">' +
+      '<span class="f-knight">' + KNIGHT[c] + '</span>' + COLOR_NAME[c] + '</button>';
+  }).join('');
+}
+$('fColor').addEventListener('click', function(e) {
+  var b = e.target.closest('.f-chip');
+  if (!b) return;
+  var c = b.getAttribute('data-c');
+  if (filt.colors[c]) delete filt.colors[c]; else filt.colors[c] = true;
+  filtersChanged();
+});
+
+/* дебют — список сыгранных дебютов с поиском, можно выбрать несколько */
+function openingStats() {
+  var map = {}, out = [];
+  games.forEach(function(g) {
+    if (!map[g.opening]) { map[g.opening] = {name: g.opening, n: 0}; out.push(map[g.opening]); }
+    map[g.opening].n++;
+  });
+  return out.sort(function(a, b) { return (b.n - a.n) || a.name.localeCompare(b.name); });
+}
+
+function renderOpeningList() {
+  var q = $('fOpening').querySelector('.f-search').value.trim().toLowerCase();
+  var items = openingStats().filter(function(o) { return !q || o.name.toLowerCase().indexOf(q) >= 0; });
+  $('fOpening').querySelector('.f-list').innerHTML = items.length ? items.map(function(o) {
+    var on = !!filt.openings[o.name];
+    return '<button class="f-opt' + (on ? ' on' : '') + '" role="option" aria-selected="' + on + '" data-o="' + esc(o.name) + '">' +
+      '<span class="f-box">' + (on ? '✓' : '') + '</span><span class="f-opt-name" title="' + esc(o.name) + '">' + esc(o.name) + '</span>' +
+      '<span class="f-opt-n">' + o.n + '</span></button>';
+  }).join('') : '<div class="f-empty">Ничего не найдено</div>';
+}
+
+$('fOpening').querySelector('.f-search').addEventListener('input', renderOpeningList);
+$('fOpening').addEventListener('click', function(e) {
+  e.stopPropagation();
+  if (e.target.closest('.f-btn')) { toggleDrop('fOpening'); return; }
+  var opt = e.target.closest('.f-opt');
+  if (opt) {
+    var name = opt.getAttribute('data-o');
+    if (filt.openings[name]) delete filt.openings[name]; else filt.openings[name] = true;
+    filtersChanged();
+    return;
+  }
+  if (e.target.closest('[data-act="clear"]')) { filt.openings = {}; filtersChanged(); }
+});
+
+/* показатели — от / до */
+function renderMetricInputs() {
+  $('fMetrics').querySelector('.f-metrics').innerHTML = F_METRICS.map(function(m) {
+    var r = filt.ranges[m.key] || {min: null, max: null};
+    function val(v) { return v === null ? '' : v; }
+    return '<label for="fm-' + m.key + '-min" style="color:' + m.color + '">' + m.label + '</label>' +
+      '<input class="f-num" id="fm-' + m.key + '-min" type="number" min="0" placeholder="от" data-k="' + m.key + '" data-b="min" value="' + val(r.min) + '">' +
+      '<span class="dash">–</span>' +
+      '<input class="f-num" type="number" min="0" placeholder="до" data-k="' + m.key + '" data-b="max" value="' + val(r.max) + '" aria-label="' + m.label + ' до">';
+  }).join('');
+}
+
+$('fMetrics').addEventListener('input', function(e) {
+  var inp = e.target.closest('.f-num');
+  if (!inp) return;
+  var k = inp.getAttribute('data-k'), b = inp.getAttribute('data-b');
+  var v = inp.value === '' ? null : Number(inp.value);
+  var r = filt.ranges[k] || {min: null, max: null};
+  r[b] = isNaN(v) ? null : v;
+  if (r.min === null && r.max === null) delete filt.ranges[k]; else filt.ranges[k] = r;
+  // поля не перерисовываем, чтобы не сбивать курсор при вводе
+  currentPage = 0;
+  renderFilterButtons();
+  renderGames();
+});
+$('fMetrics').addEventListener('click', function(e) {
+  e.stopPropagation();
+  if (e.target.closest('.f-btn')) { toggleDrop('fMetrics'); return; }
+  if (e.target.closest('[data-act="clear"]')) { filt.ranges = {}; renderMetricInputs(); filtersChanged(); }
+});
+
+/* выпадающие панели: одна открыта за раз, закрываются кликом мимо и Esc */
+function toggleDrop(id) {
+  var el = $(id), open = !el.classList.contains('open');
+  closeDrops();
+  el.classList.toggle('open', open);
+  el.querySelector('.f-btn').setAttribute('aria-expanded', String(open));
+  if (open && id === 'fOpening') { renderOpeningList(); el.querySelector('.f-search').focus(); }
+}
+function closeDrops() {
+  ['fOpening', 'fMetrics'].forEach(function(id) {
+    $(id).classList.remove('open');
+    $(id).querySelector('.f-btn').setAttribute('aria-expanded', 'false');
+  });
+}
+document.addEventListener('click', closeDrops);
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeDrops(); });
+
+$('fReset').addEventListener('click', function() {
+  filt = {results: {}, colors: {}, openings: {}, ranges: {}};
+  renderMetricInputs();
+  filtersChanged();
+});
+
+function renderFilterButtons() {
+  var names = Object.keys(filt.openings);
+  var ob = $('fOpening').querySelector('.f-btn');
+  ob.innerHTML = esc(names.length === 0 ? 'Дебют: все' : names.length === 1 ? names[0] : 'Дебюты: ' + names.length) + '<span class="caret">▾</span>';
+  ob.title = names.join('\n');
+  ob.classList.toggle('active', names.length > 0);
+
+  var mk = Object.keys(filt.ranges).length;
+  var mb = $('fMetrics').querySelector('.f-btn');
+  mb.innerHTML = 'Показатели' + (mk ? ' · ' + mk : '') + '<span class="caret">▾</span>';
+  mb.classList.toggle('active', mk > 0);
+
+  var any = hasKeys(filt.results) || hasKeys(filt.colors) || names.length > 0 || mk > 0;
+  $('filters').classList.toggle('any', any);
+  var shown = filterGames(games).length;
+  $('fCount').textContent = any ? 'Найдено ' + shown + ' из ' + games.length : '';
+}
+
+function renderFilterBar() {
+  renderResultChips();
+  renderColorChips();
+  if ($('fOpening').classList.contains('open')) renderOpeningList();
+  renderFilterButtons();
+}
+
+/* ---------- chart filter: общий для показателей и активности (отдельно от таблицы) ---------- */
+var cfilt = {results: {}, colors: {}, openings: {}, ranges: {}};
+
+function filterChart(list) {
+  return list.filter(function(g) {
+    if (hasKeys(cfilt.results) && !cfilt.results[g.result]) return false;
+    if (hasKeys(cfilt.colors) && !cfilt.colors[g.color]) return false;
+    if (hasKeys(cfilt.openings) && !cfilt.openings[g.opening]) return false;
+    for (var k in cfilt.ranges) {
+      var r = cfilt.ranges[k], v = g[k];
+      if (typeof v !== 'number') return false;
+      if (r.min !== null && v < r.min) return false;
+      if (r.max !== null && v > r.max) return false;
+    }
+    return true;
+  });
+}
+
+function cfActive() { return hasKeys(cfilt.results) || hasKeys(cfilt.colors) || hasKeys(cfilt.openings) || hasKeys(cfilt.ranges); }
+
+function chartFilterChanged() {
+  cgAll = filterChart(games);
+  renderChartFilter();
+  renderWindow();
+  if (chartMode === 'activity') renderActivity();
+}
+
+function toggleKey(obj, k) { if (obj[k]) delete obj[k]; else obj[k] = true; }
+
+function renderCfMenu() {
+  var el = $('cf');
+  el.querySelector('.cf-results').innerHTML = F_RESULTS.map(function(r) {
+    var on = !!cfilt.results[r.key];
+    return '<button class="f-chip' + (on ? ' on' : '') + '" data-r="' + r.key + '" style="--c:' + r.c + ';--bg-c:' + r.bg + '">' + r.label + '</button>';
+  }).join('');
+  el.querySelector('.cf-colors').innerHTML = ['white', 'black'].map(function(c) {
+    var on = !!cfilt.colors[c];
+    return '<button class="f-chip' + (on ? ' on' : '') + '" data-c="' + c + '"><span class="f-knight">' + KNIGHT[c] + '</span>' + COLOR_NAME[c] + '</button>';
+  }).join('');
+  var q = el.querySelector('.f-search').value.trim().toLowerCase();
+  var items = openingStats().filter(function(o) { return !q || o.name.toLowerCase().indexOf(q) >= 0; });
+  el.querySelector('.f-list').innerHTML = items.length ? items.map(function(o) {
+    var on = !!cfilt.openings[o.name];
+    return '<button class="f-opt' + (on ? ' on' : '') + '" data-o="' + esc(o.name) + '">' +
+      '<span class="f-box">' + (on ? '✓' : '') + '</span><span class="f-opt-name" title="' + esc(o.name) + '">' + esc(o.name) + '</span>' +
+      '<span class="f-opt-n">' + o.n + '</span></button>';
+  }).join('') : '<div class="f-empty">Ничего не найдено</div>';
+}
+
+function renderCfInputs() {
+  var box = $('cf').querySelector('.cf-metrics');
+  box.innerHTML = F_METRICS.map(function(m) {
+    var r = cfilt.ranges[m.key] || {min: null, max: null};
+    function val(v) { return v === null ? '' : v; }
+    return '<label style="color:' + m.color + '">' + m.label + '</label>' +
+      '<input class="f-num" type="number" min="0" placeholder="от" data-k="' + m.key + '" data-b="min" value="' + val(r.min) + '" aria-label="' + m.label + ' от">' +
+      '<span class="dash">–</span>' +
+      '<input class="f-num" type="number" min="0" placeholder="до" data-k="' + m.key + '" data-b="max" value="' + val(r.max) + '" aria-label="' + m.label + ' до">';
+  }).join('');
+}
+function setCfMore(open) {
+  $('cf').classList.toggle('more', open);
+  $('cf').querySelector('.cf-more').setAttribute('aria-expanded', String(open));
+}
+$('cf').querySelector('.cf-more').addEventListener('click', function(e) {
+  e.stopPropagation();
+  setCfMore(!$('cf').classList.contains('more'));
+});
+$('cf').querySelector('.cf-metrics').addEventListener('input', function(e) {
+  var inp = e.target.closest('.f-num');
+  if (!inp) return;
+  var k = inp.getAttribute('data-k'), b = inp.getAttribute('data-b');
+  var v = inp.value === '' ? null : Number(inp.value);
+  var r = cfilt.ranges[k] || {min: null, max: null};
+  r[b] = isNaN(v) ? null : v;
+  if (r.min === null && r.max === null) delete cfilt.ranges[k]; else cfilt.ranges[k] = r;
+  cgAll = filterChart(games);
+  renderChartFilter(true);
+  renderWindow();
+  if (chartMode === 'activity') renderActivity();
+});
+
+function rangeLabel(k) {
+  var m = F_METRICS.filter(function(x) { return x.key === k; })[0];
+  var name = m.label.replace(', %', ''), pct = m.label.indexOf('%') >= 0 ? '%' : '';
+  var r = cfilt.ranges[k];
+  if (r.min !== null && r.max !== null) return name + ' ' + r.min + '–' + r.max + pct;
+  return r.min !== null ? name + ' ≥ ' + r.min + pct : name + ' ≤ ' + r.max + pct;
+}
+
+// активные фильтры — метками с крестиком в строке заголовка
+function renderChartFilter(keepMenu) {
+  var pills = [];
+  F_RESULTS.forEach(function(r) { if (cfilt.results[r.key]) pills.push({t: 'r', k: r.key, label: r.label}); });
+  ['white', 'black'].forEach(function(c) { if (cfilt.colors[c]) pills.push({t: 'c', k: c, label: KNIGHT[c] + ' ' + COLOR_NAME[c]}); });
+  Object.keys(cfilt.openings).forEach(function(o) { pills.push({t: 'o', k: o, label: o}); });
+  Object.keys(cfilt.ranges).forEach(function(k) { pills.push({t: 'm', k: k, label: rangeLabel(k)}); });
+  $('cfPills').innerHTML = pills.map(function(p) {
+    return '<span class="cf-pill" title="' + esc(p.label) + '"><span class="cf-pill-t">' + esc(p.label) + '</span>' +
+      '<button data-t="' + p.t + '" data-k="' + esc(p.k) + '" aria-label="Убрать фильтр">×</button></span>';
+  }).join('');
+  var btn = $('cf').querySelector('.f-btn');
+  btn.classList.toggle('active', cfActive());
+  btn.innerHTML = '⏷ Фильтр графика' + (cfActive() ? ' · ' + pills.length : '');
+  if (!keepMenu && $('cf').classList.contains('open')) renderCfMenu();
+}
+
+$('cfPills').addEventListener('click', function(e) {
+  var b = e.target.closest('button[data-t]');
+  if (!b) return;
+  e.stopPropagation();
+  var map = {r: cfilt.results, c: cfilt.colors, o: cfilt.openings, m: cfilt.ranges}[b.getAttribute('data-t')];
+  delete map[b.getAttribute('data-k')];
+  renderCfInputs();
+  chartFilterChanged();
+});
+
+$('cf').querySelector('.f-search').addEventListener('input', renderCfMenu);
+$('cf').addEventListener('click', function(e) {
+  e.stopPropagation();
+  var t;
+  if (e.target.closest('.f-btn')) {
+    var open = !$('cf').classList.contains('open');
+    closeDrops();
+    $('cf').classList.toggle('open', open);
+    $('cf').querySelector('.f-btn').setAttribute('aria-expanded', String(open));
+    if (open) { renderCfMenu(); renderCfInputs(); setCfMore(hasKeys(cfilt.ranges)); $('cf').querySelector('.f-search').focus(); }
+    return;
+  }
+  if ((t = e.target.closest('.f-chip[data-r]'))) { toggleKey(cfilt.results, t.getAttribute('data-r')); chartFilterChanged(); return; }
+  if ((t = e.target.closest('.f-chip[data-c]'))) { toggleKey(cfilt.colors, t.getAttribute('data-c')); chartFilterChanged(); return; }
+  if ((t = e.target.closest('.f-opt'))) { toggleKey(cfilt.openings, t.getAttribute('data-o')); chartFilterChanged(); return; }
+  if (e.target.closest('[data-act="clear"]')) { cfilt = {results: {}, colors: {}, openings: {}, ranges: {}}; renderCfInputs(); chartFilterChanged(); }
+});
+document.addEventListener('click', function() { $('cf').classList.remove('open'); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') $('cf').classList.remove('open'); });
+
+/* ---------- table (newest first) ---------- */
+var currentPage = 0;
+
+function detailItem(label, value, color) {
+  return '<div class="detail-item"><div class="detail-label">' + label + '</div>' +
+         '<div class="detail-value"' + (color ? ' style="color:' + color + '"' : '') + '>' + value + '</div></div>';
+}
+
+function irCell(ir) {
+  if (typeof ir !== 'number') return '<td style="color:var(--fg-dim)">—</td>';
+  var color = ir > 0 ? 'var(--green)' : ir < 0 ? 'var(--red)' : 'var(--fg-dim)';
+  var text = ir > 0 ? '+' + ir : ir < 0 ? '−' + Math.abs(ir) : '0';
+  return '<td style="color:' + color + ';font-weight:600">' + text + '</td>';
+}
+
+function renderGames() {
+  var ordered = filterGames(games).slice(-TABLE_N).reverse();
+  var total = ordered.length;
+  var pages = Math.max(1, Math.ceil(total / PER_PAGE));
+  currentPage = Math.max(0, Math.min(pages - 1, currentPage));
+  var start = currentPage * PER_PAGE;
+  var end = Math.min(start + PER_PAGE, total);
+
+  var tbody = $('gameRows');
+  tbody.innerHTML = '';
+  if (!total) tbody.innerHTML = '<tr class="no-rows"><td colspan="7">' +
+    (games.length ? 'Нет партий под выбранные фильтры' : 'Партий пока нет') + '</td></tr>';
+
+  ordered.slice(start, end).forEach(function(g) {
+    var R = RESULT[g.result];
+    var row = document.createElement('tr');
+    row.className = 'game-row r-' + g.result;
+    row.tabIndex = 0;
+    row.innerHTML =
+      '<td>' + g.n + '</td>' +
+      '<td class="td-knight" title="' + COLOR_NAME[g.color] + '">' + KNIGHT[g.color] + '</td>' +
+      '<td>' + esc(g.date) + '</td>' +
+      '<td>' + esc(g.opening) + '</td>' +
+      '<td class="td-dim">' + esc(g.engine) + '</td>' +
+      '<td><span class="badge" style="color:' + R.color + ';background:' + R.bg + '">' + R.short + '</span></td>' +
+      irCell(g.ir);
+
+    var detail = document.createElement('tr');
+    detail.className = 'game-detail';
+    detail.innerHTML = '<td colspan="7"><div class="detail-inner">' +
+      detailItem('Ходы', g.moves) +
+      detailItem('Точность', g.acc + '%') +
+      detailItem('Дебют', g.debut + '%', '#60a5fa') +
+      detailItem('Миттельшпиль', g.mid + '%', '#f59e0b') +
+      detailItem('Эндшпиль', hasEnd(g) ? g.end + '%' : '—') +
+      detailItem('Неточности', g.inacc, 'var(--yellow)') +
+      detailItem('Ошибки', g.mistakes, '#fb923c') +
+      detailItem('Зевки', g.blunders, 'var(--red)') +
+      (g.id ? '<a class="detail-link" href="https://lichess.org/' + g.id + '" target="_blank" rel="noopener">Партия на Lichess ↗</a>' : '') +
+      '</div></td>';
+
+    function toggle() { row.classList.toggle('open'); }
+    row.addEventListener('click', toggle);
+    row.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+
+    tbody.appendChild(row);
+    tbody.appendChild(detail);
+  });
+
+  $('pageInfo').textContent = total ? (start + 1) + '–' + end + ' из ' + total : '0 из 0';
+  $('prevPage').disabled = currentPage === 0;
+  $('nextPage').disabled = currentPage >= pages - 1;
+}
+
+$('prevPage').addEventListener('click', function() { currentPage--; renderGames(); });
+$('nextPage').addEventListener('click', function() { currentPage++; renderGames(); });
+
+/* ---------- activity mode: партии по дням за период ---------- */
+var PERIODS = [
+  {key: 'week',    label: 'Неделя'},
+  {key: '2weeks',  label: '2 недели'},
+  {key: 'month',   label: 'Месяц'},
+  {key: '3months', label: '3 месяца'}   // по неделям: по дням ~90 столбиков нечитаемы
+];
+var DOW = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+var chartMode = 'metrics';
+var period = 'week';
+try {
+  if (localStorage.getItem('chartMode') === 'activity') chartMode = 'activity';
+  var savedPeriod = localStorage.getItem('activityPeriod');
+  if (PERIODS.some(function(p) { return p.key === savedPeriod; })) period = savedPeriod;
+} catch (e) {}
+
+function isoDay(d) {
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+function ddmm(d) { return ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2); }
+function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+function mondayOf(d) { return addDays(d, -((d.getDay() + 6) % 7)); }
+// игровой день: до 05:00 — ещё вчера (как в update.mjs)
+function gameToday() { var t = new Date(Date.now() - 5 * 3600e3); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
+
+function activityBuckets() {
+  var today = gameToday(), list = [], i, d;
+  function day(d, top, bottom) {
+    list.push({from: d, to: d, top: top, bottom: bottom, title: DOW[d.getDay()] + ' ' + ddmm(d)});
+  }
+  if (period === 'week' || period === '2weeks') {
+    var start = addDays(mondayOf(today), period === 'week' ? 0 : -7);
+    var len = period === 'week' ? 7 : 14;
+    for (i = 0; i < len; i++) { d = addDays(start, i); day(d, DOW[d.getDay()], ddmm(d)); }
+  } else if (period === 'month') {
+    var first = new Date(today.getFullYear(), today.getMonth(), 1);
+    var days = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    for (i = 0; i < days; i++) { d = addDays(first, i); day(d, '', String(d.getDate())); }
+  } else {
+    var last = mondayOf(today);
+    for (var m = mondayOf(new Date(today.getFullYear(), today.getMonth() - 2, 1)); m <= last; m = addDays(m, 7)) {
+      list.push({from: m, to: addDays(m, 6), top: '', bottom: ddmm(m), title: 'Неделя ' + ddmm(m) + ' – ' + ddmm(addDays(m, 6))});
+    }
+  }
+  var td = isoDay(today);
+  list.forEach(function(b) {
+    var f = isoDay(b.from), t = isoDay(b.to);
+    b.games = cgAll.filter(function(g) { return g.day >= f && g.day <= t; });
+    b.today = td >= f && td <= t;
+    b.future = f > td;
+  });
+  return list;
+}
+
+var actBuckets = [];
+
+function renderActivity() {
+  if (showRecords) { actBuckets = []; renderRecords(); renderActivityStats(); return; }
+  var list = actBuckets = activityBuckets(), n = list.length;
+  var X0 = 40, W = 550, TOP = 20, BOT = 180, H = BOT - TOP;
+  var colW = W / n;
+  var dense = n > 20;
+  var maxC = Math.max.apply(null, list.map(function(b) { return b.games.length; }));
+  var need = Math.max(maxC, 4);
+  var step = [1, 2, 5, 10, 20, 50].filter(function(st) { return Math.ceil(need / st) <= 5; })[0];
+  var yMax = Math.ceil(need / step) * step;
+  function colX(i) { return r2(X0 + i * colW); }
+  function cx(i) { return r2(X0 + i * colW + colW / 2); }
+  function y(v) { return r2(BOT - v / yMax * H); }
+
+  var s = [];
+  // фон колонок: сегодня — жёлтым
+  list.forEach(function(b, i) {
+    // фон каждого дня: чуть светлее фона блока, будущие — бледнее
+    s.push('<rect x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="200" fill="' + (b.future ? 'rgba(148,163,210,0.05)' : 'rgba(148,163,210,0.11)') + '"/>');
+    if (b.today) {
+      s.push('<rect x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="200" fill="url(#gToday)"/>');
+      s.push('<rect x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="2" fill="#eab308" opacity="0.7"/>');
+    }
+  });
+  // разделители колонок; границы недель — толще
+  for (var i = 1; i < n; i++) {
+    var weekEdge = (period === '2weeks' && i === 7) || (period === 'month' && list[i].from.getDay() === 1);
+    s.push('<line x1="' + colX(i) + '" y1="-5" x2="' + colX(i) + '" y2="195" stroke="' + (weekEdge ? '#6b7280' : '#0f1119') + '" stroke-width="' + (weekEdge ? (period === '2weeks' ? 2 : 1) : (dense ? 0.8 : 1.5)) + '" stroke-opacity="' + (weekEdge ? 1 : 0.9) + '"/>');
+  }
+  // сетка + шкала количества партий
+  for (var v = 0; v <= yMax; v += step) {
+    s.push('<line x1="40" y1="' + y(v) + '" x2="590" y2="' + y(v) + '" stroke="#2a2d3a" stroke-width="0.5"/>');
+    if (v > 0) s.push('<text x="34" y="' + (y(v) + 3.5) + '" text-anchor="end" font-size="9" fill="#9ca3af">' + v + '</text>');
+  }
+  // столбики: победы снизу, затем ничьи, поражения сверху
+  var bw = Math.min(colW * 0.62, 34);
+  list.forEach(function(b, i) {
+    var cnt = {win: 0, draw: 0, lose: 0};
+    b.games.forEach(function(g) { cnt[g.result]++; });
+    var base = BOT;
+    var gap = dense ? 0.6 : 1.5;
+    [['win', '#22c55e'], ['draw', '#9ca3af'], ['lose', '#ef4444']].forEach(function(p) {
+      if (!cnt[p[0]]) return;
+      var h = cnt[p[0]] / yMax * H;
+      s.push('<rect x="' + r2(cx(i) - bw / 2) + '" y="' + r2(base - h + gap / 2) + '" width="' + r2(bw) + '" height="' + r2(Math.max(h - gap, 1)) + '" rx="' + (dense ? 1.5 : 4) + '" fill="url(#gBar-' + p[0] + ')" stroke="' + p[1] + '" stroke-opacity="0.55" stroke-width="0.8"/>');
+      base -= h;
+    });
+    if (b.games.length) {
+      s.push('<text x="' + cx(i) + '" y="' + r2(base - 5) + '" text-anchor="middle" font-size="' + (dense ? 8 : 12) + '" font-weight="700" fill="#f3f4f6">' + b.games.length + '</text>');
+    } else if (!b.future) {
+      s.push('<circle cx="' + cx(i) + '" cy="' + BOT + '" r="' + (dense ? 1.2 : 2) + '" fill="#4b5063"/>');
+    }
+    // подписи: день недели + дата (или только число для месяца/недели для 3 месяцев)
+    var lblColor = b.today ? '#eab308' : '#9ca3af';
+    var op = b.future ? ' opacity="0.4"' : '';
+    if (b.top) {
+      s.push('<text x="' + cx(i) + '" y="196" text-anchor="middle" font-size="10" font-weight="600" fill="' + lblColor + '"' + op + '>' + b.top + '</text>');
+      s.push('<text x="' + cx(i) + '" y="210" text-anchor="middle" font-size="9" fill="' + lblColor + '"' + op + '>' + b.bottom + '</text>');
+    } else {
+      s.push('<text x="' + cx(i) + '" y="198" text-anchor="middle" font-size="' + (dense ? 8 : 9) + '" fill="' + lblColor + '"' + op + '>' + b.bottom + '</text>');
+    }
+  });
+  // области наведения
+  list.forEach(function(b, i) {
+    s.push('<rect class="hit" data-b="' + i + '" x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="200" fill="rgba(0,0,0,0)"/>');
+  });
+
+  var defs = '<defs>' +
+    '<linearGradient id="gToday" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eab308" stop-opacity="0.12"/><stop offset="1" stop-color="#eab308" stop-opacity="0.02"/></linearGradient>' +
+    [['win', '#34d46e', '#15803d'], ['lose', '#f05252', '#b91c1c'], ['draw', '#a1a8b5', '#5b6170']].map(function(a) {
+      return '<linearGradient id="gBar-' + a[0] + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + a[1] + '" stop-opacity="0.95"/><stop offset="1" stop-color="' + a[2] + '" stop-opacity="0.8"/></linearGradient>';
+    }).join('') + '</defs>';
+  $('chart').innerHTML = '<svg viewBox="10 -10 600 245" role="img" aria-label="Активность за период">' + defs + s.join('') + '</svg>';
+  var pr = periodRange(0);
+  $('actRange').textContent = pr.from.slice(8) + '.' + pr.from.slice(5, 7) + ' – ' + pr.to.slice(8) + '.' + pr.to.slice(5, 7);
+  bindTooltip();
+  renderActivityStats();
+}
+
+/* ---------- activity panel: сводка за период против такого же предыдущего ---------- */
+function fromIso(x) { var p = x.split('-'); return new Date(+p[0], p[1] - 1, +p[2]); }
+function daysBetween(a, b) { return Math.round((b - a) / 864e5); }
+
+function periodRange(shift) {   // shift = 0 — текущий период, 1 — предыдущий
+  var today = gameToday(), from, to;
+  if (period === 'week' || period === '2weeks') {
+    var len = period === 'week' ? 7 : 14;
+    to = addDays(mondayOf(today), 6 - shift * len);
+    from = addDays(to, -(len - 1));
+  } else if (period === 'month') {
+    from = new Date(today.getFullYear(), today.getMonth() - shift, 1);
+    to = new Date(from.getFullYear(), from.getMonth() + 1, 0);
+  } else {
+    // 3 месяца — те же целые недели, что столбиками на графике (с понедельника недели, где 1-е число)
+    var start = mondayOf(new Date(today.getFullYear(), today.getMonth() - 2, 1));
+    var end = addDays(mondayOf(today), 6);
+    var span = daysBetween(start, end) + 1;
+    from = addDays(start, -shift * span);
+    to = addDays(end, -shift * span);
+  }
+  var f = isoDay(from), t = isoDay(to);
+  return {from: f, to: t, days: daysBetween(from, to) + 1, games: cgAll.filter(function(g) { return g.day >= f && g.day <= t; })};
+}
+
+var PREV_LABEL = {week: 'к пр. неделе', '2weeks': 'к пр. 2 нед.', month: 'к пр. месяцу', '3months': 'к пр. 3 мес.'};
+
+function actTrend(diff, isPct) {
+  if (diff === null) return '<span class="trend" style="visibility:hidden">▲</span>';
+  var d = r1(diff);
+  var color = d > 0 ? 'var(--up)' : d < 0 ? 'var(--red)' : 'var(--fg-mute)';
+  var arrow = d > 0 ? '▲ +' : d < 0 ? '▼ −' : '■ ';
+  return '<span class="trend" style="color:' + color + '">' + arrow + Math.abs(d) + (isPct ? '%' : '') +
+         ' <span class="trend-n">' + PREV_LABEL[period] + '</span></span>';
+}
+
+// ELO за период: изменение = сумма изменений рейтинга в рейтинговых партиях периода
+// (контроль времени — как у последней рейтинговой партии, как в карточке профиля)
+function periodElo(r) {
+  var all = window.RATING_GAMES || [];
+  if (!all.length) return null;
+  var perf = all[all.length - 1].perf;
+  var list = all.filter(function(x) { return x.perf === perf && x.day; });
+  var inPeriod = list.filter(function(x) { return x.day >= r.from && x.day <= r.to; });
+  var upTo = list.filter(function(x) { return x.day <= r.to; });
+  return {
+    perf: perf,
+    n: inPeriod.length,
+    diff: inPeriod.reduce(function(sum, x) { return sum + x.diff; }, 0),
+    end: upTo.length ? upTo[upTo.length - 1].after : null
+  };
+}
+
+function renderActivityStats() {
+  var cur = periodRange(0), prev = periodRange(1);
+  function activeDays(r) { return r.games.map(function(g) { return g.day; }).filter(function(d, i, a) { return a.indexOf(d) === i; }).length; }
+  function diff(a, b) { return a === null || b === null ? null : a - b; }
+
+  var n = cur.games.length, pn = prev.games.length;
+  var wr = winrate(cur.games), pwr = winrate(prev.games);
+  var ad = activeDays(cur), pad = activeDays(prev);
+  var acc = avg(cur.games, 'acc'), pacc = avg(prev.games, 'acc');
+
+  var rows = [
+    // сколько играл → как играл → результат (ELO — итог, отдельным блоком ниже)
+    {label: 'Партий',        color: 'var(--yellow)',  value: String(n),                                   tr: actTrend(n - pn, false)},
+    {label: 'Активн. дней', color: 'var(--c-debut)', value: ad + '<small>/' + cur.days + '</small>',     tr: actTrend(ad - pad, false)},
+    {label: 'Точность',      color: 'var(--c-acc)',   value: acc === null ? '—' : acc.toFixed(1) + '<small>%</small>', tr: actTrend(diff(acc, pacc), true)},
+    {label: 'Винрейт',       color: '#4ade80',        value: wr === null ? '—' : Math.round(wr) + '<small>%</small>', tr: actTrend(diff(wr === null ? null : Math.round(wr), pwr === null ? null : Math.round(pwr)), true)}
+  ];
+  $('actList').innerHTML = rows.map(function(r) {
+    return '<div class="stat" style="--sc:' + r.color + '">' + statLine(r.label, r.color, r.value) + '<div class="stat-trend">' + r.tr + '</div></div>';
+  }).join('');
+
+  var e = periodElo(cur), eloVal, eloSub;
+  if (!e) {
+    eloVal = '?';
+    eloSub = 'рейтинговых партий нет';
+  } else {
+    var c = e.diff > 0 ? 'var(--up)' : e.diff < 0 ? 'var(--red)' : 'var(--fg-num)';
+    eloVal = '<span style="color:' + c + '">' + (e.diff > 0 ? '▲ +' : e.diff < 0 ? '▼ −' : '') + Math.abs(e.diff) + '</span>';
+    eloSub = e.n
+      ? (e.end !== null ? e.end + ' · ' : '') + (PERF_RU[e.perf] || e.perf) + ' · ' + e.n + ' ' + plural(e.n, 'партия', 'партии', 'партий')
+      : 'за период не играл';
+  }
+  $('actElo').innerHTML = statLine('ELO', '#818cf8', eloVal) +
+    '<div class="stat-trend"><span class="trend" style="color:var(--fg-mute);font-weight:400">' + eloSub + '</span></div>';
+}
+
+function activityTip(b) {
+  var w = 0, l = 0, d = 0;
+  b.games.forEach(function(g) { if (g.result === 'win') w++; else if (g.result === 'lose') l++; else d++; });
+  $('tt-title').innerHTML = esc(b.title) + (b.today ? ' <span style="color:#eab308">· сегодня</span>' : '');
+  if (b.future) { $('tt-body').innerHTML = '<div style="color:var(--fg-dim)">ещё впереди</div>'; return; }
+  var n = b.games.length;
+  var acc = avg(b.games, 'acc');
+  $('tt-body').innerHTML =
+    '<div>Партий: <span style="font-weight:600">' + n + '</span></div>' +
+    (n ? '<div><span style="color:#22c55e">' + w + 'W</span> / <span style="color:#ef4444">' + l + 'L</span>' + (d ? ' / ' + d + 'D' : '') + '</div>' : '') +
+    (acc !== null ? '<div style="color:#9ca3af">Средняя точность: <span style="color:#e4e4e7">' + acc.toFixed(1) + '%</span></div>' : '');
+}
+
+/* ---------- period dropdown («НЕДЕЛЯ ▾») ---------- */
+function renderPeriodPick() {
+  var cur = PERIODS.filter(function(p) { return p.key === period; })[0];
+  $('periodPick').innerHTML =
+    '<button class="win-toggle period-toggle" aria-haspopup="listbox" aria-expanded="false">' + cur.label + '<span class="caret">▾</span></button>' +
+    '<div class="win-menu" role="listbox">' + PERIODS.map(function(p) {
+      return '<button class="win-opt' + (p.key === period ? ' on' : '') + '" role="option" data-p="' + p.key + '">' + p.label + '</button>';
+    }).join('') + '</div>';
+}
+
+function setPeriodMenu(open) {
+  $('periodPick').classList.toggle('open', open);
+  var t = $('periodPick').querySelector('.win-toggle');
+  if (t) t.setAttribute('aria-expanded', String(open));
+}
+
+$('periodPick').addEventListener('click', function(e) {
+  e.stopPropagation();
+  var opt = e.target.closest('.win-opt');
+  if (opt) {
+    period = opt.getAttribute('data-p');
+    try { localStorage.setItem('activityPeriod', period); } catch (err) {}
+    setPeriodMenu(false);
+    renderPeriodPick();
+    renderActivity();
+    return;
+  }
+  if (e.target.closest('.win-toggle')) setPeriodMenu(!$('periodPick').classList.contains('open'));
+});
+document.addEventListener('click', function() { setPeriodMenu(false); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') setPeriodMenu(false); });
+
+/* ---------- records: лучшая / худшая партия (показатели), лучший / худший день + рекорды (активность) ---------- */
+var showRecords = false;
+var recScope = 'period';   // 'period' — период слева, 'all' — за всё время
+var PERIOD_SCOPE = {week: 'за неделю', '2weeks': 'за 2 недели', month: 'за месяц', '3months': 'за 3 месяца'};
+
+function setRecords(on) {
+  showRecords = on;
+  $('chartBox').classList.toggle('records-on', on);
+  $('recordsBtn').textContent = on ? 'График' : 'Рекорды';
+  hideTooltip();
+  if (chartMode === 'activity') renderActivity(); else { renderChart(); applySeries(); }
+}
+
+$('recordsBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  setRecords(!showRecords);
+});
+
+$('recScope').addEventListener('click', function(e) {
+  e.stopPropagation();
+  var b = e.target.closest('button[data-scope]');
+  if (!b) return;
+  recScope = b.getAttribute('data-scope');
+  renderRecords();
+});
+
+function renderRecords() {
+  var periodLabel = chartMode === 'activity' ? PERIOD_SCOPE[period] : winActualLabel();
+  $('recScope').innerHTML =
+    '<button data-scope="period" class="' + (recScope === 'period' ? 'on' : '') + '">' + periodLabel + '</button>' +
+    '<button data-scope="all" class="' + (recScope === 'all' ? 'on' : '') + '">за всё время</button>';
+  $('chart').innerHTML = chartMode === 'activity' ? activityRecordsHtml() : metricsRecordsHtml();
+}
+
+function emptyCard(best, head, text) {
+  return '<div class="rec-card ' + (best ? 'best' : 'worst') + '"><div class="rec-head">' + head + '</div>' +
+         '<div class="rec-empty">' + text + '</div></div>';
+}
+
+/* --- показатели: лучшая и худшая партия по точности --- */
+function metricsRecordsHtml() {
+  var list = recScope === 'all' ? cgAll : windowGames();
+  if (!list.length) {
+    return '<div class="rec-view"><div class="rec-grid">' +
+      emptyCard(true, '▲ Лучшая партия', 'сыграй партию, чтобы появилась') +
+      emptyCard(false, '▼ Худшая партия', 'сыграй партию, чтобы появилась') +
+      '</div></div>';
+  }
+  var byAcc = list.slice().sort(function(a, b) { return (b.acc - a.acc) || (b.n - a.n); });
+  var best = byAcc[0], worst = byAcc[byAcc.length - 1];
+  return '<div class="rec-view"><div class="rec-grid">' +
+    gameCard(best, true) +
+    (list.length > 1 ? gameCard(worst, false) : emptyCard(false, '▼ Худшая партия', 'нужно хотя бы 2 партии')) +
+    '</div></div>';
+}
+
+function gameCard(g, best) {
+  var R = RESULT[g.result];
+  function ph(v) { return typeof v === 'number' ? v + '%' : '—'; }
+  return '<div class="rec-card ' + (best ? 'best' : 'worst') + '">' +
+    '<div class="rec-head">' + (best ? '▲ Лучшая партия' : '▼ Худшая партия') + '</div>' +
+    '<div class="rec-meta">#' + g.n + ' · ' + esc(g.date) + ' · <span style="color:' + R.color + '">' + R.label + '</span> · ' + esc(g.engine) + '</div>' +
+    '<div class="rec-title" title="' + esc(g.opening) + '">' + esc(g.opening) + '</div>' +
+    '<div class="rec-big">' + g.acc + '<small>%</small><span>точность</span></div>' +
+    '<div class="rec-row">' +
+      '<span style="color:#60a5fa">Дебют ' + ph(g.debut) + '</span>' +
+      '<span style="color:#f59e0b">Миттельшпиль ' + ph(g.mid) + '</span>' +
+      '<span style="color:#a78bfa">Эндшпиль ' + ph(g.end) + '</span>' +
+    '</div>' +
+    '<div class="rec-row dim">Зевки ' + g.blunders + ' · Ошибки ' + g.mistakes + ' · Неточности ' + g.inacc +
+      ' · ' + g.moves + ' ' + plural(g.moves, 'ход', 'хода', 'ходов') + '</div>' +
+    (g.id ? '<a class="rec-link" href="https://lichess.org/' + g.id + '" target="_blank" rel="noopener">Открыть на Lichess ↗</a>' : '') +
+  '</div>';
+}
+
+/* --- активность: лучший / худший день + плитки рекордов --- */
+function groupDays(list) {
+  var map = {}, out = [];
+  list.forEach(function(g) {
+    if (!g.day) return;
+    if (!map[g.day]) { map[g.day] = {day: g.day, games: [], w: 0, l: 0, d: 0}; out.push(map[g.day]); }
+    var x = map[g.day];
+    x.games.push(g);
+    if (g.result === 'win') x.w++; else if (g.result === 'lose') x.l++; else x.d++;
+  });
+  out.forEach(function(x) { x.acc = avg(x.games, 'acc'); x.bl = avg(x.games, 'blunders'); });
+  return out;
+}
+
+function dayLabel(iso) { var d = fromIso(iso); return DOW[d.getDay()] + ' ' + ddmm(d); }
+
+function dayCard(x, best) {
+  return '<div class="rec-card ' + (best ? 'best' : 'worst') + '">' +
+    '<div class="rec-head">' + (best ? '▲ Лучший день' : '▼ Худший день') + '</div>' +
+    '<div class="rec-meta">' + dayLabel(x.day) + '</div>' +
+    '<div class="rec-big"><span class="w">' + x.w + 'W</span> / <span class="l">' + x.l + 'L</span>' +
+      (x.d ? ' / ' + x.d + 'D' : '') + '</div>' +
+    '<div class="rec-row">' +
+      '<span>Партий ' + x.games.length + '</span>' +
+      '<span style="color:#9ca3af">Точность ' + (x.acc === null ? '—' : x.acc.toFixed(1) + '%') + '</span>' +
+      '<span style="color:#f87171">Зевков в среднем ' + (x.bl === null ? '—' : x.bl.toFixed(1)) + '</span>' +
+    '</div>' +
+  '</div>';
+}
+
+function tile(label, val, sub) {
+  return '<div class="rec-tile"><div class="rec-tile-label">' + label + '</div>' +
+         '<div class="rec-tile-val">' + val + '</div><div class="rec-tile-sub">' + sub + '</div></div>';
+}
+
+function activityRecordsHtml() {
+  var list = recScope === 'all' ? cgAll : periodRange(0).games;
+  var days = groupDays(list);
+  // партий нет — карточки остаются на местах с «—», экран всегда одинаковый
+  if (!days.length) {
+    return '<div class="rec-view">' +
+      '<div class="rec-grid">' +
+        emptyCard(true, '▲ Лучший день', 'сыграй партию, чтобы появился') +
+        emptyCard(false, '▼ Худший день', 'сыграй партию, чтобы появился') +
+      '</div>' +
+      '<div class="rec-section">🏆 Рекорды</div>' +
+      '<div class="rec-tiles">' +
+        ['Больше всего партий за день', 'Самая длинная серия', 'Самая активная неделя', 'Лучшая неделя по винрейту']
+          .map(function(label) { return tile(label, '—', 'пока нет партий'); }).join('') +
+      '</div>' +
+    '</div>';
+  }
+
+  // лучший: больше (W − L), затем выше точность; худший: больше (L − W), затем ниже точность
+  var byBest = days.slice().sort(function(a, b) { return ((b.w - b.l) - (a.w - a.l)) || ((b.acc || 0) - (a.acc || 0)); });
+  var byWorst = days.slice().sort(function(a, b) { return ((b.l - b.w) - (a.l - a.w)) || ((a.acc || 0) - (b.acc || 0)); });
+  var best = byBest[0], worst = byWorst[0];
+
+  // больше всего партий за день
+  var busiest = days.slice().sort(function(a, b) { return b.games.length - a.games.length; })[0];
+
+  // самая длинная серия дней подряд (внутри выбранного отрезка)
+  var sorted = days.map(function(x) { return x.day; }).sort();
+  var run = 1, bestRun = 1, runStart = sorted[0], bestFrom = sorted[0], bestTo = sorted[0];
+  for (var i = 1; i < sorted.length; i++) {
+    if (daysBetween(fromIso(sorted[i - 1]), fromIso(sorted[i])) === 1) run++;
+    else { run = 1; runStart = sorted[i]; }
+    if (run > bestRun) { bestRun = run; bestFrom = runStart; bestTo = sorted[i]; }
+  }
+
+  // недели (пн–вс)
+  var weeks = {}, wl = [];
+  list.forEach(function(g) {
+    if (!g.day) return;
+    var k = isoDay(mondayOf(fromIso(g.day)));
+    if (!weeks[k]) { weeks[k] = {from: k, games: []}; wl.push(weeks[k]); }
+    weeks[k].games.push(g);
+  });
+  function weekRange(k) { var m = fromIso(k); return ddmm(m) + ' – ' + ddmm(addDays(m, 6)); }
+  var activeWeek = wl.slice().sort(function(a, b) { return b.games.length - a.games.length; })[0];
+  var MIN_WEEK = 3;   // винрейт недели из 1–2 партий ничего не говорит
+  var wrWeeks = wl.filter(function(w) { return w.games.length >= MIN_WEEK; })
+    .sort(function(a, b) { return winrate(b.games) - winrate(a.games); });
+
+  var sameDay = best.day === worst.day;
+  return '<div class="rec-view">' +
+    '<div class="rec-grid">' +
+      dayCard(best, true) +
+      (sameDay ? emptyCard(false, '▼ Худший день', 'нужно хотя бы 2 игровых дня') : dayCard(worst, false)) +
+    '</div>' +
+    // рекорды — нейтральный блок, не продолжение колонок «лучший / худший»
+    '<div class="rec-section">🏆 Рекорды</div>' +
+    '<div class="rec-tiles">' +
+      tile('Больше всего партий за день', busiest.games.length, dayLabel(busiest.day)) +
+      tile('Самая длинная серия', bestRun + ' ' + plural(bestRun, 'день', 'дня', 'дней'),
+           bestFrom === bestTo ? dayLabel(bestFrom) : ddmm(fromIso(bestFrom)) + ' – ' + ddmm(fromIso(bestTo))) +
+      tile('Самая активная неделя', activeWeek.games.length + ' ' + plural(activeWeek.games.length, 'партия', 'партии', 'партий'), weekRange(activeWeek.from)) +
+      (wrWeeks.length
+        ? tile('Лучшая неделя по винрейту', Math.round(winrate(wrWeeks[0].games)) + '%', weekRange(wrWeeks[0].from) + ' · ' + wrWeeks[0].games.length + ' ' + plural(wrWeeks[0].games.length, 'партия', 'партии', 'партий'))
+        : tile('Лучшая неделя по винрейту', '—', 'нужно ' + MIN_WEEK + '+ партии за неделю')) +
+    '</div>' +
+  '</div>';
+}
+
+/* ---------- switch: показатели ⇄ активность ---------- */
+function setMode(m) {
+  chartMode = m;
+  try { localStorage.setItem('chartMode', m); } catch (e) {}
+  $('chartBox').classList.toggle('mode-activity', m === 'activity');
+  $('activityBtn').textContent = m === 'activity' ? 'Показатели' : 'Активность';
+  // режим «Рекорды» сохраняется при переключении показатели ⇄ активность
+  renderTitle();
+  hideTooltip();
+  if (m === 'activity') { renderPeriodPick(); renderActivity(); }
+  else { renderChart(); applySeries(); }
+}
+$('activityBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  setMode(chartMode === 'activity' ? 'metrics' : 'activity');
+});
+
+/* ---------- карточка задач (puzzles.js из update.bat) ---------- */
+function renderPuzzleCard() {
+  var P = window.PUZZLES;
+  var head = '<div class="pz-head"><span>🧩 Задачи</span><span class="pz-go">›</span></div>';
+  if (!P || P.rating === null) {
+    $('pzCard').innerHTML = head + '<div class="pz-main"><span class="pz-rating">—</span></div><div class="pz-sub">запусти update.bat</div>';
+    return;
+  }
+  // изменение рейтинга за сегодня — только если сегодня решал задачи, иначе без приписки
+  var hist = P.history || [];
+  var today = isoDay(gameToday());
+  var trendTxt = '';
+  if (P.attempts.some(function(a) { return a.day === today; })) {
+    var before = hist.filter(function(h) { return h.day < today; }).pop();
+    if (before) {
+      var d = P.rating - before.rating;
+      var color = d > 0 ? 'var(--up)' : d < 0 ? 'var(--red)' : 'var(--fg-mute)';
+      trendTxt = '<span class="trend" style="color:' + color + '" title="Изменение рейтинга задач за сегодня (было ' + before.rating + ')">' +
+        (d > 0 ? '▲ +' : d < 0 ? '▼ −' : '■ ') + Math.abs(d) + ' <span class="trend-n">сегодня</span></span>';
+    }
+  }
+  // мини-график рейтинга по снимкам
+  var pts = hist.slice(-30), spark = '';
+  if (pts.length > 1) {
+    var min = Math.min.apply(null, pts.map(function(h) { return h.rating; }));
+    var max = Math.max.apply(null, pts.map(function(h) { return h.rating; }));
+    var span = Math.max(max - min, 20);
+    var xy = pts.map(function(h, i) {
+      return r2(2 + i * 196 / (pts.length - 1)) + ',' + r2(22 - (h.rating - min) / span * 18);
+    });
+    var last = xy[xy.length - 1].split(',');
+    spark = '<svg class="pz-spark" viewBox="0 0 200 26" preserveAspectRatio="none" aria-hidden="true">' +
+      '<polyline points="' + xy.join(' ') + '" fill="none" stroke="#a78bfa" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>' +
+      '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2.5" fill="#a78bfa"/></svg>';
+  }
+  var wins = P.attempts.filter(function(a) { return a.win; }).length;
+  // микс против дебютных тренировок: перфоманс = средний рейтинг задач ± 400 × (решено − нет) / задач
+  function perf(list) {
+    if (!list.length) return null;
+    var w = list.filter(function(a) { return a.win; }).length;
+    return Math.round(list.reduce(function(sum, a) { return sum + a.r; }, 0) / list.length + 400 * (2 * w - list.length) / list.length);
+  }
+  // слева — микс всегда; справа карусель: 3 последние тренировки (дебюты / темы), сдвиг каждые 4 с, пауза при наведении
+  var wkMon = mondayOf(gameToday());
+  var weekLabel = 'Неделя', weekTitle = 'Задач за текущую неделю';
+  function inWeek(m) {
+    var f = isoDay(m), t = isoDay(addDays(m, 6));
+    return P.attempts.filter(function(a) { return a.day >= f && a.day <= t; }).length;
+  }
+  var weekN = inWeek(wkMon);
+  if (!weekN && P.attempts.length) {
+    wkMon = mondayOf(fromIso(P.attempts[P.attempts.length - 1].day));   // последняя неделя с задачами
+    weekN = inWeek(wkMon);
+    weekLabel = ddmm(wkMon) + '–' + ddmm(addDays(wkMon, 6));
+    weekTitle = 'На этой неделе задач нет — показана последняя неделя с задачами';
+  }
+  var recent = [], seenKey = {};
+  for (var i = P.attempts.length - 1; i >= 0 && recent.length < 3; i--) {
+    var key = pzKey(P.attempts[i]);
+    if (key !== 'mix' && !seenKey[key]) { seenKey[key] = true; recent.push(P.attempts[i]); }
+  }
+  var slides = recent.map(function(last) {
+    var key = pzKey(last);
+    var list = P.attempts.filter(function(a) { return pzKey(a) === key; });
+    var name = pzLabel(last, P.themeNames || {});
+    return '<div class="pz-slide" title="' + esc(name) + ': ' + list.length + ' ' + plural(list.length, 'задача', 'задачи', 'задач') +
+      ', последний раз ' + last.date + '"><span class="pz-sl-name">' + esc(name) + '</span>' +
+      '<b class="pz-ok">' + list.filter(function(a) { return a.win; }).length + '✓</b>' +
+      '<b class="pz-bad">' + list.filter(function(a) { return !a.win; }).length + '✗</b></div>';
+  });
+  var carousel = '<div class="pz-split">' +
+    '<span class="pz-mix" title="' + weekTitle + '">' + weekLabel + ' <b>' + weekN + '</b></span>' +
+    (slides.length
+      ? '<div class="pz-car"><div class="pz-track">' + slides.join('') + (slides.length > 1 ? slides[0] : '') + '</div></div>' +
+        (slides.length > 1 ? '<div class="pz-dots">' + slides.map(function(_, k) { return '<i' + (k === 0 ? ' class="on"' : '') + '></i>'; }).join('') + '</div>' : '')
+      : '') +
+    '</div>';
+  $('pzCard').innerHTML = head +
+    '<div class="pz-main"><span class="pz-rating">' + P.rating + '</span>' + trendTxt + '</div>' +
+    spark + carousel +
+    '<div class="pz-sub">' + P.attempts.length + ' ' + plural(P.attempts.length, 'задача', 'задачи', 'задач') +
+      (P.attempts.length ? ' · ' + Math.round(wins / P.attempts.length * 100) + '% решено' : '') + '</div>';
+  startCarousel(slides.length);
+}
+
+// общий ключ и подпись режима (карточка, карусель, панель подробностей)
+function pzKey(a) { return a.mode === 'open' || a.mode === 'theme' ? a.mode + '|' + a.tr : 'mix'; }
+function pzLabel(a, names) {
+  if (a.mode === 'open') return a.tr.split(': ').pop();
+  if (a.mode === 'theme') return names[a.tr] || PZ_NAMES[a.tr] || a.tr;
+  return 'Микс';
+}
+
+var pzTimer = null, pzIdx = 0, pzPaused = false;
+function startCarousel(n) {
+  clearInterval(pzTimer);
+  pzIdx = 0;
+  if (n < 2) return;
+  pzTimer = setInterval(function() {
+    if (pzPaused) return;
+    var track = $('pzCard').querySelector('.pz-track');
+    if (!track) return;
+    pzIdx++;
+    track.style.transition = 'transform 0.5s ease';
+    track.style.transform = 'translateX(' + (-100 * pzIdx) + '%)';
+    var dots = $('pzCard').querySelectorAll('.pz-dots i');
+    dots.forEach(function(d, k) { d.classList.toggle('on', k === pzIdx % n); });
+    if (pzIdx === n) {   // дошли до копии первого слайда — незаметно возвращаемся в начало
+      setTimeout(function() { track.style.transition = 'none'; track.style.transform = 'translateX(0)'; pzIdx = 0; }, 520);
+    }
+  }, 4000);
+}
+$('pzCard').addEventListener('mouseenter', function() { pzPaused = true; });
+$('pzCard').addEventListener('mouseleave', function() { pzPaused = false; });
+
+/* ---------- подробности по задачам: выдвигаются справа от карточки ---------- */
+// служебные метки Lichess — не тактические темы
+var PZ_SKIP = {middlegame: 1, endgame: 1, opening: 1, short: 1, long: 1, veryLong: 1, oneMove: 1,
+  advantage: 1, crushing: 1, equality: 1, master: 1, masterVsMaster: 1, superGM: 1, mate: 1};
+var PZ_NAMES = {mateIn1: 'Мат в 1 ход', mateIn2: 'Мат в 2 хода', mateIn3: 'Мат в 3 хода', mateIn4: 'Мат в 4 хода', mateIn5: 'Мат в 5+ ходов'};
+var PZ_MIN_THEME = 5;   // тема в рейтинге, если решено хотя бы столько задач
+
+function pzPerf(list) {
+  if (!list.length) return null;
+  var w = list.filter(function(a) { return a.win; }).length;
+  return Math.round(list.reduce(function(sum, a) { return sum + a.r; }, 0) / list.length + 400 * (2 * w - list.length) / list.length);
+}
+
+function pzRow(name, list, cls) {
+  var w = list.filter(function(a) { return a.win; }).length;
+  return '<div class="pzd-row' + (cls ? ' ' + cls : '') + '"><span class="pzd-name" title="' + esc(name) + '">' + esc(name) + '</span>' +
+    '<b>' + pzPerf(list) + '</b><span class="pzd-n">' + list.length + ' · ' + Math.round(w / list.length * 100) + '%</span></div>';
+}
+
+function renderPuzzleDetail() {
+  var P = window.PUZZLES;
+  if (!P || !P.attempts || !P.attempts.length) {
+    $('pzDetail').innerHTML = '<div class="pzd-empty">Задач пока нет — запусти update.bat</div>';
+    return;
+  }
+  var names = P.themeNames || {};
+
+  // режимы: микс + каждая дебютная тренировка
+  var groups = {mix: []}, order = ['mix'], labels = {};
+  P.attempts.forEach(function(a) {
+    var k = pzKey(a);
+    if (!groups[k]) { groups[k] = []; order.push(k); labels[k] = pzLabel(a, names); }
+    groups[k].push(a);
+  });
+  order = ['mix'].concat(order.slice(1).sort(function(a, b) { return groups[b].length - groups[a].length; }));
+  var modes = order.filter(function(k) { return groups[k].length; }).map(function(k) {
+    return pzRow(k === 'mix' ? 'Микс' : labels[k], groups[k]);
+  });
+
+  // темы: перфоманс Lichess (с первой попытки, 90 дней); если сводки нет — по истории задач
+  var ranked;
+  if (P.themeStats && Object.keys(P.themeStats).length) {
+    ranked = Object.keys(P.themeStats).filter(function(t) { return !PZ_SKIP[t] && P.themeStats[t].nb >= PZ_MIN_THEME; })
+      .map(function(t) {
+        var st = P.themeStats[t];
+        return {name: names[t] || PZ_NAMES[t] || t, perf: st.perf, n: st.nb, pct: Math.round(st.first / st.nb * 100)};
+      });
+  } else {
+    var th = {};
+    P.attempts.forEach(function(a) {
+      (a.themes || []).forEach(function(t) { if (!PZ_SKIP[t]) (th[t] = th[t] || []).push(a); });
+    });
+    ranked = Object.keys(th).filter(function(t) { return th[t].length >= PZ_MIN_THEME; }).map(function(t) {
+      var w = th[t].filter(function(a) { return a.win; }).length;
+      return {name: names[t] || PZ_NAMES[t] || t, perf: pzPerf(th[t]), n: th[t].length, pct: Math.round(w / th[t].length * 100)};
+    });
+  }
+  ranked.sort(function(a, b) { return b.perf - a.perf; });
+  var full = $('pzDetail').classList.contains('expanded');
+  var half = Math.ceil(ranked.length / 2);
+  var top = full ? ranked.slice(0, half) : ranked.slice(0, 3);
+  var bottom = (full ? ranked.slice(half) : ranked.slice(-3)).reverse().filter(function(x) { return top.indexOf(x) < 0; });
+  var more = modes.length > 3 || ranked.length > 6;
+  function themeRow(x, cls) {
+    return '<div class="pzd-row ' + cls + '"><span class="pzd-name" title="' + esc(x.name) + '">' + esc(x.name) + '</span>' +
+      '<b>' + x.perf + '</b><span class="pzd-n">' + x.n + ' · ' + x.pct + '%</span></div>';
+  }
+
+  function col(title, note, rows, empty) {
+    return '<div class="pzd-col"><div class="pzd-title" title="' + note + '">' + title + '</div>' + (rows.length ? rows.join('') : '<div class="pzd-empty">' + empty + '</div>') + '</div>';
+  }
+  $('pzDetail').innerHTML =
+    '<button class="pzd-close" aria-label="Закрыть">×</button>' +
+    col('Режимы', 'Перфоманс по истории задач (решения со второй попытки тоже засчитаны)',
+      full ? modes : modes.slice(0, 3), '—') +
+    col('<span style="color:var(--green)">▲</span> Сильные темы', 'Перфоманс Lichess: только решения с первой попытки, за 90 дней', top.map(function(x) { return themeRow(x, 'good'); }), 'мало данных') +
+    col('<span style="color:var(--red)">▼</span> Слабые темы', 'Перфоманс Lichess: только решения с первой попытки, за 90 дней', bottom.map(function(x) { return themeRow(x, 'bad'); }), 'нужно ' + PZ_MIN_THEME + '+ задач в теме') +
+    (more ? '<button class="pzd-toggle">' + (full ? 'Свернуть ▴' : 'Показать все: ' + (modes.length - 1) + ' ' +
+      plural(modes.length - 1, 'дебют', 'дебюта', 'дебютов') + ', ' + ranked.length + ' ' + plural(ranked.length, 'тема', 'темы', 'тем') + ' ▾') + '</button>' : '') +
+    '<a class="pzd-link" href="https://lichess.org/training/themes" target="_blank" rel="noopener">Темы на Lichess ↗</a>';
+}
+
+function togglePuzzleDetail(open) {
+  var row = $('sideRow');
+  if (open === undefined) open = !row.classList.contains('open');
+  if (open) { renderPuzzleDetail(); if ($('sideRow').classList.contains('op-open')) toggleOpeningDetail(false); if ($('sideRow').classList.contains('vd-open')) toggleVerdict(false); }
+  if (!open) { $('pzDetail').classList.remove('expanded'); row.classList.remove('expanded'); }
+  row.classList.toggle('open', open);
+  $('pzCard').setAttribute('aria-expanded', String(open));
+  $('pzDetail').setAttribute('aria-hidden', String(!open));
+}
+$('pzCard').addEventListener('click', function() { togglePuzzleDetail(); });
+$('pzCard').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePuzzleDetail(); }
+});
+$('pzDetail').addEventListener('click', function(e) {
+  if (e.target.closest('.pzd-close')) togglePuzzleDetail(false);
+  if (e.target.closest('.pzd-toggle')) {
+    var d = $('pzDetail');
+    d.classList.toggle('expanded');
+    $('sideRow').classList.toggle('expanded', d.classList.contains('expanded'));
+    renderPuzzleDetail();
+  }
+});
+
+/* ---------- дебюты: изучаю / следующие / в планах (openings.js) ---------- */
+function opMatch(o, name) {
+  return (o.match || []).some(function(m) { return (name || '').toLowerCase().indexOf(m.toLowerCase()) >= 0; });
+}
+// партии этим цветом в этом дебюте + задачи из этого дебюта
+function opStats(o) {
+  var gl = games.filter(function(g) { return g.color === o.color && opMatch(o, g.opening); });
+  var w = gl.filter(function(g) { return g.result === 'win'; }).length;
+  var l = gl.filter(function(g) { return g.result === 'lose'; }).length;
+  var pz = ((window.PUZZLES || {}).attempts || []).filter(function(a) { return opMatch(o, a.op); });
+  return {games: gl, w: w, l: l, d: gl.length - w - l, debut: avg(gl, 'debut'),
+          pz: pz.length, pzOk: pz.filter(function(a) { return a.win; }).length};
+}
+function opName(o) { return esc(o.name) + ' <span class="op-kn">' + KNIGHT[o.color] + '</span>'; }
+function opGamesLine(st) {
+  if (!st.games.length) return 'партий пока нет';
+  return st.games.length + ' ' + plural(st.games.length, 'партия', 'партии', 'партий') + ' · ' +
+    Math.round(st.w / st.games.length * 100) + '% побед';
+}
+
+function renderOpeningCard() {
+  var O = window.OPENINGS;
+  var head = '<div class="op-head"><span>📖 Дебюты</span><span class="op-go">›</span></div>';
+  if (!O || !O.current || !O.current.length) {
+    $('opCard').innerHTML = head + '<div class="op-main">—</div><div class="op-sub">заполни progress/data/openings.js</div>';
+    return;
+  }
+  var cur = O.current[0], st = opStats(cur);
+  $('opCard').innerHTML = head +
+    '<div class="op-main" title="Изучаю сейчас">' + opName(cur) + '</div>' +
+    '<div class="op-line">' + opGamesLine(st) + '</div>' +
+    '<div class="op-line op-next">' + ((O.next || []).length
+      ? 'Далее: ' + O.next.map(function(o) { return opName(o); }).join(' · ')
+      : 'Далее: —') + '</div>' +
+    '<div class="op-sub">В планах: ' + (O.planned || []).length + ((O.done || []).length ? ' · изучено: ' + O.done.length : '') + '</div>';
+}
+
+function studyLinks(o) {
+  return (o.studies || []).map(function(s) {
+    return '<a href="https://lichess.org/study/' + s.id + '" target="_blank" rel="noopener" title="Студия ' + esc(s.master) +
+      (s.parts > 1 ? ' — часть 1 из ' + s.parts : '') + '">' + esc(s.master) + ' ↗</a>';
+  }).join(' ');
+}
+
+function renderOpeningDetail() {
+  var O = window.OPENINGS || {};
+  function current(o) {
+    var st = opStats(o);
+    return '<div class="opd-item">' +
+      '<div class="opd-name">' + opName(o) + '</div>' +
+      '<div class="opd-row">' + (st.games.length
+        ? st.games.length + ' ' + plural(st.games.length, 'партия', 'партии', 'партий') + ' · <span class="w">' + st.w + 'W</span> <span class="l">' + st.l + 'L</span>' +
+          (st.d ? ' ' + st.d + 'D' : '') + (st.debut !== null ? ' · дебют ' + Math.round(st.debut) + '%' : '')
+        : 'партий пока нет') + '</div>' +
+      '<div class="opd-row">' + (st.pz ? 'Задачи ' + st.pz + ' · <span class="w">' + st.pzOk + '✓</span> <span class="l">' + (st.pz - st.pzOk) + '✗</span>' : 'задач по дебюту нет') + '</div>' +
+      '<div class="opd-row opd-links">Студии: ' + studyLinks(o) + '</div>' +
+    '</div>';
+  }
+  // следующие и планы — компактные метки, подробности в подсказке
+  function chip(o) {
+    var st = opStats(o);
+    var tip = o.name + ' (' + (o.color === 'white' ? 'белыми' : 'чёрными') + ')\nМастера: ' +
+      (o.studies || []).map(function(x) { return x.master; }).join(', ') +
+      (st.games.length ? '\nПартий: ' + st.games.length : '') + (st.pz ? '\nЗадач: ' + st.pz : '');
+    var first = (o.studies || [])[0];
+    return '<a class="op-chip" title="' + esc(tip).replace(/\n/g, '&#10;') + '"' +
+      (first ? ' href="https://lichess.org/study/' + first.id + '" target="_blank" rel="noopener"' : '') + '>' + opName(o) + '</a>';
+  }
+  $('opDetail').innerHTML =
+    '<button class="pzd-close op-close" aria-label="Закрыть">×</button>' +
+    '<div class="opd-col"><div class="pzd-title">Изучаю</div>' + (O.current || []).map(current).join('') + '</div>' +
+    '<div class="opd-col">' +
+      '<div class="pzd-title">Следующие</div><div class="op-chips">' + ((O.next || []).length ? O.next.map(chip).join('') : '<span class="pzd-empty">—</span>') + '</div>' +
+      '<div class="pzd-title" style="margin-top:8px">В планах</div><div class="op-chips">' + ((O.planned || []).length ? O.planned.map(chip).join('') : '<span class="pzd-empty">—</span>') + '</div>' +
+    '</div>';
+}
+
+function toggleOpeningDetail(open) {
+  var row = $('sideRow');
+  if (open === undefined) open = !row.classList.contains('op-open');
+  if (open) { togglePuzzleDetail(false); if ($('sideRow').classList.contains('vd-open')) toggleVerdict(false); renderOpeningDetail(); }
+  row.classList.toggle('op-open', open);
+  $('opCard').setAttribute('aria-expanded', String(open));
+  $('opDetail').setAttribute('aria-hidden', String(!open));
+}
+$('opCard').addEventListener('click', function() { toggleOpeningDetail(); });
+$('opCard').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleOpeningDetail(); }
+});
+$('opDetail').addEventListener('click', function(e) {
+  if (e.target.closest('.op-close')) toggleOpeningDetail(false);
+});
+// увёл курсор с карточки и панели — панель закрывается (с небольшой задержкой, чтобы не мигала при переходе)
+var opLeaveTimer = null;
+['opCard', 'opDetail'].forEach(function(id) {
+  $(id).addEventListener('mouseleave', function() {
+    if (!$('sideRow').classList.contains('op-open')) return;
+    opLeaveTimer = setTimeout(function() { toggleOpeningDetail(false); }, 350);
+  });
+  $(id).addEventListener('mouseenter', function() { clearTimeout(opLeaveTimer); });
+});
+
+/* ---------- итоги: автоматические выводы по всей статистике ---------- */
+// каждое правило добавляет пункт {t: good | bad | tip, w: важность, text, link?}
+function buildVerdicts() {
+  var V = [];
+  // text — коротко (в строку панели), more — подробности во всплывающей подсказке
+  function add(t, w, text, link, more) { V.push({t: t, w: w, text: text, link: link, more: more}); }
+  function r(v) { return Math.round(v); }
+  function sameKey(list, key) { return list.filter(function(g) { return typeof g[key] === 'number'; }); }
+
+  /* --- партии --- */
+  var n = games.length;
+  if (n) {
+    var last = games.slice(-10), l5 = games.slice(-5), p5 = games.length >= 10 ? games.slice(-10, -5) : [];
+
+    // точность: последние 5 против предыдущих 5
+    if (p5.length === 5) {
+      var da = avg(l5, 'acc') - avg(p5, 'acc');
+      if (da >= 5) add('good', 60 + da, 'Точность растёт: +' + r(da) + '% (' + r(avg(l5, 'acc')) + '%)', null, 'Средняя точность последних 5 партий против предыдущих 5');
+      else if (da <= -5) add('bad', 60 - da, 'Точность падает: −' + r(-da) + '% (' + r(avg(l5, 'acc')) + '%)', null, 'Средняя точность последних 5 партий против предыдущих 5');
+    }
+
+    // фазы партии: самая слабая и самая сильная
+    var PH = [['debut', 'Дебют'], ['mid', 'Миттельшпиль'], ['end', 'Эндшпиль']];
+    var ph = PH.map(function(p) { return {k: p[0], name: p[1], v: avg(last, p[0])}; })
+      .filter(function(x) { return x.v !== null; }).sort(function(a, b) { return a.v - b.v; });
+    if (ph.length >= 2) {
+      var weak = ph[0], strong = ph[ph.length - 1];
+      if (strong.v - weak.v >= 10) {
+        add('bad', 70 + (strong.v - weak.v) / 2, 'Слабая фаза — ' + weak.name.toLowerCase() + ': ' + r(weak.v) + '%', null, weak.name + ' ' + r(weak.v) + '%, а ' + strong.name.toLowerCase() + ' ' + r(strong.v) + '% (последние 10 партий)');
+        var tipFor = {
+          debut: ['Повтори дебютные линии в студиях', 'Перед игрой пройди главные линии в студиях мастеров'],
+          mid: ['Ищи угрозу после каждого хода соперника', 'Миттельшпиль: после каждого хода соперника ищи его угрозу и свои незащищённые фигуры'],
+          end: ['Разбирай свои эндшпили с движком', 'Эндшпиль: разбирай свои эндшпили с движком и реши задачи на тему «Эндшпиль»']
+        };
+        add('tip', 70, tipFor[weak.k][0], null, tipFor[weak.k][1]);
+      }
+      if (strong.v >= 85) add('good', 50 + (strong.v - 85), 'Сильная фаза — ' + strong.name.toLowerCase() + ': ' + r(strong.v) + '%', null, 'Средняя точность в фазе за последние 10 партий');
+    }
+
+    // зевки: уровень, динамика и влияние на миттельшпиль
+    var bl = avg(last, 'blunders');
+    if (p5.length === 5) {
+      var db = avg(l5, 'blunders') - avg(p5, 'blunders');
+      if (db <= -1) add('good', 65 - db * 3, 'Зевков меньше: ' + avg(l5, 'blunders').toFixed(1) + ' (было ' + avg(p5, 'blunders').toFixed(1) + ')', null, 'Зевков за партию: последние 5 против предыдущих 5');
+      else if (db >= 1) add('bad', 65 + db * 3, 'Зевков больше: ' + avg(l5, 'blunders').toFixed(1) + ' (было ' + avg(p5, 'blunders').toFixed(1) + ')', null, 'Зевков за партию: последние 5 против предыдущих 5');
+    }
+    var clean = sameKey(last.filter(function(g) { return g.blunders <= 2; }), 'mid');
+    var dirty = sameKey(last.filter(function(g) { return g.blunders > 2; }), 'mid');
+    if (clean.length >= 2 && dirty.length >= 2) {
+      var cm = avg(clean, 'mid'), dm = avg(dirty, 'mid');
+      if (cm - dm >= 20) add('bad', 80, 'Зевки ломают миттельшпиль: ' + r(dm) + '% / ' + r(cm) + '%', null, 'Миттельшпиль ' + r(dm) + '% в партиях с 3+ зевками и ' + r(cm) + '% в партиях с 0–2 зевками');
+    }
+    if (bl !== null && bl >= 3) add('tip', 78, 'Проверяй перед ходом, что висит', null, 'В среднем ' + bl.toFixed(1) + ' зевка за партию — перед каждым ходом проверяй свои незащищённые фигуры');
+    else if (bl !== null && bl <= 1.5 && last.length >= 5) add('good', 55, 'Мало зевков: ' + bl.toFixed(1) + ' за партию', null, 'Среднее за последние 10 партий');
+
+    // поражения до эндшпиля
+    var losses = last.filter(function(g) { return g.result === 'lose'; });
+    var early = losses.filter(function(g) { return typeof g.end !== 'number'; });
+    if (losses.length >= 2 && early.length / losses.length >= 0.5) {
+      add('bad', 55, early.length + ' из ' + losses.length + ' поражений — до эндшпиля', null, 'Партия проиграна ещё в миттельшпиле (последние 10 партий)');
+    }
+
+    // серия результатов
+    var run = 0, res = games[n - 1].result;
+    for (var i = n - 1; i >= 0 && games[i].result === res; i--) run++;
+    if (res === 'win' && run >= 3) add('good', 75 + run, 'Серия побед: ' + run + ' подряд');
+    if (res === 'lose' && run >= 3) {
+      add('bad', 75 + run, run + ' ' + plural(run, 'поражение', 'поражения', 'поражений') + ' подряд');
+      add('tip', 74, 'Сделай паузу и разбери поражения', null, 'После серии поражений сделай паузу и разбери последние партии с движком');
+    }
+
+    // цель этапа
+    var G = PROFILE.goal;
+    if (G) {
+      var gl = games.filter(function(g) { return g.engine === G.engine && g.color === G.color; }).slice(-G.of);
+      var gw = gl.filter(function(g) { return g.result === 'win'; }).length;
+      if (gl.length >= G.of && gw >= G.need) add('good', 95, 'Цель этапа выполнена: ' + gw + ' из ' + G.of, null, gw + ' из ' + G.of + ' побед против ' + G.engine + ' — можно переходить к следующему этапу');
+      else add('tip', 88, 'Цель этапа: ' + gw + ' из ' + gl.length + ', нужно ' + G.need + ' из ' + G.of, null, 'Побед в последних ' + G.of + ' партиях против ' + G.engine + ' (' + (G.color === 'white' ? 'белыми' : 'чёрными') + ')');
+    }
+
+    // дебюты в партиях: семейства с 2+ партиями
+    var fam = {};
+    games.forEach(function(g) { var k = g.opening.split(':')[0]; (fam[k] = fam[k] || []).push(g); });
+    Object.keys(fam).forEach(function(k) {
+      var fl = fam[k];
+      if (fl.length < 2) return;
+      var wr = winrate(fl);
+      if (wr <= 34) add('bad', 50 + fl.length, k + ': ' + fl.filter(function(g) { return g.result === 'win'; }).length + ' из ' + fl.length + ' побед', null, 'Проблемный дебют — мало побед');
+      else if (wr >= 75) add('good', 45 + fl.length, k + ': ' + r(wr) + '% побед', null, fl.length + ' ' + plural(fl.length, 'партия', 'партии', 'партий') + ' в этом дебюте');
+    });
+  }
+
+  /* --- активность --- */
+  var st = streaks();
+  if (st.current >= 3) add('good', 58 + st.current, st.current + ' ' + plural(st.current, 'день', 'дня', 'дней') + ' подряд за доской', null, 'Серия дней с партиями');
+  if (n) {
+    var idle = daysBetween(fromIso(games[n - 1].day), gameToday());
+    if (idle >= 3) add('tip', 82, 'Не играл ' + idle + ' ' + plural(idle, 'день', 'дня', 'дней'), null, 'Сыграй хотя бы одну партию, чтобы не терять форму');
+    else {
+      // регулярность: дни с партиями за последние 7 дней
+      var d7 = isoDay(addDays(gameToday(), -6));
+      var act = games.filter(function(g) { return g.day >= d7; }).map(function(g) { return g.day; })
+        .filter(function(d, i, a) { return a.indexOf(d) === i; }).length;
+      add('tip', 64, 'Играй регулярно: 2–3 партии каждый день', null,
+        'Лучше несколько партий каждый день, чем много за один вечер. Сейчас дней с партиями: ' + act + ' из 7');
+    }
+  }
+
+  /* --- задачи --- */
+  var P = window.PUZZLES;
+  if (P && P.rating !== null) {
+    var hist = P.history || [];
+    var weekAgo = isoDay(addDays(gameToday(), -7));
+    var base = hist.filter(function(h) { return h.day <= weekAgo; }).pop() || hist[0];
+    if (base && hist.length > 1) {
+      var dr = P.rating - base.rating;
+      var since = base.day <= weekAgo ? 'за неделю' : 'с ' + base.date;
+      if (dr >= 20) add('good', 60 + dr / 5, 'Рейтинг задач +' + dr + ' ' + since, null, 'Сейчас ' + P.rating);
+      else if (dr <= -20) add('bad', 60 - dr / 5, 'Рейтинг задач −' + (-dr) + ' ' + since, null, 'Сейчас ' + P.rating);
+    }
+    // темы: сравнение с общим перфомансом Lichess
+    var gp = P.global && P.global.perf, ts = P.themeStats || {}, names = P.themeNames || {};
+    if (gp) {
+      var th = Object.keys(ts).filter(function(k) { return !PZ_SKIP[k] && ts[k].nb >= 5; })
+        .map(function(k) { return {k: k, name: names[k] || PZ_NAMES[k] || k, p: ts[k].perf, nb: ts[k].nb}; });
+      var weakT = th.filter(function(x) { return x.p <= gp - 50; }).sort(function(a, b) { return a.p - b.p; });
+      var strongT = th.filter(function(x) { return x.p >= gp + 80; }).sort(function(a, b) { return b.p - a.p; });
+      weakT.slice(0, 2).forEach(function(x) {
+        add('bad', 55 + (gp - x.p) / 5, 'Слабая тема: «' + x.name + '» ' + x.p, null, 'Перфоманс в теме ' + x.p + ', твой средний ' + gp + ' (' + x.nb + ' задач)');
+      });
+      if (weakT.length) add('tip', 72, '20 задач: «' + weakT[0].name + '»', 'https://lichess.org/training/' + weakT[0].k, 'Самая слабая тема — потренируй её на Lichess');
+      strongT.slice(0, 2).forEach(function(x) {
+        add('good', 45 + (x.p - gp) / 10, 'Сильная тема: «' + x.name + '» ' + x.p, null, 'Перфоманс в теме ' + x.p + ', твой средний ' + gp);
+      });
+    }
+    // дебютные тренировки в задачах
+    var tr = {};
+    P.attempts.forEach(function(a) { if (a.mode === 'open') (tr[a.tr] = tr[a.tr] || []).push(a); });
+    Object.keys(tr).forEach(function(k) {
+      var l = tr[k], pct = r(l.filter(function(a) { return a.win; }).length / l.length * 100), nm = k.split(': ').pop();
+      if (l.length >= 6 && pct < 50) {
+        add('bad', 58, 'Задачи «' + nm + '»: ' + pct + '% решено', null, 'Тренировка задач по дебюту: решено меньше половины');
+        add('tip', 66, 'Повтори задачи «' + nm + '»', 'https://lichess.org/training/openings', 'Это твой дебют — тактика в нём важнее всего');
+      } else if (l.length >= 6 && pct >= 70) add('good', 48, 'Задачи «' + nm + '»: ' + pct + '% решено', null, 'Тренировка задач по дебюту');
+    });
+    // объём задач: эта неделя против прошлой
+    var mon = mondayOf(gameToday());
+    function cnt(m) {
+      var f = isoDay(m), t = isoDay(addDays(m, 6));
+      return P.attempts.filter(function(a) { return a.day >= f && a.day <= t; }).length;
+    }
+    var cw = cnt(mon), pw = cnt(addDays(mon, -7));
+    if (pw >= 10 && cw < pw / 2 && gameToday().getDay() >= 4) add('tip', 60, 'Задач меньше: ' + cw + ' (было ' + pw + ')', null, 'Эта неделя против прошлой');
+  }
+
+  /* --- рейтинг партий --- */
+  var RG = window.RATING_GAMES || [];
+  if (RG.length >= 3) {
+    var rl = RG.slice(-5), rs = rl.reduce(function(s, x) { return s + x.diff; }, 0);
+    if (rs >= 20) add('good', 70, 'Рейтинг партий +' + rs, null, 'За последние ' + rl.length + ' рейтинговых игр');
+    else if (rs <= -20) add('bad', 70, 'Рейтинг партий −' + (-rs), null, 'За последние ' + rl.length + ' рейтинговых игр');
+  }
+
+  V.sort(function(a, b) { return b.w - a.w; });
+  return V;
+}
+
+var vdTab = 'bad', vdPage = 0;
+var VD_TABS = [
+  {t: 'bad',  label: '▼ Проседает', color: 'var(--red)'},
+  {t: 'good', label: '▲ Хорошо',    color: 'var(--green)'},
+  {t: 'tip',  label: '💡 Что делать', color: '#fbbf24'}
+];
+
+function renderVerdictCard() {
+  var V = buildVerdicts();
+  var bad = V.filter(function(v) { return v.t === 'bad'; });
+  var good = V.filter(function(v) { return v.t === 'good'; });
+  var tip = V.filter(function(v) { return v.t === 'tip'; });
+  var head = '<div class="vd-head"><span>🎯 Итоги</span><span class="vd-go">‹</span></div>';
+  if (!V.length) {
+    $('vdCard').innerHTML = head + '<div class="vd-main">Пока мало данных</div><div class="vd-sub">сыграй несколько партий</div>';
+    return;
+  }
+  // карусель: по очереди проседает → хорошо → что делать (по 2 главных пункта каждого вида)
+  var KIND = {bad: ['▼', 'var(--red)', 'Проседает'], good: ['▲', 'var(--green)', 'Хорошо'], tip: ['💡', '#fbbf24', 'Что делать']};
+  var slides = [];
+  for (var i = 0; i < 2; i++) [bad[i], good[i], tip[i]].forEach(function(v) { if (v) slides.push(v); });
+  $('vdCard').innerHTML = head +
+    '<div class="vd-car">' + slides.map(function(v, k) {
+      var K = KIND[v.t];
+      return '<div class="vd-slide' + (k === 0 ? ' on' : '') + '" title="' + esc(v.more || v.text) + '">' +
+        '<div class="vd-kind" style="color:' + K[1] + '">' + K[0] + ' ' + K[2] + '</div>' +
+        '<div class="vd-main">' + esc(v.text) + '</div></div>';
+    }).join('') + '</div>' +
+    '<div class="vd-counts"><span class="w">▲ ' + good.length + '</span> <span class="l">▼ ' + bad.length + '</span> <span class="t">💡 ' + tip.length + '</span>' +
+      (slides.length > 1 ? '<span class="vd-dots">' + slides.map(function(v, k) { return '<i class="' + v.t + (k === 0 ? ' on' : '') + '"></i>'; }).join('') + '</span>' : '') +
+    '</div>';
+  startVdCarousel(slides.length);
+}
+
+var vdTimer = null, vdIdx = 0, vdPaused = false;
+function startVdCarousel(n) {
+  clearInterval(vdTimer);
+  vdIdx = 0;
+  if (n < 2) return;
+  vdTimer = setInterval(function() {
+    if (vdPaused || $('sideRow').classList.contains('vd-open')) return;
+    var sl = $('vdCard').querySelectorAll('.vd-slide'), dots = $('vdCard').querySelectorAll('.vd-dots i');
+    if (!sl.length) return;
+    sl[vdIdx].classList.remove('on'); sl[vdIdx].classList.add('out');
+    var prev = sl[vdIdx];
+    setTimeout(function() { prev.classList.remove('out'); }, 450);
+    vdIdx = (vdIdx + 1) % n;
+    sl[vdIdx].classList.add('on');
+    dots.forEach(function(d, k) { d.classList.toggle('on', k === vdIdx); });
+  }, 4500);
+}
+$('vdCard').addEventListener('mouseenter', function() { vdPaused = true; });
+$('vdCard').addEventListener('mouseleave', function() { vdPaused = false; });
+
+function renderVerdictDetail() {
+  var V = buildVerdicts();
+  var list = V.filter(function(v) { return v.t === vdTab; });
+  var PAGE = 6, pages = Math.max(1, Math.ceil(list.length / PAGE));
+  vdPage = Math.min(vdPage, pages - 1);
+  var shown = list.slice(vdPage * PAGE, vdPage * PAGE + PAGE);
+  $('vdDetail').innerHTML =
+    '<div class="vd-tabs">' + VD_TABS.map(function(x) {
+      var k = V.filter(function(v) { return v.t === x.t; }).length;
+      return '<button class="vd-tab' + (x.t === vdTab ? ' on' : '') + '" data-t="' + x.t + '" style="--c:' + x.color + '">' + x.label + ' <span>' + k + '</span></button>';
+    }).join('') + '<span class="vd-sp"></span>' +
+    (pages > 1 ? '<span class="vd-pager"><button data-p="-1"' + (vdPage === 0 ? ' disabled' : '') + '>‹</button>' + (vdPage + 1) + ' / ' + pages +
+      '<button data-p="1"' + (vdPage === pages - 1 ? ' disabled' : '') + '>›</button></span>' : '') +
+    '<button class="pzd-close vd-close" aria-label="Закрыть">×</button></div>' +
+    '<div class="vd-list">' + (shown.length ? shown.map(function(v) {
+      return '<div class="vd-item vd-' + v.t + '" title="' + esc(v.more || v.text) + '"><span class="vd-tx">' + esc(v.text) + '</span>' +
+        (v.link ? '<a href="' + v.link + '" target="_blank" rel="noopener">открыть ↗</a>' : '') + '</div>';
+    }).join('') : '<div class="pzd-empty">Здесь пока пусто</div>') + '</div>';
+}
+
+function toggleVerdict(open) {
+  var row = $('sideRow');
+  if (open === undefined) open = !row.classList.contains('vd-open');
+  if (open) {
+    if (row.classList.contains('open')) togglePuzzleDetail(false);
+    if (row.classList.contains('op-open')) toggleOpeningDetail(false);
+    renderVerdictDetail();
+  }
+  row.classList.toggle('vd-open', open);
+  $('vdCard').setAttribute('aria-expanded', String(open));
+  $('vdDetail').setAttribute('aria-hidden', String(!open));
+}
+$('vdCard').addEventListener('click', function() { toggleVerdict(); });
+$('vdCard').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleVerdict(); }
+});
+$('vdDetail').addEventListener('click', function(e) {
+  if (e.target.closest('.vd-close')) { toggleVerdict(false); return; }
+  var t = e.target.closest('.vd-tab');
+  if (t) { vdTab = t.getAttribute('data-t'); vdPage = 0; renderVerdictDetail(); return; }
+  var p = e.target.closest('.vd-pager button');
+  if (p && !p.disabled) { vdPage += +p.getAttribute('data-p'); renderVerdictDetail(); }
+});
+
+
+/* ---------- глобальный поиск: разделы, партии, дебюты, темы задач, итоги ---------- */
+function gsNorm(t) { return String(t || '').toLowerCase().replace(/ё/g, 'е'); }
+
+function gsFlash(el) {
+  if (!el) return;
+  el.scrollIntoView({behavior: 'smooth', block: 'center'});
+  el.classList.remove('gs-flash'); void el.offsetWidth; el.classList.add('gs-flash');
+}
+function gsCloseSide() {
+  var row = $('sideRow');
+  if (row.classList.contains('open')) togglePuzzleDetail(false);
+  if (row.classList.contains('op-open')) toggleOpeningDetail(false);
+  if (row.classList.contains('vd-open')) toggleVerdict(false);
+}
+function gsChart(mode, records) {
+  gsCloseSide();
+  if (chartMode !== mode) setMode(mode);
+  if (!!records !== showRecords) setRecords(!!records);
+  gsFlash($('chartBox'));
+}
+// открыть партию в таблице: сбросить фильтры, перейти на её страницу, раскрыть строку
+function gsOpenGame(g) {
+  var inTable = games.slice(-TABLE_N);
+  if (inTable.indexOf(g) < 0) { window.open('https://lichess.org/' + g.id, '_blank'); return; }
+  filt = {results: {}, colors: {}, openings: {}, ranges: {}};
+  renderMetricInputs();
+  var pos = inTable.slice().reverse().indexOf(g);
+  filtersChanged();
+  currentPage = Math.floor(pos / PER_PAGE);
+  renderGames();
+  var rows = $('gameRows').querySelectorAll('tr.game-row');
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].firstChild.textContent === String(g.n)) { rows[i].classList.add('open'); gsFlash(rows[i]); break; }
+  }
+}
+function gsTableOpening(name) {
+  filt = {results: {}, colors: {}, openings: {}, ranges: {}};
+  filt.openings[name] = true;
+  renderMetricInputs();
+  filtersChanged();
+  gsFlash($('filters'));
+}
+
+// всё, что можно найти
+function gsIndex() {
+  var items = [];
+  function add(group, icon, title, sub, keys, run) { items.push({group: group, icon: icon, title: title, sub: sub || '', keys: gsNorm(title + ' ' + (sub || '') + ' ' + (keys || '')), run: run}); }
+
+  // разделы и действия
+  add('Разделы', '📈', 'График показателей', 'средние, линии по партиям', 'график показатели точность дебют миттельшпиль эндшпиль зевки средние', function() { gsChart('metrics', false); });
+  add('Разделы', '📊', 'Активность', 'партии по дням, недели, месяцы', 'активность неделя месяц дни серия', function() { gsChart('activity', false); });
+  add('Разделы', '🏆', 'Рекорды партий', 'лучшая и худшая партия', 'рекорды лучшая худшая партия', function() { gsChart('metrics', true); });
+  add('Разделы', '🏆', 'Рекорды активности', 'лучший и худший день, рекорды', 'рекорды день неделя активность', function() { gsChart('activity', true); });
+  add('Разделы', '🧩', 'Задачи', 'рейтинг, режимы, сильные и слабые темы', 'задачи пазлы рейтинг темы микс puzzle', function() { gsCloseSide(); togglePuzzleDetail(true); gsFlash($('sideRow')); });
+  add('Разделы', '📖', 'Дебюты', 'изучаю, следующие, в планах', 'дебюты репертуар студии план', function() { gsCloseSide(); toggleOpeningDetail(true); gsFlash($('sideRow')); });
+  add('Разделы', '🎯', 'Итоги', 'что хорошо, что плохо, что делать', 'итоги советы вердикт слабости', function() { gsCloseSide(); toggleVerdict(true); gsFlash($('sideRow')); });
+  add('Разделы', '📋', 'Таблица партий', 'последние 30 партий и фильтры', 'таблица партии список фильтры', function() { gsFlash($('filters')); });
+  add('Разделы', '⏷', 'Фильтр графика', 'результат, цвет, дебют, показатели', 'фильтр графика', function() { gsChart(chartMode, false); $('cf').querySelector('.f-btn').click(); });
+
+
+  /* --- быстрые ответы: ответ прямо в строке результата --- */
+  var nG = games.length;
+  var wrAll = nG ? Math.round(winrate(games)) : null;
+  var wrTr = trend(winrate, TREND_N, games);
+  var nW = games.filter(function(g) { return g.result === 'win'; }).length;
+  add('Ответы', '📊', 'Винрейт: ' + (wrAll === null ? '—' : wrAll + '%'),
+    nW + 'W / ' + (nG - nW) + 'L' + (wrTr !== null ? ' · ' + (wrTr >= 0 ? '▲ +' : '▼ −') + Math.abs(Math.round(wrTr)) + '% за ' + TREND_N + ' игр' : ''),
+    'винрейт процент побед статистика', function() { gsFlash($('wrBox')); });
+  var P2 = window.PUZZLES, RG2 = window.RATING_GAMES || [];
+  add('Ответы', '📈', 'Рейтинг: задачи ' + (P2 && P2.rating !== null ? P2.rating : '—') + ' · ELO ' + (RG2.length ? RG2[RG2.length - 1].after : '?'),
+    RG2.length ? 'по последней рейтинговой партии' : 'рейтинговых партий пока нет', 'рейтинг эло elo задачи', function() { gsFlash($('pzCard')); });
+  var stk = streaks();
+  add('Ответы', '🔥', 'Серия: ' + stk.current + ' ' + plural(stk.current, 'день', 'дня', 'дней') + ' подряд', 'рекорд ' + stk.best + ' ' + plural(stk.best, 'день', 'дня', 'дней'),
+    'серия дни подряд стрик', function() { gsChart('activity', false); });
+  if (PROFILE.goal) {
+    var G2 = PROFILE.goal;
+    var gl2 = games.filter(function(g) { return g.engine === G2.engine && g.color === G2.color; }).slice(-G2.of);
+    var gw2 = gl2.filter(function(g) { return g.result === 'win'; }).length;
+    var left = gl2.length >= G2.of && gw2 >= G2.need ? 'выполнена!' : 'нужно ' + G2.need + ' из ' + G2.of + ' последних';
+    add('Ответы', '🎯', 'Цель этапа: ' + gw2 + ' из ' + gl2.length + ' побед против ' + G2.engine, left, 'цель этап прогресс', function() { gsCloseSide(); vdTab = 'tip'; toggleVerdict(true); });
+  }
+  if (nG) {
+    var byAcc = games.slice().sort(function(a, b) { return b.acc - a.acc; });
+    add('Ответы', '▲', 'Лучшая партия: #' + byAcc[0].n + ' · ' + byAcc[0].acc + '%', byAcc[0].opening + ' · ' + byAcc[0].date, 'лучшая партия', function() { gsOpenGame(byAcc[0]); });
+    var wg = byAcc[byAcc.length - 1];
+    add('Ответы', '▼', 'Худшая партия: #' + wg.n + ' · ' + wg.acc + '%', wg.opening + ' · ' + wg.date, 'худшая партия', function() { gsOpenGame(wg); });
+    add('Ответы', '📋', 'Последняя партия: #' + games[nG - 1].n + ' · ' + RESULT[games[nG - 1].result].label, games[nG - 1].opening + ' · ' + games[nG - 1].date, 'последняя партия', function() { gsOpenGame(games[nG - 1]); });
+  }
+
+  /* --- быстрые виды графика --- */
+  [['week', 'неделю'], ['2weeks', '2 недели'], ['month', 'месяц'], ['3months', '3 месяца']].forEach(function(p) {
+    add('Виды графика', '📊', 'Активность за ' + p[1], 'график активности', 'активность период ' + p[1], function() {
+      period = p[0];
+      try { localStorage.setItem('activityPeriod', period); } catch (e) {}
+      gsChart('activity', false);
+      renderPeriodPick(); renderActivity();
+    });
+  });
+  WINDOWS.forEach(function(w) {
+    add('Виды графика', '📈', 'Средние за ' + w + ' ' + plural(w, 'игру', 'игры', 'игр'), 'график показателей', 'средние окно игр ' + w, function() {
+      avgWindow = w;
+      try { localStorage.setItem('avgWindow', String(w)); } catch (e) {}
+      gsChart('metrics', false);
+      renderWindow();
+    });
+  });
+  var SER = [['acc', 'точность'], ['debut', 'дебют'], ['mid', 'миттельшпиль'], ['end', 'эндшпиль'], ['blunders', 'зевки']];
+  SER.forEach(function(sr) {
+    add('Виды графика', '〰', 'Только ' + sr[1], 'оставить на графике одну линию', 'только линия ' + sr[1], function() {
+      hiddenSeries = {};
+      SER.forEach(function(x) { if (x[0] !== sr[0]) hiddenSeries[x[0]] = true; });
+      try { localStorage.setItem('hiddenSeries.v2', JSON.stringify(hiddenSeries)); } catch (e) {}
+      gsChart('metrics', false);
+      renderChart(); applySeries();
+    });
+  });
+  add('Виды графика', '〰', 'Показать все линии', 'вернуть все показатели на график', 'все линии показать сбросить', function() {
+    hiddenSeries = {};
+    try { localStorage.setItem('hiddenSeries.v2', '{}'); } catch (e) {}
+    gsChart('metrics', false);
+    renderChart(); applySeries();
+  });
+
+  /* --- готовые фильтры (график и таблица сразу) --- */
+  function preset(title, sub, keys, fn) {
+    add('Фильтры', '⏷', title, sub + ' · график и таблица', keys, function() {
+      cfilt = {results: {}, colors: {}, openings: {}, ranges: {}};
+      filt = {results: {}, colors: {}, openings: {}, ranges: {}};
+      fn(cfilt); fn(filt);
+      renderCfInputs(); renderMetricInputs();
+      chartFilterChanged(); filtersChanged();
+      gsChart(chartMode, false);
+    });
+  }
+  preset('Мои поражения', 'только проигранные', 'поражения проигрыши', function(f) { f.results.lose = true; });
+  preset('Мои победы', 'только выигранные', 'победы выигрыши', function(f) { f.results.win = true; });
+  preset('Партии без зевков', 'зевков 0', 'без зевков чистые', function(f) { f.ranges.blunders = {min: null, max: 0}; });
+  preset('Партии с 3+ зевками', 'зевков 3 и больше', 'много зевков', function(f) { f.ranges.blunders = {min: 3, max: null}; });
+  preset('Дошли до эндшпиля', 'был эндшпиль', 'эндшпиль дошли', function(f) { f.ranges.end = {min: 0, max: null}; });
+  preset('Белыми', 'партии белыми', 'белые цвет', function(f) { f.colors.white = true; });
+  preset('Чёрными', 'партии чёрными', 'черные чёрные цвет', function(f) { f.colors.black = true; });
+  add('Фильтры', '✕', 'Сбросить все фильтры', 'график и таблица без фильтров', 'сбросить очистить фильтры', function() {
+    cfilt = {results: {}, colors: {}, openings: {}, ranges: {}};
+    filt = {results: {}, colors: {}, openings: {}, ranges: {}};
+    renderCfInputs(); renderMetricInputs();
+    chartFilterChanged(); filtersChanged();
+  });
+
+  /* --- действия на Lichess --- */
+  function ext(title, sub, keys, url) { add('Lichess', '↗', title, sub, keys, function() { window.open(url, '_blank'); }); }
+  if (PROFILE.goal) ext('Сыграть с ' + PROFILE.goal.engine, 'откроется окно игры с компьютером — выбери уровень ' + PROFILE.goal.engine.replace(/\D+/g, '') + ' и ' + (PROFILE.goal.color === 'white' ? 'белые' : 'чёрные'), 'играть сыграть stockfish бот компьютер', 'https://lichess.org/#ai');
+  ext('Задачи: микс', 'тренировка на Lichess', 'задачи микс тренировка', 'https://lichess.org/training/mix');
+  if (P2 && P2.themeStats && P2.global) {
+    var weakest = Object.keys(P2.themeStats).filter(function(k) { return !PZ_SKIP[k] && P2.themeStats[k].nb >= 5; })
+      .sort(function(a, b) { return P2.themeStats[a].perf - P2.themeStats[b].perf; })[0];
+    if (weakest) ext('Задачи по слабой теме: ' + ((P2.themeNames || {})[weakest] || weakest), 'перфоманс ' + P2.themeStats[weakest].perf + ' — самая слабая тема', 'задачи слабая тема тренировать', 'https://lichess.org/training/' + weakest);
+  }
+  var OO = window.OPENINGS || {};
+  (OO.current || []).concat(OO.next || []).forEach(function(o) {
+    (o.match || []).slice(0, 1).forEach(function(m) {
+      ext('Задачи по дебюту: ' + o.name, 'задачи из партий этого дебюта', 'задачи дебют ' + o.name + ' ' + m, 'https://lichess.org/training/' + m.replace(/[^A-Za-z ]/g, '').trim().replace(/ +/g, '_'));
+    });
+  });
+  if (nG) ext('Анализ последней партии', '#' + games[nG - 1].n + ' · ' + games[nG - 1].opening, 'анализ последняя партия разбор', 'https://lichess.org/' + games[nG - 1].id);
+  ext('Мой профиль на Lichess', 'lichess.org/@/KvLGn', 'профиль аккаунт', 'https://lichess.org/@/KvLGn');
+
+  /* --- сервисные --- */
+  add('Сервис', '⟳', 'Как обновить данные', 'запусти progress/update.bat · обновлено: ' + (window.GAMES_UPDATED || '—'), 'обновить данные update bat', function() { gsFlash($('footer')); });
+  add('Сервис', '↑', 'Наверх', 'к началу страницы', 'наверх начало вверх', function() { window.scrollTo({top: 0, behavior: 'smooth'}); });
+  add('Сервис', '↓', 'К таблице партий', 'список партий и фильтры', 'таблица вниз партии', function() { gsFlash($('filters')); });
+
+  // итоги по вкладкам
+  buildVerdicts().forEach(function(v) {
+    add('Итоги', v.t === 'bad' ? '▼' : v.t === 'good' ? '▲' : '💡', v.text, v.t === 'bad' ? 'проседает' : v.t === 'good' ? 'хорошо' : 'совет', '', function() {
+      gsCloseSide(); vdTab = v.t; toggleVerdict(true); gsFlash($('sideRow'));
+    });
+  });
+
+  // партии (новые сначала)
+  games.slice().reverse().forEach(function(g) {
+    var R = RESULT[g.result];
+    add('Партии', KNIGHT[g.color], '#' + g.n + ' · ' + g.opening, g.date + ' · ' + R.label + ' · ' + g.acc + '% · ' + g.engine,
+      '#' + g.n + ' ' + g.n + ' ' + g.date + ' ' + R.label + ' ' + R.short + ' ' + COLOR_NAME[g.color] + ' ' + (g.eco || ''), function() { gsOpenGame(g); });
+  });
+
+  // дебюты: из плана + сыгранные
+  var O = window.OPENINGS || {};
+  [].concat((O.current || []).map(function(o) { return [o, 'изучаю']; }), (O.next || []).map(function(o) { return [o, 'следующий']; }),
+            (O.planned || []).map(function(o) { return [o, 'в планах']; }), (O.done || []).map(function(o) { return [o, 'изучен']; }))
+    .forEach(function(p) {
+      var o = p[0], st = opStats(o);
+      add('Дебюты', KNIGHT[o.color], o.name, p[1] + ' · ' + (st.games.length ? st.games.length + ' партий' : 'партий нет') + (st.pz ? ' · ' + st.pz + ' задач' : ''),
+        (o.match || []).join(' ') + ' ' + (o.studies || []).map(function(x) { return x.master; }).join(' '), function() { gsCloseSide(); toggleOpeningDetail(true); gsFlash($('sideRow')); });
+    });
+  var played = {};
+  games.forEach(function(g) { played[g.opening] = (played[g.opening] || 0) + 1; });
+  Object.keys(played).forEach(function(name) {
+    add('Дебюты', '♟', name, played[name] + ' ' + plural(played[name], 'партия', 'партии', 'партий') + ' · показать в таблице', '', function() { gsTableOpening(name); });
+  });
+
+  // темы задач
+  var P = window.PUZZLES;
+  if (P && P.themeStats) {
+    Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k]; }).forEach(function(k) {
+      var s = P.themeStats[k], name = (P.themeNames || {})[k] || PZ_NAMES[k] || k;
+      add('Темы задач', '🧩', name, s.nb + ' задач · перфоманс ' + s.perf + ' · тренировать на Lichess', k, function() { window.open('https://lichess.org/training/' + k, '_blank'); });
+    });
+  }
+  return items;
+}
+
+var gsItems = [], gsSel = 0, gsShown = [];
+function gsRender() {
+  var q = gsNorm($('gsInput').value.trim());
+  var words = q.split(/\s+/).filter(Boolean);
+  var res = words.length ? gsItems.filter(function(it) { return words.every(function(w) { return it.keys.indexOf(w) >= 0; }); })
+                         : gsItems.filter(function(it) { return it.group === 'Разделы' || it.group === 'Ответы'; });
+  // не больше 6 в группе, чтобы список был обозримым
+  var per = {}, LIMIT = words.length ? 6 : 20;
+  gsShown = res.filter(function(it) { per[it.group] = (per[it.group] || 0) + 1; return per[it.group] <= LIMIT; });
+  gsSel = Math.min(gsSel, Math.max(gsShown.length - 1, 0));
+  var html = '', lastGroup = '';
+  gsShown.forEach(function(it, i) {
+    if (it.group !== lastGroup) {
+      html += '<div class="gs-group">' + it.group + (per[it.group] > LIMIT ? ' <span>ещё ' + (per[it.group] - LIMIT) + ' — уточни запрос</span>' : '') + '</div>';
+      lastGroup = it.group;
+    }
+    html += '<button class="gs-item' + (i === gsSel ? ' on' : '') + '" data-i="' + i + '"><span class="gs-ic">' + it.icon + '</span>' +
+      '<span class="gs-tx"><span class="gs-title">' + esc(it.title) + '</span><span class="gs-sub">' + esc(it.sub) + '</span></span></button>';
+  });
+  $('gsList').innerHTML = html || '<div class="gs-empty">Ничего не найдено</div>';
+  var cur = $('gsList').querySelector('.gs-item.on');
+  if (cur) cur.scrollIntoView({block: 'nearest'});
+}
+function gsOpen() {
+  gsItems = gsIndex();
+  $('gs').classList.add('open');
+  gsRender();
+}
+function gsClose() { $('gs').classList.remove('open'); }
+function gsRun(i) {
+  var it = gsShown[i];
+  if (!it) return;
+  gsClose();
+  $('gsInput').blur();
+  it.run();
+}
+
+$('gsInput').addEventListener('focus', gsOpen);
+$('gsInput').addEventListener('input', function() { gsSel = 0; gsRender(); });
+$('gsInput').addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowDown') { e.preventDefault(); gsSel = Math.min(gsSel + 1, gsShown.length - 1); gsRender(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); gsSel = Math.max(gsSel - 1, 0); gsRender(); }
+  else if (e.key === 'Enter') { e.preventDefault(); gsRun(gsSel); }
+  else if (e.key === 'Escape') { gsClose(); $('gsInput').blur(); }
+});
+$('gs').addEventListener('mousedown', function(e) {
+  var b = e.target.closest('.gs-item');
+  if (b) { e.preventDefault(); gsRun(+b.getAttribute('data-i')); }
+});
+$('gs').addEventListener('click', function(e) { e.stopPropagation(); });
+document.addEventListener('click', gsClose);
+// Ctrl+K или «/» — к поиску
+document.addEventListener('keydown', function(e) {
+  var typing = /INPUT|TEXTAREA/.test(document.activeElement.tagName);
+  if ((e.key === 'k' || e.key === 'K' || e.key === 'л' || e.key === 'Л') && (e.ctrlKey || e.metaKey) || (e.key === '/' && !typing)) {
+    e.preventDefault();
+    $('gsInput').focus();
+    $('gsInput').select();
+  }
+});
+
+/* ---------- go ---------- */
+renderSummary();
+renderPuzzleCard();
+renderOpeningCard();
+renderVerdictCard();
+renderTitle();
+renderWindow();
+renderChartFilter();
+renderMetricInputs();
+renderFilterBar();
+renderGames();
+if (chartMode === 'activity') setMode('activity');
+</script>
+
+</body>
+</html>

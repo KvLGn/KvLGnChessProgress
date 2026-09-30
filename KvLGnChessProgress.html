@@ -824,6 +824,10 @@
   svg.focus .series.avg-line.hl { opacity: 1; }
   .lock { vertical-align: -1px; margin-left: 2px; }
   .win-toggle.filtered, .win-toggle.filtered:hover { color: #818cf8; }
+  .sel-clear { font: 12px Inter, sans-serif; color: var(--fg-dim); background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; margin-left: 6px; cursor: pointer; line-height: 16px; }
+  .sel-clear:hover { color: var(--fg); }
+  .sel-n { color: #f3f4f6; font-weight: 700; }
+  .win-pick { display: inline-flex; align-items: center; }
   .avg-line text { display: none; }
   svg.focus .avg-line.hl text { display: inline; }
   .win-short { color: var(--fg-mute); font-weight: 400; font-size: 11px; margin-left: 4px; }
@@ -1484,10 +1488,27 @@ try {
 
 function windowGames() { return cgAll.slice(-avgWindow); }
 
+/* ---------- выбор колонок графика: клик — одна партия, Ctrl+клик — несколько ---------- */
+var selCols = {};   // id партии → true
+function selCount() { return Object.keys(selCols).length; }
+// партии, по которым считаются средние: выбранные колонки, иначе всё окно
+function statsGames() {
+  if (!selCount()) return windowGames();
+  return windowGames().filter(function(g) { return selCols[g.id]; });
+}
+function clearSelection() { if (selCount()) { selCols = {}; renderWindow(); } }
+function selectColumn(g, add) {
+  if (add) { if (selCols[g.id]) delete selCols[g.id]; else selCols[g.id] = true; }
+  else if (selCount() === 1 && selCols[g.id]) selCols = {};            // повторный клик по единственной — сброс
+  else { selCols = {}; selCols[g.id] = true; }
+  renderWindow();
+}
+
 function winLabel(w) { return 'за ' + w + ' ' + plural(w, 'игру', 'игры', 'игр'); }
 var LOCK = '<svg class="lock" viewBox="0 0 16 16" width="10" height="10" aria-hidden="true"><path fill="currentColor" d="M4 7V5a4 4 0 0 1 8 0v2h1v8H3V7h1zm2 0h4V5a2 2 0 0 0-4 0v2z"/></svg>';
 // фактическое окно: сколько партий реально вошло в средние (меньше выбранного — замок)
 function winActualLabel() {
+  if (selCount()) return '<span class="sel-n">' + selCount() + '</span> из ' + Math.min(avgWindow, cgAll.length);
   var k = Math.min(avgWindow, cgAll.length);
   return k < avgWindow ? k + ' из ' + avgWindow + LOCK : winLabel(avgWindow);
 }
@@ -1495,14 +1516,15 @@ function winActualLabel() {
 function renderWinPick() {
   $('winPick').innerHTML =
     '<button class="win-toggle' + (cfActive() ? ' filtered' : '') + '" aria-haspopup="listbox" aria-expanded="false" title="' +
-      (cgAll.length < avgWindow ? 'Выбрано ' + avgWindow + ', подходит только ' + cgAll.length : 'Средние и график за N последних партий') +
+      (selCount() ? 'Средние по выбранным колонкам: ' + selCount() + '. Клик — одна партия, Ctrl+клик — добавить/убрать, Esc или ✕ — сбросить' : cgAll.length < avgWindow ? 'Выбрано ' + avgWindow + ', подходит только ' + cgAll.length : 'Средние и график за N последних партий') +
       (cfActive() ? ' · с фильтром графика' : '') + '">' +
       winActualLabel() + '<span class="caret">▾</span></button>' +
     '<div class="win-menu" role="listbox">' + WINDOWS.map(function(w) {
       var short = cgAll.length < w;
       return '<button class="win-opt' + (w === avgWindow ? ' on' : '') + '" role="option" aria-selected="' + (w === avgWindow) + '" data-w="' + w + '">' +
         winLabel(w) + (short ? ' <span class="win-short">' + LOCK + ' ' + cgAll.length + '</span>' : '') + '</button>';
-    }).join('') + '</div>';
+    }).join('') + '</div>' +
+    (selCount() ? '<button class="sel-clear" title="Сбросить выбор колонок (Esc)">✕</button>' : '');
 }
 
 function setWinMenu(open) {
@@ -1513,9 +1535,11 @@ function setWinMenu(open) {
 
 $('winPick').addEventListener('click', function(e) {
   e.stopPropagation();
+  if (e.target.closest('.sel-clear')) { clearSelection(); return; }
   var opt = e.target.closest('.win-opt');
   if (opt) {
     avgWindow = +opt.getAttribute('data-w');
+    selCols = {};
     try { localStorage.setItem('avgWindow', String(avgWindow)); } catch (err) {}
     setWinMenu(false);
     renderWindow();
@@ -1530,17 +1554,17 @@ function renderWindow() {
   renderWinPick();
   renderStats();
   renderChart();
-  var wr = winrate(windowGames());
+  var wr = winrate(statsGames());
   $('legendWr').innerHTML = (wr === null ? '—' : Math.round(wr)) + '<small>%</small>';
   applySeries();
 }
 
 function renderStats() {
-  var list = windowGames();
+  var list = statsGames();
   // прирост = вторая половина окна против первой: 10 → 5 vs 5, 20 → 10 vs 10; при окне 5 не показываем
   // если партий пока мало — сравниваем по максимуму доступного (приписка покажет, сколько игр)
   var half = Math.min(avgWindow / 2, Math.floor(cgAll.length / 2));
-  var withTrend = avgWindow >= 10 && half >= 2;
+  var withTrend = avgWindow >= 10 && half >= 2 && !selCount();   // при выбранных колонках прирост не считаем
   function tr(fn) { return withTrend ? trend(fn, half) : null; }
   // без прироста строка остаётся пустой, чтобы высота блока не прыгала при переключении
   function th(diff, isPct, lowerIsBetter) {
@@ -1780,7 +1804,7 @@ function renderChart() {
   // линии средних: ровно по тем партиям, что на графике (= число в панели слева)
   [['acc', '#9ca3af', yPct, '%'], ['debut', '#60a5fa', yPct, '%'], ['mid', '#f59e0b', yPct, '%'],
    ['end', '#a78bfa', yPct, '%'], ['blunders', '#f87171', yBl, '']].forEach(function(a) {
-    var v = avg(list, a[0]);
+    var v = avg(selCount() ? list.filter(function(g) { return selCols[g.id]; }) : list, a[0]);
     if (v === null) return;
     var yy = a[2](v);
     s.push('<g class="series avg-line' + (hiddenSeries[a[0]] ? ' off' : '') + '" data-s="' + a[0] + '">' +
@@ -1788,6 +1812,10 @@ function renderChart() {
       '<text x="588" y="' + r2(yy - 3) + '" text-anchor="end" font-size="8" font-weight="600" fill="' + a[1] + '">ср. ' + v.toFixed(1) + a[3] + '</text></g>');
   });
 
+  if (selCount()) list.forEach(function(g, i) {
+    if (selCols[g.id]) s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="198.5" fill="rgba(255,255,255,0.04)" stroke="#e4e4e7" stroke-opacity="0.55" stroke-width="1.2" rx="2"/>');
+    else s.push('<rect x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="200" fill="#0d0f17" opacity="0.62"/>');
+  });
   // hover / tap areas: the whole column, on top of everything
   list.forEach(function(g, i) {
     s.push('<rect class="hit" data-i="' + i + '" x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="200" fill="rgba(0,0,0,0)"/>');
@@ -1860,6 +1888,10 @@ function bindTooltip() {
     // touch: tap toggles
     el.addEventListener('click', function(e) {
       e.stopPropagation();
+      if (el.hasAttribute('data-i')) {   // график показателей: выбор колонок
+        selectColumn(chartGames[+el.getAttribute('data-i')], e.ctrlKey || e.metaKey);
+        return;
+      }
       if (activeHit === el && e.pointerType !== 'mouse') hideTooltip();
       else showTooltip(el, e.clientX, e.clientY);
     });
@@ -2076,6 +2108,7 @@ function cfActive() { return hasKeys(cfilt.results) || hasKeys(cfilt.colors) || 
 
 function chartFilterChanged() {
   cgAll = filterChart(games);
+  selCols = {};
   renderChartFilter();
   renderWindow();
   if (chartMode === 'activity') renderActivity();
@@ -3315,6 +3348,9 @@ function toggleVerdict(open) {
   $('vdDetail').setAttribute('aria-hidden', String(!open));
 }
 $('vdCard').addEventListener('click', function() { toggleVerdict(); });
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && selCount() && !$('sideRow').classList.contains('vd-open')) clearSelection();
+});
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape' && $('sideRow').classList.contains('vd-open')) toggleVerdict(false);
 });

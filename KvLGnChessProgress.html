@@ -2715,13 +2715,25 @@ function selectBucket(i, add) {
 }
 
 // выделенный в легенде результат (победы / поражения / ничьи) — сводка только по нему
+// подпись и цвет строки результата: без выделения — «Винрейт», иначе названия выбранных результатов
+var RES_NAMES = {win: 'Победы', lose: 'Поражения', draw: 'Ничьи'};
+var RES_COLORS = {win: '#4ade80', lose: '#f87171', draw: '#9ca3af'};
+function resRowMeta() {
+  if (!actRes || Object.keys(actRes).length === 3) return {label: 'Винрейт', color: '#4ade80', share: false};
+  var ks = ['win', 'lose', 'draw'].filter(function(k) { return actRes[k]; });
+  var label = ks.map(function(k, i) { return i ? RES_NAMES[k].toLowerCase() : RES_NAMES[k]; }).join(' + ');
+  return {label: label, color: ks.length === 1 ? RES_COLORS[ks[0]] : '#c4b5fd', share: true};
+}
+function resShare(all) { return all.length ? byRes(all).length / all.length * 100 : null; }
 function byRes(list) { return actRes ? list.filter(function(g) { return actRes[g.result]; }) : list; }
 
 function renderActivityStats() {
   // выбраны столбики — сводка только по ним, без сравнения с прошлым периодом
   if (actSelCount()) {
     var picked = actBuckets.filter(function(b, i) { return selDays[i]; });
-    var gs = byRes([].concat.apply([], picked.map(function(b) { return b.games; })));
+    var gsAll = [].concat.apply([], picked.map(function(b) { return b.games; }));
+    var gs = byRes(gsAll);
+    var rm = resRowMeta();
     var days = picked.reduce(function(sum, b) { return sum + daysBetween(b.from, b.to) + 1; }, 0);
     var act = gs.map(function(g) { return g.day; }).filter(function(d, k, a) { return a.indexOf(d) === k; }).length;
     var sacc = avg(gs, 'acc'), swr = winrate(gs);
@@ -2730,7 +2742,8 @@ function renderActivityStats() {
       {label: 'Партий', color: 'var(--yellow)', value: String(gs.length)},
       {label: 'Активн. дней', color: 'var(--c-debut)', value: act + '<small>/' + days + '</small>'},
       {label: 'Точность', color: 'var(--c-acc)', value: sacc === null ? '—' : sacc.toFixed(1) + '<small>%</small>'},
-      {label: 'Винрейт', color: '#4ade80', value: swr === null ? '—' : Math.round(swr) + '<small>%</small>'}
+      (function() { var v = rm.share ? resShare(gsAll) : swr;
+        return {label: rm.label, color: rm.color, value: v === null ? '—' : Math.round(v) + '<small>%</small>'}; })()
     ];
     $('actList').innerHTML = srows.map(function(r) {
       return '<div class="stat" style="--sc:' + r.color + '">' + statLine(r.label, r.color, r.value) + '<div class="stat-trend">' + none + '</div></div>';
@@ -2742,6 +2755,7 @@ function renderActivityStats() {
     return;
   }
   var cur = periodRange(0), prev = periodRange(1);
+  var curAll = cur.games, prevAll = prev.games, rm = resRowMeta();
   cur.games = byRes(cur.games); prev.games = byRes(prev.games);
   function activeDays(r) { return r.games.map(function(g) { return g.day; }).filter(function(d, i, a) { return a.indexOf(d) === i; }).length; }
   function diff(a, b) { return a === null || b === null ? null : a - b; }
@@ -2756,7 +2770,12 @@ function renderActivityStats() {
     {label: 'Партий',        color: 'var(--yellow)',  value: String(n),                                   tr: actTrend(n - pn, false)},
     {label: 'Активн. дней', color: 'var(--c-debut)', value: ad + '<small>/' + cur.days + '</small>',     tr: actTrend(ad - pad, false)},
     {label: 'Точность',      color: 'var(--c-acc)',   value: acc === null ? '—' : acc.toFixed(1) + '<small>%</small>', tr: actTrend(diff(acc, pacc), true)},
-    {label: 'Винрейт',       color: '#4ade80',        value: wr === null ? '—' : Math.round(wr) + '<small>%</small>', tr: actTrend(diff(wr === null ? null : Math.round(wr), pwr === null ? null : Math.round(pwr)), true)}
+    (function() {
+      // при выделенном результате — доля выбранного среди всех партий периода и её изменение
+      var v = rm.share ? resShare(curAll) : wr, pv = rm.share ? resShare(prevAll) : pwr;
+      return {label: rm.label, color: rm.color, value: v === null ? '—' : Math.round(v) + '<small>%</small>',
+              tr: actTrend(diff(v === null ? null : Math.round(v), pv === null ? null : Math.round(pv)), true)};
+    })()
   ];
   $('actList').innerHTML = rows.map(function(r) {
     return '<div class="stat" style="--sc:' + r.color + '">' + statLine(r.label, r.color, r.value) + '<div class="stat-trend">' + r.tr + '</div></div>';

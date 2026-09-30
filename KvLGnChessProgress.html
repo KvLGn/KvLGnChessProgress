@@ -1628,6 +1628,21 @@ function splitBlocks(rel) { return STAGES.splitBlocks(rel, RULE); }
 function evalStages() { return STAGES.evalStages(games, PLAN, window.PROGRESS); }
 var CUR = evalStages();
 var COLOR_WORD = {white: 'белыми', black: 'чёрными'};
+function gamesToGoal(c) {
+  if (c.done) return 0;
+  var perfect = {result: 'win', acc: 100, blunders: 0};
+  for (var k = 0; k <= RULE.blocks * RULE.games; k++) {
+    var t = c.rel.slice(); for (var i = 0; i < k; i++) t.push(perfect);
+    if (t.length >= RULE.blocks * RULE.games && splitBlocks(t).every(function(b) { return b.ok; })) return k;
+  }
+  return RULE.blocks * RULE.games;
+}
+function toGoalText(c, lang) {
+  var k = gamesToGoal(c);
+  return lang === 'en'
+    ? 'To reach the goal: at least ' + k + ' more game' + (k === 1 ? '' : 's') + ' vs this engine, and all of them must be good (wins or decent losses, accuracy around ' + RULE.medianAcc + '%+, at most ' + RULE.lossMaxBlunders + ' blunders). A weak loss blocks the goal while it is among the last ' + RULE.blocks * RULE.games + ' games.'
+    : 'Чтобы выполнить цель: минимум ещё ' + k + ' ' + plural(k, 'партия', 'партии', 'партий') + ' против этого бота, и все должны быть хорошими (победы или достойные поражения, точность около ' + RULE.medianAcc + '%+, не больше ' + RULE.lossMaxBlunders + ' зевков). Слабое поражение не даёт выполнить цель, пока оно среди последних ' + RULE.blocks * RULE.games + ' партий.';
+}
 function stageRuleText() {
   return 'Переход на следующий этап: ' + RULE.blocks + ' пятёрки партий подряд против бота этапа (каждым цветом этапа). В каждой: ' +
     RULE.wins + '+ побед, медиана точности ≥ ' + RULE.medianAcc + '%, проигрыш — точность ≥ ' + RULE.lossMinAcc + '% и зевков ≤ ' + RULE.lossMaxBlunders + '.';
@@ -4453,17 +4468,18 @@ function aiSummary() {
   CUR.colors.forEach(function(c) {
     L.push('- ' + COLOR_WORD[c.color] + ': ' + (c.done ? 'выполнено ' + c.doneGame.date : colorLine(c)) + '. ' +
       c.blocks.map(function(b, i) { return 'пятёрка ' + (i + 1) + ': ' + (b.ok ? 'выполнена' : blockWhy(b)); }).join('; '));
+    if (!c.done) L.push('  Итог (посчитано сайтом): ' + toGoalText(c, 'ru'));
   });
   if (CUR.hist.length) L.push('Пройдено: ' + CUR.hist.map(function(h) { return 'этап ' + (h.idx + 1) + ' — ' + h.date; }).join(', '));
   L.push('');
   L.push('## Партии (все с компьютерным анализом Lichess)');
-  L.push('Всего ' + games.length + ' (' + wl(games) + ')');
+  L.push('Всего ' + games.length + ' (' + wl(games) + '); последние 10 партий: ' + wl(games.slice(-10)) + ', последние 5: ' + wl(games.slice(-5)));
   var byOpp = {};
   games.forEach(function(g) { (byOpp[g.engine] = byOpp[g.engine] || []).push(g); });
   L.push('Соперники: ' + Object.keys(byOpp).map(function(k) { return k + ' — ' + byOpp[k].length + ' (' + wl(byOpp[k]) + ')'; }).join('; '));
   ['white', 'black'].forEach(function(c) {
     var gl = games.filter(function(g) { return g.color === c; });
-    if (gl.length) L.push(COLOR_WORD[c].replace(/^./, function(x) { return x.toUpperCase(); }) + ': ' + gl.length + ' (' + wl(gl) + '); последние 10: ' + phases(gl.slice(-10)));
+    if (gl.length) L.push(COLOR_WORD[c].replace(/^./, function(x) { return x.toUpperCase(); }) + ': ' + gl.length + ' (' + wl(gl) + '); последние 10 (' + wl(gl.slice(-10)) + '): ' + phases(gl.slice(-10)));
   });
   var l5 = games.slice(-5), p5 = games.slice(-10, -5);
   if (p5.length === 5) L.push('Последние 5 против предыдущих 5: точность ' + pct(avg(l5, 'acc')) + ' vs ' + pct(avg(p5, 'acc')) + ', зевков ' + r1(avg(l5, 'blunders')) + ' vs ' + r1(avg(p5, 'blunders')));
@@ -4734,6 +4750,7 @@ var AI_DATA = {
         b.games.forEach(function(g) { out.push('    ' + aiGame(g)); });
       });
     });
+    CUR.colors.forEach(function(c) { if (!c.done) out.push((CUR.colors.length > 1 ? AL(COLOR_WORD[c.color] + ': ', 'as ' + COLOR_EN[c.color] + ': ') : '') + toGoalText(c, aiLang)); });
     out.push(AL('Темп: партий за последние 7 дней — ', 'Pace: games in the last 7 days — ') + games.filter(function(g) { return g.day >= isoDay(addDays(gameToday(), -6)); }).length);
     return out;
   },
@@ -4776,6 +4793,8 @@ function humanBrief() {   // коротко о текущей игре — бе�
     if (games.length) {
       var w0 = games.filter(function(g) { return g.result === 'win'; }).length, l0 = games.filter(function(g) { return g.result === 'lose'; }).length;
       out.push(AL('Сыграно партий: ', 'Games played: ') + games.length + ' (' + w0 + AL(' побед, ', ' wins, ') + l0 + AL(' поражений), все с компьютерным анализом Lichess.', ' losses), all with Lichess computer analysis.'));
+      var t10 = games.slice(-10), w10 = t10.filter(function(g) { return g.result === 'win'; }).length, l10 = t10.filter(function(g) { return g.result === 'lose'; }).length, d10 = t10.length - w10 - l10;
+      out.push(AL('Из последних 10 партий: ' + w10 + ' ' + plural(w10, 'победа', 'победы', 'побед') + ', ' + l10 + ' ' + plural(l10, 'поражение', 'поражения', 'поражений') + (d10 ? ', ' + d10 + ' ' + plural(d10, 'ничья', 'ничьи', 'ничьих') : '') + '.', 'Last 10 games: ' + w10 + ' wins, ' + l10 + ' losses' + (d10 ? ', ' + d10 + ' draws' : '') + '.'));
       out.push(AL('Последние 10 партий: точность ', 'Last 10 games: accuracy ') + aiPct(avg(last, 'acc')) + AL(', дебют ', ', opening ') + aiPct(avg(last, 'debut')) +
         AL(', миттельшпиль ', ', middlegame ') + aiPct(avg(last, 'mid')) + AL(', эндшпиль ', ', endgame ') + aiPct(avg(last, 'end')) +
         AL(', в среднем ', ', on average ') + avg(last, 'blunders').toFixed(1) + AL(' зевка за партию.', ' blunders per game.'));

@@ -4640,12 +4640,107 @@ var AI_ASKS = [
     {t: 'Пересобрать дорожную карту', tEn: 'Rebuild the roadmap', ru: 'Предложи этапы после текущей дорожной карты с учётом моего темпа.', en: 'Propose stages after the current roadmap, considering my pace.'}
   ]}
 ];
+/* данные под конкретный вопрос: дополняют общую сводку тем, что нужно именно для него */
+function aiPct(v) { return v === null || v === undefined ? '—' : Math.round(v) + '%'; }
+function aiGame(g) {
+  return '#' + g.n + ' ' + g.date + ' ' + COLOR_WORD[g.color] + ' vs ' + g.engine + ': ' + RESULT[g.result].label +
+    ', точность ' + g.acc + '%, дебют ' + aiPct(g.debut) + ', миттельшпиль ' + aiPct(g.mid) + ', эндшпиль ' + (hasEnd(g) ? g.end + '%' : 'не дошли') +
+    ', зевков ' + g.blunders + ', ошибок ' + g.mistakes + ', неточн. ' + g.inacc + ', ходов ' + g.moves + ', ' + g.opening + ' (lichess.org/' + g.id + ')';
+}
+function aiAvgLine(list) {
+  if (!list.length) return 'партий нет';
+  return list.length + ' ' + plural(list.length, 'партия', 'партии', 'партий') + ': точность ' + aiPct(avg(list, 'acc')) + ', дебют ' + aiPct(avg(list, 'debut')) +
+    ', миттельшпиль ' + aiPct(avg(list, 'mid')) + ', эндшпиль ' + aiPct(avg(list, 'end')) + ' (дошли в ' + list.filter(hasEnd).length + '), зевков ' +
+    avg(list, 'blunders').toFixed(1) + ', ошибок ' + avg(list, 'mistakes').toFixed(1) + ', ходов ' + Math.round(avg(list, 'moves'));
+}
+function aiOpGames(c) {
+  var o = ((window.OPENINGS || {}).current || [])[0];
+  return o ? games.filter(function(g) { return g.color === o.color && opMatch(o, g.opening); }) : [];
+}
+var AI_DATA = {
+  weak: function() { return ['Последние 10 партий подробно:'].concat(games.slice(-10).map(aiGame)); },
+  losses: function() {
+    var L = games.filter(function(g) { return g.result === 'lose'; }).slice(-15);
+    return ['Все поражения (' + L.length + ', последние 15):'].concat(L.length ? L.map(aiGame) : ['поражений нет']);
+  },
+  phase: function(c) {
+    var k = {'дебют': 'debut', 'миттельшпиль': 'mid', 'эндшпиль': 'end'}[c.phase.ru] || 'mid';
+    var last = games.slice(-10);
+    return ['Фаза «' + c.phase.ru + '» по последним 10 партиям (партия: точность фазы / результат / зевков):']
+      .concat(last.map(function(g) { return '#' + g.n + ': ' + aiPct(g[k]) + ' / ' + RESULT[g.result].label + ' / ' + g.blunders; }))
+      .concat(['Средняя по фазам за эти 10: дебют ' + aiPct(avg(last, 'debut')) + ', миттельшпиль ' + aiPct(avg(last, 'mid')) + ', эндшпиль ' + aiPct(avg(last, 'end'))]);
+  },
+  winloss: function() {
+    var W = games.filter(function(g) { return g.result === 'win'; }), L = games.filter(function(g) { return g.result === 'lose'; });
+    var fam = {};
+    games.forEach(function(g) { var k = g.opening.split(':')[0]; (fam[k] = fam[k] || {w: 0, l: 0}); if (g.result === 'win') fam[k].w++; if (g.result === 'lose') fam[k].l++; });
+    return ['Победы — ' + aiAvgLine(W), 'Поражения — ' + aiAvgLine(L),
+      'По дебютам (побед/поражений): ' + Object.keys(fam).map(function(k) { return k + ' ' + fam[k].w + '/' + fam[k].l; }).join('; ')];
+  },
+  week: function() {
+    var P = window.PUZZLES || {}, att = P.attempts || [], out = ['Активность за последние 14 дней (день: партий / задач):'];
+    for (var i = 13; i >= 0; i--) {
+      var d = isoDay(addDays(gameToday(), -i));
+      var ng = games.filter(function(g) { return g.day === d; }).length, np = att.filter(function(a) { return a.day === d; }).length;
+      out.push(ddmm(fromIso(d)) + ' ' + DOW[fromIso(d).getDay()] + ': ' + ng + ' / ' + np);
+    }
+    return out;
+  },
+  themes: function() {
+    var P = window.PUZZLES;
+    if (!P || !P.themeStats) return ['данных по темам нет'];
+    var list = Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k]; }).sort(function(a, b) { return P.themeStats[a].perf - P.themeStats[b].perf; });
+    return ['Все темы задач Lichess за 90 дней (тема: перфоманс / задач / решено с 1-й попытки), общий перфоманс ' + (P.global ? P.global.perf : '—') + ':']
+      .concat(list.map(function(k) { var t = P.themeStats[k]; return ((P.themeNames || {})[k] || PZ_NAMES[k] || k) + ' (' + k + '): ' + t.perf + ' / ' + t.nb + ' / ' + Math.round(t.first / t.nb * 100) + '%'; }));
+  },
+  checklist: function() {
+    var last = games.slice(-10);
+    var early = last.filter(function(g) { return g.result === 'lose' && !hasEnd(g); }).length;
+    return ['За последние 10 партий: зевков по партиям ' + last.map(function(g) { return g.blunders; }).join(', ') +
+      '; ошибок ' + last.map(function(g) { return g.mistakes; }).join(', ') + '; поражений до эндшпиля ' + early + '.'];
+  },
+  review: function() { return ['Последние 3 партии (можно открыть на Lichess):'].concat(games.slice(-3).map(aiGame)); },
+  opening: function(c) {
+    var gl = aiOpGames(c), P = window.PUZZLES || {};
+    var o = ((window.OPENINGS || {}).current || [])[0];
+    var pz = o ? (P.attempts || []).filter(function(a) { return opMatch(o, a.op); }) : [];
+    return ['Партии в дебюте «' + c.op + '» (' + gl.length + '):'].concat(gl.length ? gl.map(aiGame) : ['партий пока нет'])
+      .concat(['Задачи из этого дебюта: ' + pz.length + ', решено ' + pz.filter(function(a) { return a.win; }).length +
+        (o && o.studies && o.studies.length ? '; студии: ' + o.studies.map(function(s) { return s.master + ' (' + s.parts + ' ч.)'; }).join(', ') : '')]);
+  },
+  goal: function() {
+    if (!CUR.stage) return ['План выполнен, этапов больше нет'];
+    var out = ['Цель: ' + stageTitle() + '. ' + stageRuleText()];
+    CUR.colors.forEach(function(c) {
+      out.push(COLOR_WORD[c.color] + ': ' + (c.done ? 'выполнено ' + c.doneGame.date : 'не выполнено'));
+      c.blocks.forEach(function(b, i) {
+        out.push('  пятёрка ' + (i + 1) + ' — ' + (b.ok ? 'выполнена' : 'не выполнена: ' + blockWhy(b)));
+        b.games.forEach(function(g) { out.push('    ' + aiGame(g)); });
+      });
+    });
+    var d = games.filter(function(g) { return g.day >= isoDay(addDays(gameToday(), -6)); }).length;
+    out.push('Темп: партий за последние 7 дней — ' + d);
+    return out;
+  },
+  progress: function() {
+    var P = window.PUZZLES || {}, first = games.slice(0, 5), last = games.slice(-5);
+    return ['Первые 5 партий — ' + aiAvgLine(first), 'Последние 5 партий — ' + aiAvgLine(last),
+      'Рейтинг задач по дням: ' + (P.history || []).map(function(h) { return h.date + ' ' + h.rating; }).join(', ') + (P.rating ? ', сейчас ' + P.rating : '')];
+  }
+};
+AI_DATA.plans = AI_DATA.opening;
+AI_DATA.rule = AI_DATA.goal;
+AI_DATA.stage = AI_DATA.goal;
+AI_DATA.roadmap = function() { return AI_DATA.goal().concat(AI_DATA.progress()); };
 var aiLang = 'ru';
 try { if (localStorage.getItem('aiLang') === 'en') aiLang = 'en'; } catch (e) {}
-function aiText(ask, isPlan) {
+[['weak', 'losses', 'phase', 'winloss'], ['week', 'themes', 'checklist', 'review'], ['opening', 'plans'], ['goal', 'progress'], ['rule', 'stage', null, 'roadmap']]
+  .forEach(function(row, gi) { row.forEach(function(k, ii) { if (k) AI_ASKS[gi].items[ii].d = k; }); });
+function aiText(ask, isPlan, dataKey) {
   var P = AI_PROMPT[aiLang], out = P.base.slice();
   if (isPlan) out = out.concat([''], P.plan);
   out.push('', aiLang === 'en' ? '=== SUMMARY FROM THE SITE ===' : '=== СВОДКА С САЙТА ===', aiSummary());
+  if (dataKey && AI_DATA[dataKey]) out.push('', aiLang === 'en' ? '=== DATA FOR THIS REQUEST ===' : '=== ДАННЫЕ ПОД ЭТОТ ВОПРОС ===', AI_DATA[dataKey](aiCtx()).join('\n'));
   if (isPlan) out.push('', aiLang === 'en' ? '=== CURRENT data/plan.js ===' : '=== ТЕКУЩИЙ data/plan.js ===', planSource());
   out.push('', aiLang === 'en' ? '=== REQUEST ===' : '=== ПРОСЬБА ===', ask);
   return out.join('\n');
@@ -4691,7 +4786,7 @@ $('aiMenu').addEventListener('click', function(e) {
   if (it) {
     var G = AI_ASKS[+it.getAttribute('data-g')], I = G.items[+it.getAttribute('data-i')], c = aiCtx();
     var ask = typeof I[aiLang] === 'function' ? I[aiLang](c) : I[aiLang];
-    copyText(aiText(ask, !!G.plan));
+    copyText(aiText(ask, !!G.plan, I.d));
     it.classList.add('done'); setTimeout(function() { it.classList.remove('done'); }, 1500);
     var tt = aiLang === 'en' && I.tEn ? I.tEn : I.t;
     toast((aiLang === 'en' ? 'Copied: ' : 'Скопировано: ') + (typeof tt === 'function' ? tt(c) : tt) + (aiLang === 'en' ? ' — paste into any AI chat' : ' — вставь в чат с нейросетью'));

@@ -114,6 +114,34 @@
     border: 2px solid var(--border);
   }
   .nick { font-size: 36px; font-weight: 700; position: relative; top: -22px; }
+  /* скрытый режим: клик по аватарке — слева выезжает кнопка-глаз */
+  .profile-head { position: relative; }
+  .avatar { cursor: pointer; position: relative; z-index: 2; }
+  .eye-btn {
+    position: absolute; left: 29px; top: 29px; z-index: 1;
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+    background: var(--bg-card); border: 1px solid var(--border); color: var(--fg-dim); cursor: pointer;
+    opacity: 0; pointer-events: none; transform: translateX(0) scale(0.6);
+    transition: transform 0.3s ease, opacity 0.25s ease, color 0.15s, border-color 0.15s;
+  }
+  .profile-head.eye-out .eye-btn { opacity: 1; pointer-events: auto; transform: translateX(-78px) scale(1); }
+  .eye-btn:hover { color: var(--fg); border-color: #818cf8; }
+  .eye-btn svg g { transition: transform 0.25s ease, opacity 0.2s ease; transform-origin: 12px 12px; }
+  .eye-btn .eye-shut { opacity: 0; }
+  .eye-btn.shut .eye-open { transform: scaleY(0.1); opacity: 0; }
+  .eye-btn.shut .eye-shut { opacity: 1; }
+  @media (max-width: 700px) { .profile-head.eye-out .eye-btn { transform: translate(76px, 28px) scale(0.9); } }   /* на телефоне слева нет места — выезжает вправо под ник */
+  /* что показывает скрытый режим */
+  .hush-na { font-size: 13px; color: var(--fg-mute); }
+  .hush-q { color: var(--fg-mute) !important; letter-spacing: 2px; }
+  body.hush .vd-card { cursor: default; }
+  body.hush .vd-card:hover { background: linear-gradient(90deg, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.03) 100%); }
+  body.hush .vd-go { visibility: hidden; }
+  body.hush .gs-box { opacity: 0.6; cursor: not-allowed; }
+  body.hush .gs-box:hover { border-color: var(--border); }
+  body.hush #gsInput { cursor: not-allowed; }
+  body.hush .gs-kbd { display: none; }
   .wr-label {
     font-size: 11px;
     font-weight: 500;
@@ -1218,7 +1246,13 @@
 <div class="profile-row">
   <div class="card profile-card">
     <div class="profile-head">
-      <img class="avatar" src="assets/avatar.jpg" alt="avatar">
+      <img class="avatar" id="avatar" src="assets/avatar.jpg" alt="avatar" title="Скрытый режим">
+      <button class="eye-btn" id="eyeBtn" type="button" aria-label="Скрытый режим" tabindex="-1">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <g class="eye-open"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="currentColor"/></g>
+          <g class="eye-shut" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2.5 11c2.6 3.3 5.8 5 9.5 5s6.9-1.7 9.5-5"/><path d="M6 14.6l-1.6 2.2M12 16v2.6M18 14.6l1.6 2.2"/></g>
+        </svg>
+      </button>
       <span class="nick">KvLGn</span>
     </div>
     <div class="wr-box" id="wrBox" role="button" tabindex="0" title="Нажми: винрейт ⇄ рейтинг ELO">
@@ -1534,6 +1568,8 @@ function wrColorClass(v) { return v >= 60 ? 'green' : v >= 40 ? 'yellow' : 'red'
 var PERF_RU = {bullet:'Пуля', blitz:'Блиц', rapid:'Рапид', classical:'Классика', correspondence:'Переписка'};
 var wrView, eloView;
 var showElo = false;
+var hush = false;   // скрытый режим (глаз у аватарки)
+try { hush = localStorage.getItem('hush') === '1'; } catch (e) {}
 try { showElo = localStorage.getItem('wrMode') === 'elo'; } catch (e) {}
 
 // рейтинг по последней рейтинговой партии; изменение — сумма за последние TREND_N партий того же контроля
@@ -1568,6 +1604,7 @@ function buildEloView() {
 
 function renderWrBox() {
   var v = showElo ? eloView : wrView;
+  if (hush) v = {label: v.label, cls: 'wr-value hush-q', value: '???', sub: '<span class="hush-q">???</span>'};
   $('wrLabel').textContent = v.label;
   $('wrValue').className = v.cls;
   $('wrValue').innerHTML = v.value;
@@ -3397,6 +3434,7 @@ $('activityBtn').addEventListener('click', function(e) {
 function renderPuzzleCard() {
   var P = window.PUZZLES;
   var head = '<div class="pz-head"><span>🧩 Задачи</span><span class="pz-go">›</span></div>';
+  if (hush) { $('pzCard').innerHTML = head + '<div class="hush-na">нет данных</div><div></div>'; startCarousel(0); return; }
   if (!P || P.rating === null) {
     $('pzCard').innerHTML = head + '<div class="pz-main"><span class="pz-rating">—</span></div><div class="pz-sub">запусти update.bat</div>';
     return;
@@ -3529,6 +3567,13 @@ function pzRow(name, list, cls) {
 
 function renderPuzzleDetail() {
   var P = window.PUZZLES;
+  if (hush) {
+    $('pzDetail').innerHTML = '<button class="pzd-close" aria-label="Закрыть">×</button>' +
+      ['Режимы', '<span style="color:var(--green)">▲</span> Сильные темы', '<span style="color:var(--red)">▼</span> Слабые темы'].map(function(t) {
+        return '<div class="pzd-col"><div class="pzd-title">' + t + '</div><div class="pzd-empty">нет данных</div></div>';
+      }).join('');
+    return;
+  }
   if (!P || !P.attempts || !P.attempts.length) {
     $('pzDetail').innerHTML = '<div class="pzd-empty">Задач пока нет — запусти update.bat</div>';
     return;
@@ -3640,6 +3685,7 @@ function renderOpeningCard() {
     $('opCard').innerHTML = head + '<div class="op-main">—</div><div class="op-sub">заполни progress/data/openings.js</div>';
     return;
   }
+  if (hush) { opN = 0; $('opCard').innerHTML = head + '<div class="hush-na">нет данных</div><div></div>'; startOpCarousel(); return; }
   var cur = O.current[0], st = opStats(cur);
   $('opCard').innerHTML = head +
     '<div class="op-main" title="Изучаю сейчас">' + opName(cur) + '</div>' +
@@ -3691,6 +3737,13 @@ function studyLinks(o) {
 
 function renderOpeningDetail() {
   var O = window.OPENINGS || {};
+  if (hush) {
+    $('opDetail').innerHTML = '<button class="pzd-close op-close" aria-label="Закрыть">×</button>' +
+      '<div class="opd-col"><div class="pzd-title">Изучаю</div><div class="pzd-empty">нет данных</div></div>' +
+      '<div class="opd-col"><div class="pzd-title">Следующие</div><div class="pzd-empty">нет данных</div>' +
+      '<div class="pzd-title" style="margin-top:8px">В планах</div><div class="pzd-empty">нет данных</div></div>';
+    return;
+  }
   function current(o) {
     var st = opStats(o);
     return '<div class="opd-item">' +
@@ -3919,6 +3972,7 @@ function renderVerdictCard() {
   var good = V.filter(function(v) { return v.t === 'good'; });
   var tip = V.filter(function(v) { return v.t === 'tip'; });
   var head = '<div class="vd-head"><span>🎯 Итоги</span><span class="vd-go">‹</span></div>';
+  if (hush) { $('vdCard').innerHTML = head + '<div class="hush-na">нет данных</div><div></div>'; startVdCarousel(0); return; }
   if (!V.length) {
     $('vdCard').innerHTML = head + '<div class="vd-main">Пока мало данных</div><div class="vd-sub">сыграй несколько партий</div>';
     return;
@@ -3998,6 +4052,7 @@ function renderVerdictDetail() {
 function toggleVerdict(open) {
   var row = $('sideRow');
   if (open === undefined) open = !row.classList.contains('vd-open');
+  if (hush && open) return;   // в скрытом режиме итоги не открываются
   if (open) {
     if (row.classList.contains('open')) togglePuzzleDetail(false);
     if (row.classList.contains('op-open')) toggleOpeningDetail(false);
@@ -4463,6 +4518,7 @@ function gsRender() {
 }
 var gsOpenKey = null;   // какой пункт с вариантами раскрыт
 function gsOpen() {
+  if (hush) { $('gsInput').blur(); return; }
   gsItems = gsIndex();
   gsOpenKey = null;
   $('gs').classList.add('open');
@@ -4510,9 +4566,46 @@ document.addEventListener('keydown', function(e) {
   var typing = /INPUT|TEXTAREA/.test(document.activeElement.tagName);
   if ((e.key === 'k' || e.key === 'K' || e.key === 'л' || e.key === 'Л') && (e.ctrlKey || e.metaKey) || (e.key === '/' && !typing)) {
     e.preventDefault();
+    if (hush) return;
     $('gsInput').focus();
     $('gsInput').select();
   }
+});
+
+/* ---------- скрытый режим: клик по аватарке → глаз; глаз закрыт — данные спрятаны ---------- */
+function applyHush() {
+  document.body.classList.toggle('hush', hush);
+  $('eyeBtn').classList.toggle('shut', hush);
+  $('eyeBtn').setAttribute('aria-label', hush ? 'Показать данные' : 'Скрыть данные');
+  $('eyeBtn').title = hush ? 'Показать данные' : 'Скрыть данные';
+  var inp = $('gsInput');
+  inp.disabled = hush;
+  inp.placeholder = hush ? 'Поиск недоступен' : 'Поиск по всему…';
+  if (hush) { gsClose(); inp.value = ''; }
+  gsCloseSide();
+  renderWrBox();
+  renderPuzzleCard();
+  renderOpeningCard();
+  renderVerdictCard();
+}
+function setEyeOut(on) { $('avatar').parentNode.classList.toggle('eye-out', on); }
+$('avatar').addEventListener('click', function(e) {
+  e.stopPropagation();
+  setEyeOut(!$('avatar').parentNode.classList.contains('eye-out'));
+});
+$('eyeBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  var btn = this;
+  btn.classList.toggle('shut', !hush);   // глаз закрывается / открывается
+  setTimeout(function() {
+    hush = !hush;
+    try { localStorage.setItem('hush', hush ? '1' : ''); } catch (err) {}
+    setEyeOut(false);                    // и уезжает обратно за аватарку
+    applyHush();
+  }, 350);
+});
+document.addEventListener('click', function(e) {
+  if (!e.composedPath().some(function(el) { return el === $('eyeBtn') || el === $('avatar'); })) setEyeOut(false);
 });
 
 /* ---------- go ---------- */
@@ -4527,6 +4620,7 @@ renderMetricInputs();
 renderFilterBar();
 renderGames();
 if (chartMode === 'activity') setMode('activity');
+if (hush) applyHush();
 </script>
 
 </body>

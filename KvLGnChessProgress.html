@@ -1809,6 +1809,17 @@ function trend(fn, n, list) {
 function r1(v) { return Math.round(v * 10) / 10; }        // 17 / 14.2
 function r2(v) { return Math.round(v * 100) / 100; }      // svg coords
 
+// прирост ОБЩЕГО винрейта за последний игровой день: было до этого дня → стало (в процентных пунктах)
+function wrDayTrend() {
+  if (!games.length) return '';
+  var day = games[games.length - 1].day, before = games.filter(function(g) { return g.day < day; });
+  if (!before.length) return '';
+  var d = Math.round(winrate(games)) - Math.round(winrate(before));
+  var color = d > 0 ? 'var(--up)' : d < 0 ? 'var(--red)' : 'var(--fg-mute)';
+  var when = day === isoDay(gameToday()) ? 'сегодня' : 'за ' + ddmm(fromIso(day));
+  return '<span class="trend" style="color:' + color + '" title="Общий винрейт до ' + ddmm(fromIso(day)) + ': ' + Math.round(winrate(before)) + '%, после: ' + Math.round(winrate(games)) + '%">' +
+    (d > 0 ? '▲ +' : d < 0 ? '▼ −' : '■ ') + Math.abs(d) + '% <span class="trend-n">' + when + '</span></span>';
+}
 function trendHtml(diff, isPct, lowerIsBetter, n) {
   if (diff === null) return '';
   n = n || TREND_N;
@@ -1902,7 +1913,7 @@ function renderSummary() {
     label: 'Общий винрейт',
     // без партий — нейтральный прочерк, а не красные «0%»
     cls: 'wr-value ' + (n ? wrColorClass(wr) : ''),
-    value: n ? wr + '% ' + trendHtml(trend(winrate, TREND_N, games), true, false) : '—',
+    value: n ? wr + '% ' + wrDayTrend() : '—',
     sub: w + '<span class="green">W</span> / ' + l + '<span class="red">L</span>' +
       (d ? ' / ' + d + '<span style="color:var(--fg)">D</span>' : '') +
       ' — ' + n + ' ' + plural(n, 'партия', 'партии', 'партий')
@@ -5319,10 +5330,10 @@ function gsIndex() {
   /* --- быстрые ответы: ответ прямо в строке результата --- */
   var nG = games.length;
   var wrAll = nG ? Math.round(winrate(games)) : null;
-  var wrTr = trend(winrate, TREND_N, games);
+  var wrTr = wrDayTrend().replace(/<[^>]+>/g, '');   // «▲ +5% сегодня» — как в карточке профиля
   var nW = games.filter(function(g) { return g.result === 'win'; }).length;
   add('Ответы', '📊', 'Винрейт: ' + (wrAll === null ? '—' : wrAll + '%'),
-    nW + 'W / ' + (nG - nW) + 'L' + (wrTr !== null ? ' · ' + (wrTr >= 0 ? '▲ +' : '▼ −') + Math.abs(Math.round(wrTr)) + '% за ' + TREND_N + ' игр' : ''),
+    nW + 'W / ' + (nG - nW) + 'L' + (wrTr ? ' · ' + wrTr : ''),
     'винрейт процент побед статистика', function() { gsWr(false); });
   add('Ответы', '⭐', 'ELO: ' + (RG0.length ? RG0[RG0.length - 1].after : '?'),
     RG0.length ? 'рейтинг по последней рейтинговой партии · блок ELO' : 'рейтинговых партий пока нет · блок ELO',

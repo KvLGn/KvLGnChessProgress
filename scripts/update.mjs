@@ -100,6 +100,7 @@ function convert(g) {
     lvl: opp.aiLevel || null,                      // уровень Stockfish 1–8
     rated: !!g.rated,                              // рейтинговая / товарищеская
     speed: g.speed,                                // ultraBullet | bullet | blitz | rapid | classical | correspondence
+    first: g.moves ? g.moves.split(' ')[0] : '',   // первый ход белых — по нему дашборд понимает, какой дебют из плана играл (1.e4 / 1.d4)
   };
   if (typeof me.ratingDiff === 'number') out.ir = me.ratingDiff;
   return out;

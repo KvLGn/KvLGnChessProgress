@@ -139,6 +139,23 @@
   @media (max-width: 700px) { .profile-head.eye-out .eye-btn { transform: translate(76px, 28px) scale(0.9); } .profile-head.eye-out.can-all .eye-all { transform: translate(116px, 28px) scale(0.75); } }   /* на телефоне слева нет места — выезжает вправо под ник */
   /* что показывает скрытый режим */
   .hush-na { font-size: 13px; color: var(--fg-mute); }
+  /* дебют в таблице: ✓ от Lichess (голубая) и ✓ из плана (зелёная) */
+  .ck { font-style: normal; font-weight: 700; font-size: 11px; margin-left: 3px; cursor: help; }
+  .ck-l { color: #7dd3fc; }
+  .ck-p { color: var(--green); }
+  .ck-l + .ck-p { margin-left: 1px; }
+  .op-plan { color: var(--fg-dim); }
+  .op-plan.maybe { color: var(--fg-mute); cursor: help; }
+  /* цель этапа в панели «Итоги»: пятёрки по цветам */
+  .vdx-goal { gap: 6px; }
+  .vdx-goals { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+  .vdx-stage, .vdx-goal b { white-space: nowrap; }
+  .vdx-h { white-space: nowrap; }
+  .vdx-who { font-size: 14px; line-height: 1; }
+  .vdx-bar { padding: 2px; border-radius: 4px; border: 1px solid transparent; }
+  .vdx-bar.ok { border-color: rgba(74,222,128,0.5); }
+  .vdx-bar.no { border-color: rgba(248,113,113,0.35); }
+  .vdx-bar i.shame { outline: 1px solid #fbbf24; outline-offset: 1px; }
   /* глаза частей: шапка (у поиска), график (у «Активность»), партии (у заголовка) */
   .sect-eye {
     width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; padding: 0;
@@ -776,7 +793,14 @@
   .vdx-bar { display: flex; gap: 3px; }
   .vdx-bar i { width: 18px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); }
   .vdx-bar i.win { background: var(--green); } .vdx-bar i.lose { background: var(--red); } .vdx-bar i.draw { background: #9ca3af; }
+  .vdx-head .vd-ai { margin-left: auto; font: 600 11px Inter, sans-serif; color: #86efac; background: none; border: 1px solid rgba(74,222,128,0.35); border-radius: 7px; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
+  .vdx-head .vd-ai:hover { border-color: #4ade80; color: #bbf7d0; }
+  .vdx-head .vd-ai + .vd-close { margin-left: 0; }
   .vdx-head .vd-close { margin-left: auto; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); z-index: 100; max-width: calc(100% - 32px);
+    padding: 10px 16px; border-radius: 10px; background: #14201a; border: 1px solid rgba(74,222,128,0.4); color: var(--fg); font-size: 13px;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
   .vdx-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
   .vdx-col { min-height: 0; display: flex; flex-direction: column; }
   .vdx-title { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
@@ -1508,7 +1532,7 @@
 
 <script src="data/games.js"></script>
 <script src="data/puzzles.js"></script>
-<script src="data/openings.js"></script>
+<script src="data/plan.js"></script>
 <script>
 /* =====================================================================
    ОГЛАВЛЕНИЕ — ищи разделы по заголовкам «/* ---------- … ---------- *\/»
@@ -1528,21 +1552,102 @@
    records .................... рекорды партий и активности
    switch ..................... переключение показатели ⇄ активность
    карточка задач / подробности  карточка и панель задач
-   дебюты ..................... карточка и панель дебютов (data/openings.js)
+   план ....................... этапы и дебюты из data/plan.js: текущий этап, прогресс цели
+   дебюты ..................... карточка и панель дебютов
    итоги ...................... buildVerdicts — все правила выводов
    глобальный поиск ........... gsIndex — все команды поиска
    go ......................... первичная отрисовка
 
    Данные: data/games.js и data/puzzles.js создаёт update.bat (не править),
-   data/openings.js правится вручную. Здесь правится только PROFILE.
+   data/plan.js (этапы, правило перехода, дебюты) правится вручную — см. AI-PROMPT.md.
    ===================================================================== */
-var PROFILE = {
-  start: '26.09.2026',
-  stage: 'Этап 1: Итальянская за белых vs Stockfish 3',
-  goal: {engine: 'Stockfish 3', color: 'white', need: 4, of: 5}   // цель этапа — для «Итогов»
-};
-
 var games = window.GAMES || [];
+
+/* ---------- план: этапы и дебюты из data/plan.js — текущий этап считается сам ---------- */
+var PLAN = window.PLAN || {start: '—', stages: [], openings: []};
+var RULE = PLAN.rule || {games: 5, blocks: 2, wins: 4, medianAcc: 70, lossMinAcc: 55, lossMaxBlunders: 2};
+function median(a) {
+  if (!a.length) return null;
+  var s = a.slice().sort(function(x, y) { return x - y; }), m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+// «честная» невыигранная партия: не позорная (точность и зевки в пределах)
+function honestLoss(g) { return g.result === 'win' || (g.acc >= RULE.lossMinAcc && g.blunders <= RULE.lossMaxBlunders); }
+// одна пятёрка: что выполнено, что нет
+function blockCheck(list) {
+  var wins = list.filter(function(g) { return g.result === 'win'; }).length;
+  var med = median(list.map(function(g) { return g.acc; }));
+  var bad = list.filter(function(g) { return !honestLoss(g); });
+  var full = list.length === RULE.games;
+  return {games: list, full: full, wins: wins, med: med, bad: bad,
+          ok: full && wins >= RULE.wins && med >= RULE.medianAcc && !bad.length};
+}
+// последние blocks × games партий → пятёрки (старшая первой)
+function splitBlocks(rel) {
+  var need = RULE.blocks * RULE.games, tail = rel.slice(-need), out = [];
+  for (var b = 0; b < RULE.blocks; b++) out.push(blockCheck(tail.slice(b * RULE.games, (b + 1) * RULE.games)));
+  return out;
+}
+function stageGame(S, c) { return function(g) { return g.opp === 'ai' && g.lvl === S.engine && g.color === c; }; }
+// проход по этапам: этап выполнен, когда правило выполнено для всех его цветов (цвет, выполненный раньше, засчитан)
+function evalStages() {
+  var hist = [], from = 0;
+  for (var k = 0; k < PLAN.stages.length; k++) {
+    var S = PLAN.stages[k], colors = {}, all = true, last = -1;
+    S.colors.forEach(function(c) {
+      var rel = [], at = -1, isC = stageGame(S, c);
+      for (var i = from; i < games.length; i++) {
+        if (!isC(games[i])) continue;
+        rel.push(games[i]);
+        if (at < 0 && rel.length >= RULE.blocks * RULE.games && splitBlocks(rel).every(function(b) { return b.ok; })) at = i;
+      }
+      colors[c] = {color: c, done: at >= 0, doneGame: at >= 0 ? games[at] : null, rel: at >= 0 ? rel.slice(0, rel.indexOf(games[at]) + 1) : rel};
+      colors[c].blocks = splitBlocks(colors[c].rel);
+      if (at < 0) all = false; else last = Math.max(last, at);
+    });
+    if (!all) return {idx: k, stage: S, from: from, colors: S.colors.map(function(c) { return colors[c]; }), hist: hist};
+    hist.push({idx: k, name: S.name, date: games[last].date, day: games[last].day});
+    from = last + 1;
+  }
+  return {idx: PLAN.stages.length, stage: null, from: from, colors: [], hist: hist};
+}
+var CUR = evalStages();
+var COLOR_WORD = {white: 'белыми', black: 'чёрными'};
+function stageRuleText() {
+  return 'Переход на следующий этап: ' + RULE.blocks + ' пятёрки партий подряд против бота этапа (каждым цветом этапа). В каждой: ' +
+    RULE.wins + '+ побед, медиана точности ≥ ' + RULE.medianAcc + '%, проигрыш — точность ≥ ' + RULE.lossMinAcc + '% и зевков ≤ ' + RULE.lossMaxBlunders + '.';
+}
+function stageTitle() { return CUR.stage ? 'Этап ' + (CUR.idx + 1) + ': ' + CUR.stage.name : 'План выполнен — добавь этап в plan.js'; }
+// короткая строка прогресса цвета: «пятёрок 1 из 2 · сейчас 3/5»
+function colorLine(c) {
+  if (c.done) return 'выполнено ' + c.doneGame.date;
+  var okN = c.blocks.filter(function(b) { return b.ok; }).length;
+  var fill = c.blocks.filter(function(b) { return !b.full; })[0];   // пятёрка, которая сейчас набирается
+  return 'пятёрок ' + okN + ' из ' + RULE.blocks + (fill ? ' · сейчас ' + fill.games.length + '/' + RULE.games : '');
+}
+// подробно, что мешает — для подсказок
+function blockWhy(b) {
+  if (!b.games.length) return 'партий пока нет';
+  var p = [b.wins + ' ' + plural(b.wins, 'победа', 'победы', 'побед') + ' из ' + b.games.length + ' (нужно ' + RULE.wins + ' из ' + RULE.games + ')',
+           'медиана точности ' + Math.round(b.med) + '% (нужно ≥ ' + RULE.medianAcc + '%)'];
+  if (b.bad.length) p.push('слабый проигрыш: #' + b.bad.map(function(g) { return g.n || '?'; }).join(', #') + ' (нужно точность ≥ ' + RULE.lossMinAcc + '% и зевков ≤ ' + RULE.lossMaxBlunders + ')');
+  return p.join(' · ');
+}
+var PROFILE = {start: PLAN.start, stage: stageTitle()};
+
+// дебюты: статус считается от текущего этапа (изученные остаются в «Изучаю» вторым планом)
+(function() {
+  function stageOf(id) { for (var k = 0; k < PLAN.stages.length; k++) if ((PLAN.stages[k].openings || []).indexOf(id) >= 0) return k; return -1; }
+  var ops = PLAN.openings || [];
+  var cur = ops.filter(function(o) { var k = stageOf(o.id); return k >= 0 && k <= CUR.idx; })
+    .sort(function(a, b) { return stageOf(b.id) - stageOf(a.id); });   // новые (этап позже) — первыми
+  window.OPENINGS = {
+    current: cur,
+    next: ops.filter(function(o) { return stageOf(o.id) > CUR.idx; }),
+    planned: ops.filter(function(o) { return stageOf(o.id) < 0; }),
+    done: []
+  };
+})();
 var cgAll = games;   // партии для графика с учётом фильтра графика
 
 /* ===================================================================== */
@@ -2842,7 +2947,7 @@ function renderGames() {
       '<td>' + g.n + '</td>' +
       '<td class="td-knight" title="' + COLOR_NAME[g.color] + '">' + KNIGHT[g.color] + '</td>' +
       '<td>' + esc(g.date) + '</td>' +
-      '<td>' + esc(g.opening) + '</td>' +
+      '<td>' + openingCell(g) + '</td>' +
       '<td class="td-dim">' + esc(g.engine) + '</td>' +
       '<td><span class="badge" style="color:' + R.color + ';background:' + R.bg + '">' + R.short + '</span></td>' +
       irCell(g.ir);
@@ -3828,7 +3933,26 @@ $('pzDetail').addEventListener('click', function(e) {
   }
 });
 
-/* ---------- дебюты: изучаю / следующие / в планах (openings.js) ---------- */
+/* ---------- дебюты: изучаю / следующие / в планах (статус от этапа — data/plan.js) ---------- */
+// какой дебют из плана играл: совпал по названию Lichess, иначе по первому ходу бота (чёрными), иначе неизвестно
+function planOpening(g) {
+  var cur = ((window.OPENINGS || {}).current || []).filter(function(o) { return o.color === g.color; });
+  if (!cur.length) return {};
+  var byName = cur.filter(function(o) { return opMatch(o, g.opening); })[0];
+  if (byName) return {both: byName};
+  if (g.color === 'white') return cur.length === 1 ? {plan: cur[0]} : {maybe: cur};
+  var byFirst = cur.filter(function(o) { return o.vs && o.vs === g.first; });
+  return byFirst.length === 1 ? {plan: byFirst[0]} : {maybe: cur};
+}
+var CK_L = '<i class="ck ck-l" title="по данным Lichess">✓</i>', CK_P = '<i class="ck ck-p" title="по твоему плану (data/plan.js)">✓</i>';
+function openingCell(g) {
+  var P = planOpening(g), L = esc(g.opening);
+  if (P.both) return L + CK_L + CK_P;
+  if (P.plan) return L + CK_L + '<span class="op-plan"> · ' + esc(P.plan.name) + CK_P + '</span>';
+  if (P.maybe) return L + CK_L + '<span class="op-plan maybe" title="Бот начал необычным ходом — какой дебют из плана, не определить"> · ' +
+    P.maybe.map(function(o) { return esc(o.name) + '?'; }).join(' · ') + '</span>';
+  return L;
+}
 function opMatch(o, name) {
   return (o.match || []).some(function(m) { return (name || '').toLowerCase().indexOf(m.toLowerCase()) >= 0; });
 }
@@ -3852,7 +3976,7 @@ function renderOpeningCard() {
   var O = window.OPENINGS;
   var head = '<div class="op-head"><span>📖 Дебюты</span><span class="op-go">›</span></div>';
   if (!O || !O.current || !O.current.length) {
-    $('opCard').innerHTML = head + '<div class="op-main">—</div><div class="op-sub">заполни progress/data/openings.js</div>';
+    $('opCard').innerHTML = head + '<div class="op-main">—</div><div class="op-sub">заполни progress/data/plan.js</div>';
     return;
   }
   if (hush.head) { opN = 0; $('opCard').innerHTML = head + '<div class="hush-na">нет данных</div><div></div>'; startOpCarousel(); return; }
@@ -3866,7 +3990,8 @@ function renderOpeningCard() {
 }
 // карусель «Далее / В планах»: по одному дебюту на слайд, сначала следующие, потом планы
 function opCarousel(O) {
-  var slides = (O.next || []).map(function(o) { return ['Далее', o]; })
+  var slides = (O.current || []).slice(1).map(function(o) { return ['Изучаю', o]; })
+    .concat((O.next || []).map(function(o) { return ['Далее', o]; }))
     .concat((O.planned || []).map(function(o) { return ['В планах', o]; }))
     .map(function(p) { return '<div class="op-slide"><span class="op-sl-lbl">' + p[0] + ':</span> ' + opName(p[1]) + '</div>'; });
   if (!slides.length) return 'Далее: —';
@@ -3971,7 +4096,10 @@ function buildVerdicts() {
   function r(v) { return Math.round(v); }
   function sameKey(list, key) { return list.filter(function(g) { return typeof g[key] === 'number'; }); }
 
-  /* --- партии --- */
+  /* --- партии (если этап требует оба цвета — отдельно белыми и чёрными) --- */
+  var addOuter = add;
+  function gameRules(games, pre) {
+  function add(t, w, text, link, more) { addOuter(t, w, pre + text, link, more); }
   var n = games.length;
   if (n) {
     var last = games.slice(-10), l5 = games.slice(-5), p5 = games.length >= 10 ? games.slice(-10, -5) : [];
@@ -4033,15 +4161,6 @@ function buildVerdicts() {
       add('tip', 74, 'Сделай паузу и разбери поражения', null, 'После серии поражений сделай паузу и разбери последние партии с движком');
     }
 
-    // цель этапа
-    var G = PROFILE.goal;
-    if (G) {
-      var gl = games.filter(function(g) { return g.engine === G.engine && g.color === G.color; }).slice(-G.of);
-      var gw = gl.filter(function(g) { return g.result === 'win'; }).length;
-      if (gl.length >= G.of && gw >= G.need) add('good', 95, 'Цель этапа выполнена: ' + gw + ' из ' + G.of, null, gw + ' из ' + G.of + ' побед против ' + G.engine + ' — можно переходить к следующему этапу');
-      else add('tip', 88, 'Цель этапа: ' + gw + ' из ' + gl.length + ', нужно ' + G.need + ' из ' + G.of, null, 'Побед в последних ' + G.of + ' партиях против ' + G.engine + ' (' + (G.color === 'white' ? 'белыми' : 'чёрными') + ')');
-    }
-
     // дебюты в партиях: семейства с 2+ партиями
     var fam = {};
     games.forEach(function(g) { var k = g.opening.split(':')[0]; (fam[k] = fam[k] || []).push(g); });
@@ -4053,6 +4172,24 @@ function buildVerdicts() {
       else if (wr >= 75) add('good', 45 + fl.length, k + ': ' + r(wr) + '% побед', null, fl.length + ' ' + plural(fl.length, 'партия', 'партии', 'партий') + ' в этом дебюте');
     });
   }
+
+  }
+  var twoColors = CUR.stage && CUR.stage.colors.length > 1;
+  if (twoColors) ['white', 'black'].forEach(function(c) { gameRules(games.filter(function(g) { return g.color === c; }), c === 'white' ? 'Белыми: ' : 'Чёрными: '); });
+  else gameRules(games, '');
+  var n = games.length;
+
+  /* --- цель этапа (правило из plan.js) --- */
+  var lastDone = CUR.hist[CUR.hist.length - 1];
+  if (lastDone && daysBetween(fromIso(lastDone.day), gameToday()) <= 7)
+    add('good', 97, 'Этап ' + (lastDone.idx + 1) + ' выполнен ' + lastDone.date + '!', null, lastDone.name + ' — дальше: ' + stageTitle());
+  if (!CUR.stage) add('tip', 96, 'План выполнен — добавь этап', null, 'Все этапы из data/plan.js пройдены — допиши следующий (см. AI-PROMPT.md)');
+  else CUR.colors.forEach(function(c) {
+    var who = twoColors ? (c.color === 'white' ? 'Белыми' : 'Чёрными') : 'Цель этапа';
+    var cur = c.blocks.filter(function(b) { return !b.ok; })[0] || c.blocks[c.blocks.length - 1];
+    if (c.done) add('good', 90, who + ': цель выполнена ' + c.doneGame.date, null, 'Правило этапа выполнено ' + COLOR_WORD[c.color] + ' против Stockfish ' + CUR.stage.engine);
+    else add('tip', 88, who + ': ' + colorLine(c), null, 'Нужно ' + RULE.blocks + ' пятёрки подряд ' + COLOR_WORD[c.color] + ' против Stockfish ' + CUR.stage.engine + '. Сейчас: ' + blockWhy(cur));
+  });
 
   /* --- активность --- */
   var st = streaks();
@@ -4186,18 +4323,19 @@ $('vdCard').addEventListener('mouseleave', function() { vdPaused = false; });
 
 function renderVerdictDetail() {
   var V = buildVerdicts();
-  // строка этапа: цель из PROFILE.goal и прогресс по последним партиям
-  var stage = '<span class="vdx-stage">' + esc(PROFILE.stage) + '</span>';
-  var G = PROFILE.goal;
-  if (G) {
-    var gl = games.filter(function(g) { return g.engine === G.engine && g.color === G.color; }).slice(-G.of);
-    var gw = gl.filter(function(g) { return g.result === 'win'; }).length;
-    stage += '<span class="vdx-goal"><span class="vdx-bar">' + gl.map(function(g) {
-        return '<i class="' + g.result + '" title="' + esc(g.date + ' · ' + RESULT[g.result].label + ' · ' + g.opening) + '"></i>';
-      }).join('') + new Array(Math.max(0, G.of - gl.length) + 1).join('<i></i>') + '</span>' +
-      '<b>' + gw + ' из ' + G.of + '</b> побед · нужно ' + G.need +
-      (gl.length >= G.of && gw >= G.need ? ' — <span style="color:var(--green)">выполнено!</span>' : '') + '</span>';
-  }
+  // строка этапа: этап из plan.js и две пятёрки на каждый цвет этапа
+  var stage = '<span class="vdx-stage" title="' + esc(stageRuleText()) + '">' + esc(PROFILE.stage) + '</span>';
+  stage += '<span class="vdx-goals">';
+  CUR.colors.forEach(function(c) {
+    stage += '<span class="vdx-goal">' + (CUR.colors.length > 1 ? '<span class="vdx-who">' + KNIGHT[c.color] + '</span>' : '') +
+      c.blocks.map(function(b) {
+        return '<span class="vdx-bar' + (b.ok ? ' ok' : b.full ? ' no' : '') + '" title="' + esc(blockWhy(b)) + '">' +
+          b.games.map(function(g) { return '<i class="' + g.result + (honestLoss(g) ? '' : ' shame') + '" title="' + esc('#' + g.n + ' · ' + g.date + ' · ' + RESULT[g.result].label + ' · точность ' + g.acc + '% · зевков ' + g.blunders) + '"></i>'; }).join('') +
+          new Array(Math.max(0, RULE.games - b.games.length) + 1).join('<i></i>') + '</span>';
+      }).join('') +
+      '<b>' + (c.done ? '<span style="color:var(--green)">выполнено</span>' : colorLine(c)) + '</b></span>';
+  });
+  stage += '</span>';
   function col(t, title, color, empty, numbered) {
     var items = V.filter(function(v) { return v.t === t; });
     return '<div class="vdx-col"><div class="vdx-title" style="color:' + color + '">' + title + ' <span>' + items.length + '</span></div>' +
@@ -4211,6 +4349,7 @@ function renderVerdictDetail() {
   }
   $('vdDetail').innerHTML =
     '<div class="vdx-head"><span class="vdx-h">🎯 Итоги</span>' + stage +
+      '<button class="vd-ai" type="button" title="Скопировать текущую картину для другой нейросети (промпт — в AI-PROMPT.md)">📋 Сводка для ИИ</button>' +
       '<button class="pzd-close vd-close" aria-label="Закрыть">×</button></div>' +
     '<div class="vdx-cols">' +
       col('bad', '▼ Что улучшить', 'var(--red)', 'Слабых мест не найдено') +
@@ -4270,12 +4409,113 @@ $('vdCard').addEventListener('keydown', function(e) {
 });
 $('vdDetail').addEventListener('click', function(e) {
   if (e.target.closest('.vd-close')) { toggleVerdict(false); return; }
+  if (e.target.closest('.vd-ai')) { copySummary(); return; }
   var t = e.target.closest('.vd-tab');
   if (t) { vdTab = t.getAttribute('data-t'); vdPage = 0; renderVerdictDetail(); return; }
   var p = e.target.closest('.vd-pager button');
   if (p && !p.disabled) { vdPage += +p.getAttribute('data-p'); renderVerdictDetail(); }
 });
 
+
+/* ---------- сводка для ИИ: текущая картина одним текстом (вставить в чат вместе с AI-PROMPT.md) ---------- */
+function aiSummary() {
+  var L = [], r1 = function(v) { return v === null ? '—' : (Math.round(v * 10) / 10); };
+  function pct(v) { return v === null ? '—' : Math.round(v) + '%'; }
+  function wl(list) {
+    var w = list.filter(function(g) { return g.result === 'win'; }).length, l = list.filter(function(g) { return g.result === 'lose'; }).length;
+    return w + 'W/' + l + 'L' + (list.length - w - l ? '/' + (list.length - w - l) + 'D' : '');
+  }
+  function phases(list) {
+    return 'точность ' + pct(avg(list, 'acc')) + ', дебют ' + pct(avg(list, 'debut')) + ', миттельшпиль ' + pct(avg(list, 'mid')) +
+      ', эндшпиль ' + pct(avg(list, 'end')) + ', зевков ' + r1(avg(list, 'blunders')) + ' за партию';
+  }
+  L.push('# Сводка шахматного прогресса KvLGn (новичок, занимается с ' + PLAN.start + ')');
+  L.push('Данные с Lichess на ' + (window.GAMES_UPDATED || '—') + '. Сайт: https://kvlgn.github.io/KvLGnChessProgress/');
+  L.push('');
+  L.push('## Этап');
+  L.push(stageTitle() + (CUR.stage ? ' (этап ' + (CUR.idx + 1) + ' из ' + PLAN.stages.length + ')' : ''));
+  L.push('Правило перехода: ' + stageRuleText());
+  CUR.colors.forEach(function(c) {
+    L.push('- ' + COLOR_WORD[c.color] + ': ' + (c.done ? 'выполнено ' + c.doneGame.date : colorLine(c)) + '. ' +
+      c.blocks.map(function(b, i) { return 'пятёрка ' + (i + 1) + ': ' + (b.ok ? 'выполнена' : blockWhy(b)); }).join('; '));
+  });
+  if (CUR.hist.length) L.push('Пройдено: ' + CUR.hist.map(function(h) { return 'этап ' + (h.idx + 1) + ' — ' + h.date; }).join(', '));
+  L.push('');
+  L.push('## Партии (все с компьютерным анализом Lichess)');
+  L.push('Всего ' + games.length + ' (' + wl(games) + ')');
+  var byOpp = {};
+  games.forEach(function(g) { (byOpp[g.engine] = byOpp[g.engine] || []).push(g); });
+  L.push('Соперники: ' + Object.keys(byOpp).map(function(k) { return k + ' — ' + byOpp[k].length + ' (' + wl(byOpp[k]) + ')'; }).join('; '));
+  ['white', 'black'].forEach(function(c) {
+    var gl = games.filter(function(g) { return g.color === c; });
+    if (gl.length) L.push(COLOR_WORD[c].replace(/^./, function(x) { return x.toUpperCase(); }) + ': ' + gl.length + ' (' + wl(gl) + '); последние 10: ' + phases(gl.slice(-10)));
+  });
+  var l5 = games.slice(-5), p5 = games.slice(-10, -5);
+  if (p5.length === 5) L.push('Последние 5 против предыдущих 5: точность ' + pct(avg(l5, 'acc')) + ' vs ' + pct(avg(p5, 'acc')) + ', зевков ' + r1(avg(l5, 'blunders')) + ' vs ' + r1(avg(p5, 'blunders')));
+  L.push('Последние партии:');
+  games.slice(-6).reverse().forEach(function(g) {
+    L.push('- #' + g.n + ' ' + g.date + ' ' + COLOR_WORD[g.color] + ' vs ' + g.engine + ': ' + RESULT[g.result].label + ', точность ' + g.acc + '%, зевков ' + g.blunders + ', ' + g.opening);
+  });
+  L.push('');
+  L.push('## Дебюты');
+  var O = window.OPENINGS || {};
+  function on(list) { return (list || []).map(function(o) { var st = opStats(o); return o.name + ' (' + COLOR_WORD[o.color] + (st.games.length ? ', ' + st.games.length + ' ' + plural(st.games.length, 'партия', 'партии', 'партий') + ', ' + st.w + 'W/' + st.l + 'L' : '') + ')'; }).join('; ') || '—'; }
+  L.push('Изучаю: ' + on(O.current));
+  L.push('Далее: ' + on(O.next));
+  L.push('В планах: ' + on(O.planned));
+  var P = window.PUZZLES;
+  if (P && P.rating !== null) {
+    L.push('');
+    L.push('## Задачи');
+    var hist = P.history || [], first = hist[0];
+    var w = P.attempts.filter(function(a) { return a.win; }).length;
+    L.push('Рейтинг ' + P.rating + (first ? ' (' + (P.rating - first.rating >= 0 ? '+' : '') + (P.rating - first.rating) + ' с ' + first.day.split('-').reverse().slice(0, 2).join('.') + ')' : '') +
+      ', решено ' + Math.round(w / P.attempts.length * 100) + '% из ' + P.attempts.length);
+    if (P.themeStats) {
+      var th = Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k] && P.themeStats[k].nb >= PZ_MIN_THEME; })
+        .map(function(k) { return {n: (P.themeNames || {})[k] || PZ_NAMES[k] || k, p: P.themeStats[k].perf}; }).sort(function(a, b) { return b.p - a.p; });
+      if (th.length) {
+        L.push('Сильные темы: ' + th.slice(0, 3).map(function(x) { return x.n + ' ' + x.p; }).join(', '));
+        L.push('Слабые темы: ' + th.slice(-3).reverse().map(function(x) { return x.n + ' ' + x.p; }).join(', '));
+      }
+    }
+  }
+  var st = streaks();
+  L.push('');
+  L.push('## Активность');
+  L.push('Серия: ' + st.current + ' дн. подряд (рекорд ' + st.best + ')' + (st.playedToday ? '' : ', сегодня ещё не играл'));
+  L.push('');
+  L.push('## Автовыводы сайта');
+  var V = buildVerdicts();
+  [['bad', 'Проседает'], ['good', 'Хорошо'], ['tip', 'Советы']].forEach(function(k) {
+    var it = V.filter(function(v) { return v.t === k[0]; });
+    if (it.length) L.push(k[1] + ': ' + it.map(function(v) { return v.text; }).join('; '));
+  });
+  L.push('');
+  L.push('## Текущий data/plan.js (stages / openings / rule)');
+  L.push(JSON.stringify({start: PLAN.start, rule: PLAN.rule, stages: PLAN.stages, openings: (PLAN.openings || []).map(function(o) { return {id: o.id, name: o.name, color: o.color, vs: o.vs}; })}));
+  return L.join('\n');
+}
+function copyText(t) {
+  function old() {
+    var a = document.createElement('textarea');
+    a.value = t; a.style.position = 'fixed'; a.style.opacity = '0';
+    document.body.appendChild(a); a.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    a.remove();
+  }
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).catch(old); else old();
+}
+function toast(msg) {
+  var el = $('toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; document.body.appendChild(el); }
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(function() { el.classList.remove('show'); }, 3500);
+}
+function copySummary() {
+  copyText(aiSummary());
+  toast('Сводка скопирована — вставь в чат с ИИ вместе с промптом из AI-PROMPT.md');
+}
 
 /* ---------- глобальный поиск: разделы, партии, дебюты, темы задач, итоги ---------- */
 function gsNorm(t) { return String(t || '').toLowerCase().replace(/ё/g, 'е'); }
@@ -4422,13 +4662,8 @@ function gsIndex() {
   var stk = streaks();
   add('Ответы', '🔥', 'Серия: ' + stk.current + ' ' + plural(stk.current, 'день', 'дня', 'дней') + ' подряд', 'рекорд ' + stk.best + ' ' + plural(stk.best, 'день', 'дня', 'дней'),
     'серия дни подряд стрик', function() { gsChart('activity', false); });
-  if (PROFILE.goal) {
-    var G2 = PROFILE.goal;
-    var gl2 = games.filter(function(g) { return g.engine === G2.engine && g.color === G2.color; }).slice(-G2.of);
-    var gw2 = gl2.filter(function(g) { return g.result === 'win'; }).length;
-    var left = gl2.length >= G2.of && gw2 >= G2.need ? 'выполнена!' : 'нужно ' + G2.need + ' из ' + G2.of + ' последних';
-    add('Ответы', '🎯', 'Цель этапа: ' + gw2 + ' из ' + gl2.length + ' побед против ' + G2.engine, left, 'цель этап прогресс', function() { gsCloseSide(); vdTab = 'tip'; toggleVerdict(true); });
-  }
+  add('Ответы', '🎯', 'Цель этапа: ' + (CUR.stage ? CUR.colors.map(function(c) { return (CUR.colors.length > 1 ? COLOR_WORD[c.color] + ' ' : '') + colorLine(c); }).join(' · ') : 'план выполнен'),
+    stageTitle(), 'цель этап прогресс уровень', function() { gsCloseSide(); toggleVerdict(true); });
   if (nG) {
     var byAcc = games.slice().sort(function(a, b) { return b.acc - a.acc; });
     add('Ответы', '<span style="color:var(--green)">▲</span>', 'Лучшая партия: #' + byAcc[0].n + ' · ' + byAcc[0].acc + '%', byAcc[0].opening + ' · ' + byAcc[0].date, 'лучшая партия', function() { gsOpenGame(byAcc[0]); });
@@ -4598,7 +4833,7 @@ function gsIndex() {
 
   /* --- действия на Lichess --- */
   function ext(title, sub, keys, url) { add('Lichess', '↗', title, sub, keys, function() { window.open(url, '_blank'); }); }
-  if (PROFILE.goal) ext('Сыграть с ' + PROFILE.goal.engine, 'откроется окно игры с компьютером — выбери уровень ' + PROFILE.goal.engine.replace(/\D+/g, '') + ' и ' + (PROFILE.goal.color === 'white' ? 'белые' : 'чёрные'), 'играть сыграть stockfish бот компьютер', 'https://lichess.org/#ai');
+  if (CUR.stage) ext('Сыграть с Stockfish ' + CUR.stage.engine, 'откроется окно игры с компьютером — выбери уровень ' + CUR.stage.engine + ' и ' + ((CUR.colors.filter(function(c) { return !c.done; })[0] || CUR.colors[0]).color === 'white' ? 'белые' : 'чёрные'), 'играть сыграть stockfish бот компьютер', 'https://lichess.org/#ai');
   ext('Задачи: микс', 'тренировка на Lichess', 'задачи микс тренировка', 'https://lichess.org/training/mix');
   if (P2 && P2.themeStats && P2.global) {
     var weakest = Object.keys(P2.themeStats).filter(function(k) { return !PZ_SKIP[k] && P2.themeStats[k].nb >= 5; })
@@ -4615,6 +4850,7 @@ function gsIndex() {
   ext('Мой профиль на Lichess', 'lichess.org/@/KvLGn', 'профиль аккаунт', 'https://lichess.org/@/KvLGn');
 
   /* --- сервисные --- */
+  add('Сервис', '📋', 'Скопировать сводку для ИИ', 'этап, партии, дебюты, задачи, выводы — вставить в чат с нейросетью', 'сводка ии ai нейросеть chatgpt промпт копировать', copySummary);
   add('Сервис', '⟳', 'Как обновить данные', 'запусти progress/update.bat · обновлено: ' + (window.GAMES_UPDATED || '—'), 'обновить данные update bat', function() { gsFlash($('footer')); });
   add('Сервис', '↑', 'Наверх', 'к началу страницы', 'наверх начало вверх', function() { window.scrollTo({top: 0, behavior: 'smooth'}); });
   add('Сервис', '↓', 'К таблице партий', 'список партий и фильтры', 'таблица вниз партии', function() { gsFlash($('filters')); });
@@ -4662,6 +4898,7 @@ function gsIndex() {
 // к какой части страницы относится пункт поиска: что он показывает или открывает
 function gsSections(it) {
   var g = it.group, t = it.title;
+  if (t === 'Скопировать сводку для ИИ') return ['head', 'chart', 'table'];
   if (g === 'Разделы') {
     if (/^(Задачи|Дебюты|Итоги)$/.test(t)) return ['head'];
     if (t === 'Таблица партий') return ['table'];

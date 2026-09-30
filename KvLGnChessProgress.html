@@ -133,9 +133,12 @@
   .wr-box:hover .wr-label::after, .wr-box:focus-visible .wr-label::after { opacity: 0.6; }
   .wr-box.swap { animation: wrSwap 0.2s ease; }
   /* подсветка из поиска — рамка ровно вокруг блока винрейта / ELO */
-  .wr-box.gs-flash { animation: wrFlash 1.4s ease; }
-  .wr-box.swap.gs-flash { animation: wrSwap 0.2s ease, wrFlash 1.4s ease; }
-  @keyframes wrFlash { 0%, 40% { outline: 1px solid rgba(129,140,248,0.7); outline-offset: 6px; } 100% { outline: 1px solid transparent; outline-offset: 6px; } }
+  .wr-box { position: relative; }
+  .wr-box::before { content: ''; position: absolute; inset: -6px -6px -6px -12px; border: 1px solid transparent; border-radius: 10px; pointer-events: none; }   /* слева шире — текст не прилипает к рамке */
+  .wr-box.gs-flash { animation: none; }
+  .wr-box.swap.gs-flash { animation: wrSwap 0.2s ease; }
+  .wr-box.gs-flash::before { animation: wrFlash 1.4s ease; }
+  @keyframes wrFlash { 0%, 40% { border-color: rgba(129,140,248,0.7); } 100% { border-color: transparent; } }
   @keyframes wrSwap { from { opacity: 0.2; transform: translateY(2px); } to { opacity: 1; transform: none; } }
 
   .profile-side { flex: 1; min-width: 0; display: flex; flex-direction: column; margin-right: -32px; }   /* выступает за правую рамку страницы на 8px — как карточка профиля слева */

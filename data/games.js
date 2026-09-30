@@ -1,5 +1,5 @@
 // Создаётся автоматически скриптом update.mjs — не редактировать вручную.
-window.GAMES_UPDATED = '30.09.2026 20:28';
+window.GAMES_UPDATED = '30.09.2026 21:03';
 window.GAMES = [
   {"id":"y5Zzpoql","date":"26.09","day":"2026-09-26","opening":"King's Pawn Game: Wayward Queen Attack","eco":"C20","color":"white","result":"win","moves":52,"acc":74,"debut":57,"mid":44,"end":97,"inacc":2,"mistakes":1,"blunders":5,"acpl":67,"engine":"Stockfish 3","section":"Stockfish 3","opp":"ai","lvl":3,"rated":false,"speed":"correspondence"},
   {"id":"ngv6Da40","date":"28.09","day":"2026-09-28","opening":"Italian Game: Giuoco Pianissimo, Normal","eco":"C50","color":"white","result":"lose","moves":40,"acc":71,"debut":70,"mid":68,"end":null,"inacc":5,"mistakes":5,"blunders":6,"acpl":99,"engine":"Stockfish 3","section":"Stockfish 3","opp":"ai","lvl":3,"rated":false,"speed":"correspondence"},
@@ -10,7 +10,8 @@ window.GAMES = [
   {"id":"PBUy4Qrt","date":"28.09","day":"2026-09-28","opening":"Italian Game: Paris Defense","eco":"C50","color":"white","result":"lose","moves":35,"acc":37,"debut":93,"mid":33,"end":null,"inacc":1,"mistakes":2,"blunders":7,"acpl":248,"engine":"Stockfish 3","section":"Stockfish 3","opp":"ai","lvl":3,"rated":false,"speed":"correspondence"},
   {"id":"8tVpbQok","date":"28.09","day":"2026-09-28","opening":"Italian Game: Two Knights Defense, Modern Bishop's Opening","eco":"C55","color":"white","result":"win","moves":36,"acc":91,"debut":67,"mid":99,"end":100,"inacc":0,"mistakes":1,"blunders":1,"acpl":26,"engine":"Stockfish 3","section":"Stockfish 3","opp":"ai","lvl":3,"rated":false,"speed":"correspondence"},
   {"id":"YYrxUDbj","date":"29.09","day":"2026-09-29","opening":"Italian Game: Classical Variation","eco":"C54","color":"white","result":"win","moves":31,"acc":81,"debut":81,"mid":61,"end":100,"inacc":3,"mistakes":2,"blunders":2,"acpl":53,"engine":"Stockfish 3","section":"Stockfish 3","opp":"ai","lvl":3,"rated":false,"speed":"correspondence"},
-  {"id":"ndQoxBfX","date":"29.09","day":"2026-09-29","opening":"Sicilian Defense: French Variation","eco":"B40","color":"white","result":"win","moves":41,"acc":95,"debut":90,"mid":95,"end":99,"inacc":3,"mistakes":2,"blunders":0,"acpl":33,"engine":"Stockfish 3","section":"Stockfish 3","opp":"ai","lvl":3,"rated":false,"speed":"correspondence"}
+  {"id":"ndQoxBfX","date":"29.09","day":"2026-09-29","opening":"Sicilian Defense: French Variation","eco":"B40","color":"white","result":"win","moves":41,"acc":95,"debut":90,"mid":95,"end":99,"inacc":3,"mistakes":2,"blunders":0,"acpl":33,"engine":"Stockfish 3","section":"Stockfish 3","opp":"ai","lvl":3,"rated":false,"speed":"correspondence"},
+  {"id":"i8aUmQYj","date":"30.09","day":"2026-09-30","opening":"Caro-Kann Defense","eco":"B10","color":"white","result":"win","moves":44,"acc":85,"debut":69,"mid":86,"end":100,"inacc":1,"mistakes":3,"blunders":1,"acpl":48,"engine":"Stockfish 1","section":"Stockfish 1","opp":"ai","lvl":1,"rated":false,"speed":"correspondence"}
 ];
 // рейтинговые партии для ELO на дашборде (анализ не обязателен)
 window.RATING_GAMES = [

@@ -1154,6 +1154,9 @@
   .an-info-s { font-size: 11.5px; color: var(--fg-dim); margin-top: 3px; line-height: 1.4; }
   .an-info-s b { color: var(--fg); }
   .an-info-s .good { color: #4ade80; } .an-info-s .bad { color: #f87171; }
+  /* строки карточки с подписью слева: «Ты сыграл · 31. Qxg6» */
+  .an-row { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 6px; margin-top: 3px; }
+  .an-row > span:first-child { color: var(--fg-mute); }
   .an-mvs { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px; display: grid; grid-template-columns: 30px 1fr 1fr; grid-auto-rows: 26px; align-items: center; align-content: start; gap: 1px 4px;
     scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
   .an-no { font-size: 11px; color: var(--fg-mute); text-align: right; padding-right: 4px; }
@@ -1170,10 +1173,10 @@
   .an-nav button:disabled { opacity: 0.3; cursor: default; }
   .an-nav span { margin-left: auto; font-size: 11px; color: var(--fg-mute); }
   /* выпадающий список линз («Зевки ▾») в заголовке «Ходов» — те же .win-pick / .win-menu, что у окна средних */
-  .an-pick { margin-left: auto; text-transform: none; letter-spacing: 0; }
+  .an-pick { margin-left: 6px; text-transform: none; letter-spacing: 0; }   /* сразу за «Ходы N», не у края */
   .an-pick .win-toggle { font: 600 12px Inter, sans-serif; color: #22d3ee; }
   .an-pick .win-toggle:hover, .an-pick.open .win-toggle { color: #67e8f9; }
-  .an-pick .win-menu { right: -4px; min-width: 120px; }
+  .an-pick .win-menu { left: -8px; right: auto; min-width: 120px; }
   /* колонка 3: моменты выбранной линзы (клик — позиция перед ходом) */
   .an-mom { position: relative; border-right: 1px solid rgba(46,50,68,0.6); }
   .an-mom-in { position: absolute; inset: 0; display: flex; flex-direction: column; }
@@ -4331,6 +4334,17 @@ function anLine(P, from, to) {
   return out.join(' ');
 }
 
+// строка карточки «подпись · значение» (значение — готовый HTML)
+function anRow(label, html) { return '<div class="an-row"><span>' + label + '</span><span>' + html + '</span></div>'; }
+function anMoves(n) { return n + ' ' + plural(n, 'ход', 'хода', 'ходов'); }
+// линия движка SAN с номерами ходов, начиная с полухода from: «31. Rc6 Kf8 32. Rxg6 Qxg6»
+function anSanLine(from, san) {
+  return san.split(' ').filter(Boolean).map(function(m, i) {
+    var p = from + i;
+    return (p % 2 ? Math.ceil(p / 2) + '. ' : i ? '' : Math.ceil(p / 2) + '… ') + m;
+  }).join(' ');
+}
+
 /* --- линзы: какие моменты искать в партии --- */
 // зевки (поле bl из update.mjs, типы — BL_TYPES)
 function anBlunderMoments(g, P) {
@@ -4358,20 +4372,24 @@ function anMateMoments(g, P) {
     }
     var N = mate(s);
     if (!lost) {
+      var done = anRow('Сыграно', '<b>' + esc(anLine(P, s + 1, q + 1)) + '</b>') +
+        anRow('Итог', q < P.n && /#/.test(P.moves[q].san) ? '<span class="good">мат поставлен</span>'
+          : q >= P.n ? '<span class="good">соперник сдался</span>' : 'серия прервалась');
       out.push({p: s + 1, at: s, color: AN_COLORS.best, tint: 'good', san: P.moves[s].san, short: 'мат в ' + N + ' ✓',
-        title: '♛ ' + anMoveNo(s + 1) + esc(P.moves[s].san) + ' · <em>мат в ' + N + ' — довёл</em>',
-        before: 'Здесь у тебя форсированный мат в ' + N + '. Сыграно: <b>' + esc(anLine(P, s + 1, q + 1)) + '</b>',
-        after: 'Мат в ' + N + ' доведён: <b>' + esc(anLine(P, s + 1, q + 1)) + '</b>',
+        title: '♛ <em>Мат в ' + N + ' — доведён ✓</em>', before: done, after: done,
         arrows: anArrows(P, s + 1, AN_COLORS.best)});
     } else {
       var N2 = mate(lost - 1), j = anJudge(g, lost), line = j && j[2];
       var bl = (g.bl || []).filter(function(b) { return blPly(g, b) === lost; })[0];
       var best = (line && line.split(' ')[0]) || (bl && bl.b) || null;
+      var evA = g.ev ? g.ev[lost] : null;   // перевес после упустившего хода: выигрыш сохранён или нет
+      var rows = anRow('Сыграно', '<span class="bad">' + anMoveNo(lost) + esc(P.moves[lost - 1].san) + '</span> — мат пропал') +
+        (best ? anRow('Лучше', '<span class="good">' + anMoveNo(lost) + esc(best) + '</span> — начало мата') : '') +
+        (line ? anRow('Линия', '<b>' + esc(anSanLine(lost, line)) + '</b>' + (line.split(' ').length >= 8 ? ' …' : '')) : '') +
+        (typeof evA === 'number' ? anRow('После', evA >= 50 ? '<span class="good">выигрыш сохранён (' + evText(evA) + ')</span>'
+          : 'перевес ' + (evA >= 0 ? 'упал до ' : 'у соперника: ') + '<b>' + evText(evA) + '</b>') : '');
       out.push({p: lost, at: lost - 1, color: BL_TYPES.mateMissed.color, tint: 'bad', san: P.moves[lost - 1].san, short: 'мат в ' + N2 + ' ✗',
-        title: '♛ ' + anMoveNo(lost) + esc(P.moves[lost - 1].san) + ' · <em>мат в ' + N2 + ' упущен</em>',
-        before: 'Был мат в ' + N2 + ': <span class="bad">сыграно ' + esc(P.moves[lost - 1].san) + '</span>' +
-          (best ? ', <span class="good">мат начинался с ' + esc(best) + '</span>' : '') + (line ? ' · линия движка: <b>' + esc(line) + '</b>' : ''),
-        after: 'Мат в ' + N2 + ' упущен' + (best ? ' — лучше было <b>' + esc(best) + '</b>' : ''),
+        title: '♛ <em>Мат в ' + N2 + ' — упущен ✗</em>', before: rows, after: rows,
         arrows: anArrows(P, lost, AN_COLORS.played, best)});
     }
   }

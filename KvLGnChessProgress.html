@@ -637,7 +637,12 @@
   .opd-row { font-size: 11px; color: var(--fg-dim); line-height: 1.5; }
   .opd-row .w { color: var(--green); font-weight: 600; }
   .opd-row .l { color: var(--red); font-weight: 600; }
-  .opd-links a { color: #60a5fa; text-decoration: none; margin-right: 6px; }
+  .opd-links { margin-top: 2px; }
+  .opd-links .lbl { display: block; color: var(--fg-mute); }
+  .opd-links .list { display: flex; flex-wrap: wrap; align-items: baseline; }
+  .opd-links a { white-space: nowrap; }
+  .opd-links a { color: #60a5fa; text-decoration: none; }
+  .opd-links .sep { color: var(--fg-mute); margin: 0 3px; }
   .opd-links a:hover { text-decoration: underline; }
   .op-chips { display: flex; flex-wrap: wrap; gap: 4px; }
   .op-chip { display: inline-flex; align-items: center; gap: 3px; height: 19px; line-height: 1; }
@@ -3669,7 +3674,7 @@ function studyLinks(o) {
   return (o.studies || []).map(function(s) {
     return '<a href="https://lichess.org/study/' + s.id + '" target="_blank" rel="noopener" title="Студия ' + esc(s.master) +
       (s.parts > 1 ? ' — часть 1 из ' + s.parts : '') + '">' + esc(s.master) + ' ↗</a>';
-  }).join(' ');
+  }).join('<span class="sep">·</span>');
 }
 
 function renderOpeningDetail() {
@@ -3683,7 +3688,7 @@ function renderOpeningDetail() {
           (st.d ? ' ' + st.d + 'D' : '') + (st.debut !== null ? ' · дебют ' + Math.round(st.debut) + '%' : '')
         : 'партий пока нет') + '</div>' +
       '<div class="opd-row">' + (st.pz ? 'Задачи ' + st.pz + ' · <span class="w">' + st.pzOk + '✓</span> <span class="l">' + (st.pz - st.pzOk) + '✗</span>' : 'задач по дебюту нет') + '</div>' +
-      '<div class="opd-row opd-links">Студии: ' + studyLinks(o) + '</div>' +
+      '<div class="opd-row opd-links"><span class="lbl">Студии</span><span class="list">' + studyLinks(o) + '</span></div>' +
     '</div>';
   }
   // следующие и планы — компактные метки, подробности в подсказке

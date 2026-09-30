@@ -426,20 +426,20 @@
 
   /* сравнение партий */
   .cmp-btn { position: absolute; top: 7px; left: 330px; z-index: 2; height: 39px; padding: 0 14px; border-radius: 8px;
-    font: 600 11px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: #22d3ee;
-    background: transparent; border: 1px solid #22d3ee; cursor: pointer; transition: background 0.15s; }
-  .cmp-btn:hover { background: rgba(34,211,238,0.1); }
-  .cmp-btn.on { color: #22d3ee; border-color: #22d3ee; background: rgba(34,211,238,0.12); }
+    font: 600 11px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: #34d399;
+    background: transparent; border: 1px solid #34d399; cursor: pointer; transition: background 0.15s; }
+  .cmp-btn:hover { background: rgba(52,211,153,0.1); }
+  .cmp-btn.on { color: #34d399; border-color: #34d399; background: rgba(52,211,153,0.12); }
   .records-on .cmp-btn, .mode-activity .cmp-btn, .records-on .cmp-hint, .mode-activity .cmp-hint { display: none !important; }
   .cmp-hint { position: absolute; top: 18px; left: calc(200px + (100% - 200px) / 2); transform: translateX(-50%); z-index: 2;
-    font-size: 12px; color: #67e8f9; white-space: nowrap; }
+    font-size: 12px; color: #6ee7b7; white-space: nowrap; }
   .cmp-hint b { color: #fff; }
   .cmp-view { padding: 0 18px 0 28px; }
   .cmp-head { display: grid; grid-template-columns: 1fr 40px 1fr; align-items: stretch; gap: 8px; margin-bottom: 8px; }
   .cmp-side { min-width: 0; padding: 7px 12px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-top: 2px solid; }
-  .cmp-side.a { border-top-color: #e4e4e7; } .cmp-side.b { border-top-color: #22d3ee; }
+  .cmp-side.a { border-top-color: #e4e4e7; } .cmp-side.b { border-top-color: #34d399; }
   .cmp-side-h { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); }
-  .cmp-side.b .cmp-side-h { color: #22d3ee; }
+  .cmp-side.b .cmp-side-h { color: #34d399; }
   .cmp-side-t { font-size: 14px; font-weight: 600; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .cmp-side-m { font-size: 12px; color: var(--fg-dim); margin-top: 2px; }
   .cmp-side-m a { color: #60a5fa; text-decoration: none; }
@@ -1676,7 +1676,7 @@ function cmpHtml() {
     return '<div class="cmp-row"><span class="cmp-lbl" style="color:' + r.color + '">' + r.label + '</span>' +
       '<span class="cmp-a">' + fmt(a) + '</span>' + bar(a, '#e4e4e7', 'l') +
       '<span class="cmp-d ' + cls + '">' + (dTxt || '—') + '</span>' +
-      bar(b, '#22d3ee') + '<span class="cmp-b">' + fmt(b) + '</span></div>';
+      bar(b, '#34d399') + '<span class="cmp-b">' + fmt(b) + '</span></div>';
   }).join('');
   return '<div class="cmp-view">' +
     '<div class="cmp-head">' + cmpSide(A, 'a', 'Выбранная') + '<div class="cmp-vs">vs</div>' + cmpSide(B, 'b', 'Сравнение') + '</div>' +
@@ -2002,7 +2002,7 @@ function renderChart() {
   });
 
   if (selCount()) list.forEach(function(g, i) {
-    if (cmpMode && cmpSet[g.id]) { s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="198.5" fill="rgba(34,211,238,0.08)" stroke="#22d3ee" stroke-opacity="0.8" stroke-width="1.2" rx="2"/>'); return; }
+    if (cmpMode && cmpSet[g.id]) { s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="198.5" fill="rgba(52,211,153,0.08)" stroke="#34d399" stroke-opacity="0.8" stroke-width="1.2" rx="2"/>'); return; }
     if (selCols[g.id]) s.push('<rect x="' + (colX(i) + 0.75) + '" y="-4.25" width="' + r2(colW - 1.5) + '" height="198.5" fill="rgba(255,255,255,0.04)" stroke="#e4e4e7" stroke-opacity="0.55" stroke-width="1.2" rx="2"/>');
     else s.push('<rect x="' + colX(i) + '" y="-5" width="' + r2(colW) + '" height="200" fill="#0d0f17" opacity="0.62"/>');
   });

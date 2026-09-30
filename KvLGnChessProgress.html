@@ -1520,7 +1520,7 @@ function statLine(label, color, value, dotOpacity) {
   return '<div class="stat-line"><div class="stat-name">' +
     '<span class="stat-dot" style="background:' + color + (dotOpacity ? ';opacity:' + dotOpacity : '') + '"></span>' +
     '<span style="color:' + color + '">' + label + '</span></div>' +
-    '<span class="stat-fill"></span><span class="stat-val">' + value + '</span></div>';
+    (value === '' ? '' : '<span class="stat-fill"></span><span class="stat-val">' + value + '</span>') + '</div>';
 }
 
 /* ---------- averages window: 5 / 10 / 20 games (panel + chart + legend winrate) ---------- */
@@ -2748,7 +2748,7 @@ function renderActivityStats() {
       {label: 'Активн. дней', color: 'var(--c-debut)', value: act + '<small>/' + days + '</small>'},
       {label: 'Точность', color: 'var(--c-acc)', value: sacc === null ? '—' : sacc.toFixed(1) + '<small>%</small>'},
       (function() { var v = rm.share ? resShare(gsAll) : swr;
-        return {label: rm.label, color: rm.color, value: v === null ? '—' : Math.round(v) + '<small>%</small>'}; })()
+        return {label: rm.label, color: rm.color, value: rm.share ? '' : v === null ? '—' : Math.round(v) + '<small>%</small>'}; })()
     ];
     $('actList').innerHTML = srows.map(function(r) {
       return '<div class="stat" style="--sc:' + r.color + '">' + statLine(r.label, r.color, r.value) + '<div class="stat-trend">' + none + '</div></div>';
@@ -2778,6 +2778,8 @@ function renderActivityStats() {
     (function() {
       // при выделенном результате — доля выбранного среди всех партий периода и её изменение
       var v = rm.share ? resShare(curAll) : wr, pv = rm.share ? resShare(prevAll) : pwr;
+      // выбран результат — строка просто подписывает, что выбрано (числа — в строках выше)
+      if (rm.share) return {label: rm.label, color: rm.color, value: '', tr: '<span class="trend" style="visibility:hidden">▲</span>'};
       return {label: rm.label, color: rm.color, value: v === null ? '—' : Math.round(v) + '<small>%</small>',
               tr: actTrend(diff(v === null ? null : Math.round(v), pv === null ? null : Math.round(pv)), true)};
     })()

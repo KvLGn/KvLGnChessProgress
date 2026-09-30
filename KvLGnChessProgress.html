@@ -1246,6 +1246,11 @@
   .detail-label { color: var(--fg-dim); }
   .detail-value { font-weight: 600; font-size: 13px; }
   .detail-d { font-size: 10.5px; color: var(--fg-dim); }
+  .bl-row { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
+  .bl-row .detail-label { font-size: 12px; margin-right: 2px; }
+  .bl-chip { font-size: 11px; font-weight: 600; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+    background: color-mix(in srgb, var(--c) 10%, transparent); border-radius: 999px; padding: 2px 9px; cursor: help; white-space: nowrap; }
+  .bl-chip i { font-style: normal; font-weight: 400; opacity: 0.7; }
   .detail-d.up { color: #4ade80; }
   .detail-d.down { color: #f87171; }
   .detail-links { flex-basis: 100%; justify-content: flex-end; display: flex; gap: 12px; align-items: baseline; white-space: nowrap; }
@@ -2391,6 +2396,33 @@ function renderChart() {
 }
 
 /* ---------- tooltip ---------- */
+/* ---------- типы зевков (scripts/blunders.mjs → поле bl у партии) ---------- */
+var BL_TYPES = {
+  mateAllowed: {ru: 'Мат соперника',   color: '#f87171', tip: 'после хода у соперника появился мат'},
+  mateMissed:  {ru: 'Пропущен мат',    color: '#c084fc', tip: 'был мат, а сыгран другой ход'},
+  hang:        {ru: 'Под боем',        color: '#fb923c', tip: 'после хода фигуру можно выгодно взять'},
+  tactic:      {ru: 'Тактика соперника', color: '#f472b6', tip: 'сразу ничего не висело, но за 2 хода соперника материал ушёл (вилка, связка)'},
+  missedWin:   {ru: 'Упущен выигрыш',  color: '#facc15', tip: 'лучший ход выигрывал материал, а сыгран другой'},
+  other:       {ru: 'Позиционная',     color: '#9ca3af', tip: 'материал сразу не терялся — ухудшение позиции'}
+};
+var PIECE_RU = {p: 'пешка', n: 'конь', b: 'слон', r: 'ладья', q: 'ферзь'};
+var PIECE_GEN = {p: 'пешки', n: 'коня', b: 'слона', r: 'ладьи', q: 'ферзя'};
+var PHASE_RU = {debut: 'дебют', mid: 'миттельшпиль', end: 'эндшпиль'};
+function blLabel(b) {
+  if (b.t === 'hang' && b.x) return PIECE_RU[b.x].replace(/^./, function(c) { return c.toUpperCase(); }) + ' под боем';
+  if (b.t === 'missedWin' && b.x) return 'Упущено взятие ' + PIECE_GEN[b.x];
+  return BL_TYPES[b.t].ru;
+}
+function blTip(b) {
+  return 'Ход ' + b.m + ': ' + b.s + (b.b ? ' — лучше было ' + b.b : '') + (typeof b.d === 'number' ? ' (−' + b.d + ' пешки)' : '') +
+    (b.p ? ' · ' + PHASE_RU[b.p] : '') + '. ' + BL_TYPES[b.t].tip.replace(/^./, function(c) { return c.toUpperCase(); });
+}
+function blChips(g) {
+  if (!g.bl || !g.bl.length) return '';
+  return '<div class="bl-row"><span class="detail-label">Зевки по типам</span>' + g.bl.map(function(b) {
+    return '<span class="bl-chip" style="--c:' + BL_TYPES[b.t].color + '" title="' + esc(blTip(b)) + '">' + esc(blLabel(b)) + ' <i>· ход ' + b.m + '</i></span>';
+  }).join('') + '</div>';
+}
 function tooltipHtml(g) {
   var R = RESULT[g.result];
   $('tt-title').innerHTML = '#' + g.n + ' — ' + esc(g.date) + ' <span style="color:' + R.color + ';font-weight:700">' + R.label + '</span>';
@@ -2399,7 +2431,8 @@ function tooltipHtml(g) {
     {k: 'debut', html: '<span style="color:#60a5fa">Дебют: ' + g.debut + '%</span>'},
     {k: 'mid', html: '<span style="color:#f59e0b">Миттельшпиль: ' + (typeof g.mid === 'number' ? g.mid + '%' : '—') + '</span>'},
     {k: 'end', html: '<span style="color:#a78bfa">Эндшпиль: <span style="color:#e4e4e7">' + (hasEnd(g) ? g.end + '%' : '—') + '</span></span>'},
-    {k: 'blunders', html: '<span style="color:#ef4444">Зевки: ' + g.blunders + '</span>'}
+    {k: 'blunders', html: '<span style="color:#ef4444">Зевки: ' + g.blunders + '</span>' +
+      (g.bl && g.bl.length ? '<span style="color:#9ca3af;font-size:11px"> — ' + g.bl.map(function(b) { return blLabel(b).toLowerCase(); }).join(', ') + '</span>' : '')}
   ];
   // выделенный слева показатель — первым строкой и крупнее
   if (pinnedSeries) rows.sort(function(a, b) { return (b.k === pinnedSeries) - (a.k === pinnedSeries); });
@@ -3003,6 +3036,7 @@ function renderGames() {
       detailItem('Неточности', g.inacc, 'var(--yellow)', detailDelta(g, 'inacc', false, true)) +
       detailItem('Ошибки', g.mistakes, '#fb923c', detailDelta(g, 'mistakes', false, true)) +
       detailItem('Зевки', g.blunders, 'var(--red)', detailDelta(g, 'blunders', false, true)) +
+      blChips(g) +
       '<span class="detail-links">' +
       (chartReach(g) ? '<button class="detail-link detail-chart" type="button" title="Переключить на график и выделить колонку этой партии">Показать на графике</button>' : '') +
       (g.id ? '<a class="detail-link" href="https://lichess.org/' + g.id + '" target="_blank" rel="noopener">Партия на Lichess ↗</a>' : '') +

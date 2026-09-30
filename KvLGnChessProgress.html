@@ -2977,10 +2977,38 @@ var MODE_GROUPS = [
     {k: 'rapid', label: 'Рапид'}, {k: 'classical', label: 'Классика'}, {k: 'correspondence', label: 'Переписка'}]},
   {g: 'blt', title: 'Зевки — был хотя бы один', items: [
     {k: 'hang', label: 'Под боем'}, {k: 'missedWin', label: 'Упущен выигрыш'}, {k: 'tactic', label: 'Тактика соперника'},
-    {k: 'mateAllowed', label: 'Мат соперника'}, {k: 'mateMissed', label: 'Пропущен мат'}, {k: 'other', label: 'Позиционная'}]}
+    {k: 'mateAllowed', label: 'Мат соперника'}, {k: 'mateMissed', label: 'Пропущен мат'}, {k: 'other', label: 'Позиционная'}]},
+  {g: 'mate', title: 'Мат в N — был форсированный мат', items: [{k: 'done', label: 'Довёл мат'}, {k: 'missed', label: 'Упустил мат'}]}
 ];
-// есть ли у партии значение k в группе (у зевков — список, у остальных — одно значение)
-function modeHas(g, grp, k) { return grp === 'blt' ? (g.bl || []).some(function(b) { return b.t === k; }) : modeVal(g, grp) === k; }
+// группы, где у партии может быть несколько значений сразу (внутри группы — «или»)
+var MODE_MULTI = {blt: true, mate: true};
+// есть ли у партии значение k в группе (у зевков и матов — список, у остальных — одно значение)
+function modeHas(g, grp, k) {
+  if (grp === 'blt') return (g.bl || []).some(function(b) { return b.t === k; });
+  if (grp === 'mate') return mateSeries(g).some(function(m) { return k === 'missed' ? !!m.lost : !m.lost; });
+  return modeVal(g, grp) === k;
+}
+// серии форсированного мата у меня (поле mt из update.mjs): s — позиция, где мат появился (мой ход), q — последняя позиция серии,
+// lost — полуход, который мат упустил (0 — доведён или соперник сдался). Общая для фильтра «Мат в N» и линзы «Анализа».
+function mateSeries(g) {
+  if (g._mates) return g._mates;
+  var mt = g.mt || {}, sans = (g.mv || '').split(' ').filter(Boolean), n = sans.length, out = [];
+  function mate(q) { var v = mt[q]; return typeof v === 'number' && v > 0 ? v : 0; }
+  function mine(p) { return (p % 2 === 1) === (g.color === 'white'); }
+  for (var s = 0; s < n; s++) {
+    // начало серии: мой ход, мат есть, и это не продолжение (двумя полуходами раньше мат был и не упущен)
+    if (!mine(s + 1) || !mate(s) || (s >= 2 && mate(s - 2) && mate(s - 1))) continue;
+    var q = s, lost = 0;
+    while (q < n && mate(q)) {
+      if (/#/.test(sans[q])) break;                  // мат поставлен
+      if (!mate(q + 1)) { lost = q + 1; break; }     // после моего хода мата больше нет — упущен
+      q += 2;
+    }
+    out.push({s: s, q: q, lost: lost, N: mate(s), N2: lost ? mate(lost - 1) : 0, mated: q < n && /#/.test(sans[q])});
+  }
+  g._mates = out;
+  return out;
+}
 function modeVal(g, grp) {
   if (grp === 'opp') return g.opp || (/^Stockfish/.test(g.engine) ? 'ai' : 'human');
   if (grp === 'lvl') return g.lvl ? String(g.lvl) : (String(g.engine).match(/^Stockfish (\d)/) || [])[1] || null;
@@ -2991,7 +3019,7 @@ function modeMatch(g, modes) {
   if (!modes) return true;
   for (var grp in modes) {
     if (!hasKeys(modes[grp])) continue;
-    if (grp === 'blt') { if (!(g.bl || []).some(function(b) { return modes.blt[b.t]; })) return false; continue; }
+    if (MODE_MULTI[grp]) { if (!Object.keys(modes[grp]).some(function(k) { return modeHas(g, grp, k); })) return false; continue; }
     if (!modes[grp][modeVal(g, grp)]) return false;
   }
   return true;
@@ -3014,7 +3042,7 @@ function modeChipsHtml(modes, total) {
   return MODE_GROUPS.map(function(G) {
     var cnt = {};
     games.forEach(function(g) {
-      if (G.g === 'blt') { G.items.forEach(function(it) { if (modeHas(g, 'blt', it.k)) cnt[it.k] = (cnt[it.k] || 0) + 1; }); return; }
+      if (MODE_MULTI[G.g]) { G.items.forEach(function(it) { if (modeHas(g, G.g, it.k)) cnt[it.k] = (cnt[it.k] || 0) + 1; }); return; }
       var v = modeVal(g, G.g); if (v) cnt[v] = (cnt[v] || 0) + 1;
     });
     var off = G.g === 'lvl' && humansOnly;
@@ -4358,29 +4386,20 @@ function anBlunderMoments(g, P) {
       arrows: anArrows(P, p, AN_COLORS.played, b.b)};
   }).filter(function(m) { return m.p <= P.n; });
 }
-// мат в N: серия с момента, когда у меня появился форсированный мат (поле mt), до мата — или до хода, который его упустил
+// мат в N: серии из mateSeries (общая с фильтром «Мат в N»): доведён — позиция начала серии, упущен — позиция хода, который его упустил
 function anMateMoments(g, P) {
-  var mt = g.mt || {}, out = [];
-  function mate(q) { var v = mt[q]; return typeof v === 'number' && v > 0 ? v : 0; }
-  for (var s = 0; s < P.n; s++) {
-    // начало серии: мой ход, мат есть, и это не продолжение (двумя полуходами раньше мат был и не упущен)
-    if (!anMine(g, s + 1) || !mate(s) || (s >= 2 && mate(s - 2) && mate(s - 1))) continue;
-    var q = s, lost = 0;
-    while (q < P.n && mate(q)) {
-      if (/#/.test(P.moves[q].san)) break;           // мат поставлен
-      if (!mate(q + 1)) { lost = q + 1; break; }     // после моего хода мата больше нет — упущен
-      q += 2;
-    }
-    var N = mate(s);
+  var out = [];
+  mateSeries(g).forEach(function(ms) {
+    var s = ms.s, q = ms.q, lost = ms.lost, N = ms.N;
+    if ((lost || s + 1) > P.n) return;
     if (!lost) {
       var done = anRow('Сыграно', '<b>' + esc(anLine(P, s + 1, q + 1)) + '</b>') +
-        anRow('Итог', q < P.n && /#/.test(P.moves[q].san) ? '<span class="good">мат поставлен</span>'
-          : q >= P.n ? '<span class="good">соперник сдался</span>' : 'серия прервалась');
+        anRow('Итог', ms.mated ? '<span class="good">мат поставлен</span>' : q >= P.n ? '<span class="good">соперник сдался</span>' : 'серия прервалась');
       out.push({p: s + 1, at: s, color: AN_COLORS.best, tint: 'good', san: P.moves[s].san, short: 'мат в ' + N + ' ✓',
         title: '♛ <em>Мат в ' + N + ' — доведён ✓</em>', before: done, after: done,
         arrows: anArrows(P, s + 1, AN_COLORS.best)});
     } else {
-      var N2 = mate(lost - 1), j = anJudge(g, lost), line = j && j[2];
+      var N2 = ms.N2, j = anJudge(g, lost), line = j && j[2];
       var bl = (g.bl || []).filter(function(b) { return blPly(g, b) === lost; })[0];
       var best = (line && line.split(' ')[0]) || (bl && bl.b) || null;
       var evA = g.ev ? g.ev[lost] : null;   // перевес после упустившего хода: выигрыш сохранён или нет
@@ -4393,7 +4412,7 @@ function anMateMoments(g, P) {
         title: '♛ <em>Мат в ' + N2 + ' — упущен ✗</em>', before: rows, after: rows,
         arrows: anArrows(P, lost, AN_COLORS.played, best)});
     }
-  }
+  });
   return out;
 }
 // мои взятия: выгодно / размен / отыгрыш / невыгодно — по материалу после ответа соперника
@@ -6122,8 +6141,8 @@ function gsIndex() {
     G.items.forEach(function(it) {
       var n = games.filter(function(g) { return modeHas(g, G.g, it.k); }).length;
       if (!n) return;
-      var title = G.g === 'blt' ? 'Партии с зевком: ' + it.label.toLowerCase() : G.g === 'lvl' ? 'Против Stockfish ' + it.k : G.g === 'opp' ? (it.k === 'ai' ? 'Против компьютера' : 'Против людей') : it.label.replace(/^[^А-Яа-я]+/, '');
-      add(G.g === 'blt' ? 'Фильтры' : 'Режим партии', G.g === 'blt' ? '⚠' : G.g === 'lvl' || it.k === 'ai' ? '🤖' : it.k === 'human' ? '👤' : '⏱', title,
+      var title = G.g === 'blt' ? 'Партии с зевком: ' + it.label.toLowerCase() : G.g === 'mate' ? 'Партии, где ' + it.label.toLowerCase() : G.g === 'lvl' ? 'Против Stockfish ' + it.k : G.g === 'opp' ? (it.k === 'ai' ? 'Против компьютера' : 'Против людей') : it.label.replace(/^[^А-Яа-я]+/, '');
+      add(MODE_MULTI[G.g] ? 'Фильтры' : 'Режим партии', G.g === 'blt' ? '⚠' : G.g === 'mate' ? '♛' : G.g === 'lvl' || it.k === 'ai' ? '🤖' : it.k === 'human' ? '👤' : '⏱', title,
         n + ' ' + plural(n, 'партия', 'партии', 'партий') + ' · фильтр графика и таблицы',
         G.title + ' режим ' + it.label + ' ' + it.k, function() {
           cfilt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}};

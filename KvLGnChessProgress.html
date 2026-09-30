@@ -433,9 +433,10 @@
   .cmp-x:hover { color: #fff; background: rgba(239,68,68,0.5); }
   .cmp-btn.on { color: #34d399; border-color: #34d399; background: rgba(52,211,153,0.12); }
   .records-on .cmp-btn, .mode-activity .cmp-btn, .records-on .cmp-hint, .mode-activity .cmp-hint { display: none !important; }
-  .cmp-hint { position: absolute; top: 19px; left: auto; right: 150px; transform: none; z-index: 2;
-    font-size: 12px; color: #6ee7b7; white-space: nowrap; }
-  .cmp-hint b { color: #fff; }
+  /* подсказка — по центру над графиком, на высоте кнопок */
+  .cmp-hint { position: absolute; top: 7px; height: 39px; display: flex; align-items: center; left: calc(200px + (100% - 200px) / 2 + 60px); transform: translateX(-50%); z-index: 2;
+    font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+  .cmp-hint b { color: var(--fg); margin: 0 3px; }
   .cmp-view { padding: 0 18px 0 28px; }
   .cmp-head { display: grid; grid-template-columns: 1fr 40px 1fr; align-items: stretch; gap: 8px; margin-bottom: 8px; }
   .cmp-side { min-width: 0; padding: 7px 12px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-top: 2px solid; }

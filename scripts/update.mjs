@@ -124,6 +124,13 @@ function convert(g) {
     // перевес с моей стороны после каждого полухода, в десятых пешки, мат = ±100, обрезано до ±100
     out.ev = [2].concat(g.analysis.map((e) => typeof e.mate === 'number' ? sign * Math.sign(e.mate) * 100
       : Math.max(-100, Math.min(100, Math.round(sign * (e.eval || 0) / 10)))));
+    // мат в N после полухода (ключ — номер полухода; > 0 — мат у меня, < 0 — у соперника); только где движок видит мат
+    const mt = {};
+    g.analysis.forEach((e, i) => { if (typeof e.mate === 'number') mt[i + 1] = sign * e.mate; });
+    if (Object.keys(mt).length) out.mt = mt;
+    // оценки ходов обеих сторон: [полуход, 'I' | 'M' | 'B' (неточность / ошибка / зевок), лучшая линия — до 8 полуходов SAN]
+    out.jd = g.analysis.map((e, i) => e.judgment
+      ? [i + 1, e.judgment.name[0], (e.variation || '').split(' ').filter(Boolean).slice(0, 8).join(' ')] : null).filter(Boolean);
   }
   return out;
 }

@@ -117,6 +117,7 @@ function convert(g) {
   if (g.lastMoveAt) out.dur = Math.round((g.lastMoveAt - g.createdAt) / 1000);
   out.how = g.status;
   out.plies = plies;
+  out.mv = g.moves || '';   // ходы партии (SAN) — подписи при наведении на график перевеса
   if (g.division) out.div = { mid: g.division.middle || null, end: g.division.end || null };
   if (g.analysis) {
     const sign = meColor === 'white' ? 1 : -1;

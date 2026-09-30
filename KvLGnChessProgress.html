@@ -1273,7 +1273,12 @@
   .mr-leg i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
   .mr-leg i.up { background: rgba(74,222,128,0.5); } .mr-leg i.dn { background: rgba(248,113,113,0.5); margin-left: 6px; }
   .mr-graph svg { width: 100%; height: 110px; display: block; border-radius: 8px; background: rgba(0,0,0,0.2); }
-  .mr-graph svg circle { cursor: help; }
+  .mr-graph svg { cursor: crosshair; touch-action: pan-y; }
+  .mr-graph svg circle { pointer-events: none; }
+  .mr-dot { display: none; position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px #11131a; pointer-events: none; }
+  .mr-hint { display: none; position: absolute; z-index: 5; pointer-events: none; white-space: nowrap; font-size: 12px; line-height: 1.45; color: var(--fg-dim);
+    background: #1a1d27; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
+  .mr-hint b { color: var(--fg); }
   .mr-z { font: 600 11px Inter, sans-serif; fill: rgba(255,255,255,0.35); }
   .mr-ticks { position: relative; height: 14px; font-size: 10px; color: var(--fg-mute); }
   .mr-ticks span { position: absolute; transform: translateX(-50%); top: 2px; }
@@ -2525,8 +2530,10 @@ function evalGraph(g) {
   });
   var ticks = [];
   for (var mv = 10; mv * 2 <= n; mv += 10) ticks.push('<span style="left:' + (mv * 2 / n * 100) + '%">' + mv + '</span>');
-  return '<div class="mr-graph"><div class="mr-graph-h"><span>Перевес по ходу партии</span><span class="mr-leg"><i class="up"></i>лучше у тебя <i class="dn"></i>у соперника</span></div>' +
+  out.push('<g class="mr-cur" style="display:none"><line y1="0" y2="' + H + '" stroke="rgba(255,255,255,0.5)" stroke-width="1" vector-effect="non-scaling-stroke"/></g>');
+  return '<div class="mr-graph" data-n="' + g.n + '"><div class="mr-graph-h"><span>Перевес по ходу партии</span><span class="mr-leg"><i class="up"></i>лучше у тебя <i class="dn"></i>у соперника</span></div>' +
     '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + out.join('') + '</svg>' +
+    '<div class="mr-dot"></div><div class="mr-hint"></div>' +
     '<div class="mr-ticks">' + ticks.join('') + '</div></div>';
 }
 function matchReport(g) {
@@ -2555,6 +2562,46 @@ function matchReport(g) {
   }).join('') + '</div>' : '';
   return head + stats + evalGraph(g) + list;
 }
+function evText(v) { return v >= 100 ? '+10 и больше' : v <= -100 ? '−10 и больше' : (v > 0 ? '+' : v < 0 ? '−' : '') + (Math.abs(v) / 10).toFixed(1); }
+function mrHover(e) {
+  var gr = e.target.closest && e.target.closest('.mr-graph');
+  if (!gr) return;
+  var g = games[+gr.getAttribute('data-n') - 1], svg = gr.querySelector('svg');
+  if (!g || !g.ev || !svg) return;
+  var box = svg.getBoundingClientRect(), n = g.ev.length - 1;
+  var p = Math.max(0, Math.min(n, Math.round((e.clientX - box.left) / box.width * n)));
+  var xs = p / n, v = g.ev[p], yy = 60 - Math.max(-50, Math.min(50, v)) / 50 * 52;
+  var cur = svg.querySelector('.mr-cur'); cur.style.display = '';
+  cur.querySelector('line').setAttribute('x1', xs * 1000); cur.querySelector('line').setAttribute('x2', xs * 1000);
+  var dot = gr.querySelector('.mr-dot'), hint = gr.querySelector('.mr-hint');
+  var gb = gr.getBoundingClientRect(), sTop = box.top - gb.top, sLeft = box.left - gb.left;   // у SVG нет offsetTop/offsetLeft
+  var top = sTop + yy / 120 * box.height, left = sLeft + xs * box.width;
+  dot.style.display = 'block'; dot.style.left = left + 'px'; dot.style.top = top + 'px';
+  var mv = (g.mv || '').split(' '), txt;
+  if (!p) txt = 'Начало партии';
+  else {
+    var mine = (p % 2 === 1) === (g.color === 'white');
+    txt = '<b>' + Math.ceil(p / 2) + (p % 2 ? '. ' : '… ') + esc(mv[p - 1] || '') + '</b> <span>' + (mine ? 'твой ход' : 'ход соперника') + '</span>';
+    var bl = mine ? (g.bl || []).filter(function(b) { return (b.m - 1) * 2 + (g.color === 'white' ? 1 : 2) === p; })[0] : null;
+    if (bl) txt += '<div style="color:' + BL_TYPES[bl.t].color + '">⚠ ' + esc(blLabel(bl)) + (bl.b ? ' — лучше ' + esc(bl.b) : '') + '</div>';
+  }
+  hint.innerHTML = txt + '<div>Перевес: <b style="color:' + (v > 0 ? '#4ade80' : v < 0 ? '#f87171' : 'var(--fg)') + '">' + evText(v) + '</b>' + (v ? (v > 0 ? ' у тебя' : ' у соперника') : '') + '</div>';
+  hint.style.display = 'block';
+  var hw = hint.offsetWidth;
+  hint.style.left = Math.max(0, Math.min(gr.clientWidth - hw, left - hw / 2)) + 'px';
+  hint.style.top = (sTop - hint.offsetHeight - 6 < 0 ? sTop + box.height + 4 : sTop - hint.offsetHeight - 6) + 'px';
+}
+function mrLeave(e) {
+  var gr = e.target.closest && e.target.closest('.mr-graph');
+  if (!gr) return;
+  gr.querySelector('.mr-cur').style.display = 'none';
+  gr.querySelector('.mr-dot').style.display = 'none';
+  gr.querySelector('.mr-hint').style.display = 'none';
+}
+document.addEventListener('pointermove', function(e) { if (e.target.closest && e.target.closest('.mr-graph svg')) mrHover(e); });
+document.addEventListener('pointerout', function(e) {
+  if (e.target.closest && e.target.closest('.mr-graph svg') && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.mr-graph svg'))) mrLeave(e);
+});
 function blChips(g) {
   if (!g.bl || !g.bl.length) return '';
   return '<div class="bl-row"><span class="detail-label">Зевки по типам</span>' + g.bl.map(function(b) {
@@ -2666,8 +2713,13 @@ var MODE_GROUPS = [
   {g: 'rated', title: 'Тип', items: [{k: 'rated', label: 'Рейтинговые'}, {k: 'casual', label: 'Товарищеские'}]},
   {g: 'speed', title: 'Контроль', items: [
     {k: 'ultraBullet', label: 'Ультрапуля'}, {k: 'bullet', label: 'Пуля'}, {k: 'blitz', label: 'Блиц'},
-    {k: 'rapid', label: 'Рапид'}, {k: 'classical', label: 'Классика'}, {k: 'correspondence', label: 'Переписка'}]}
+    {k: 'rapid', label: 'Рапид'}, {k: 'classical', label: 'Классика'}, {k: 'correspondence', label: 'Переписка'}]},
+  {g: 'blt', title: 'Зевки — был хотя бы один', items: [
+    {k: 'hang', label: 'Под боем'}, {k: 'missedWin', label: 'Упущен выигрыш'}, {k: 'tactic', label: 'Тактика соперника'},
+    {k: 'mateAllowed', label: 'Мат соперника'}, {k: 'mateMissed', label: 'Пропущен мат'}, {k: 'other', label: 'Позиционная'}]}
 ];
+// есть ли у партии значение k в группе (у зевков — список, у остальных — одно значение)
+function modeHas(g, grp, k) { return grp === 'blt' ? (g.bl || []).some(function(b) { return b.t === k; }) : modeVal(g, grp) === k; }
 function modeVal(g, grp) {
   if (grp === 'opp') return g.opp || (/^Stockfish/.test(g.engine) ? 'ai' : 'human');
   if (grp === 'lvl') return g.lvl ? String(g.lvl) : (String(g.engine).match(/^Stockfish (\d)/) || [])[1] || null;
@@ -2678,6 +2730,7 @@ function modeMatch(g, modes) {
   if (!modes) return true;
   for (var grp in modes) {
     if (!hasKeys(modes[grp])) continue;
+    if (grp === 'blt') { if (!(g.bl || []).some(function(b) { return modes.blt[b.t]; })) return false; continue; }
     if (!modes[grp][modeVal(g, grp)]) return false;
   }
   return true;
@@ -2699,7 +2752,10 @@ function modeChipsHtml(modes, total) {
   var humansOnly = !!(modes.opp && modes.opp.human && !modes.opp.ai);
   return MODE_GROUPS.map(function(G) {
     var cnt = {};
-    games.forEach(function(g) { var v = modeVal(g, G.g); if (v) cnt[v] = (cnt[v] || 0) + 1; });
+    games.forEach(function(g) {
+      if (G.g === 'blt') { G.items.forEach(function(it) { if (modeHas(g, 'blt', it.k)) cnt[it.k] = (cnt[it.k] || 0) + 1; }); return; }
+      var v = modeVal(g, G.g); if (v) cnt[v] = (cnt[v] || 0) + 1;
+    });
     var off = G.g === 'lvl' && humansOnly;
     return '<div class="md-sec">' + G.title + (off ? ' <span class="md-off-note">— только для игр с компьютером</span>' : '') + '</div><div class="md-chips' + (G.g === 'lvl' ? ' md-lvl' : '') + (off ? ' md-disabled' : '') + '">' + G.items.map(function(it) {
       var on = !!(modes[G.g] && modes[G.g][it.k]), n = cnt[it.k] || 0;
@@ -5376,10 +5432,10 @@ function gsIndex() {
   /* --- режимы партии (как на Lichess) — только те, что реально встречаются --- */
   MODE_GROUPS.forEach(function(G) {
     G.items.forEach(function(it) {
-      var n = games.filter(function(g) { return modeVal(g, G.g) === it.k; }).length;
+      var n = games.filter(function(g) { return modeHas(g, G.g, it.k); }).length;
       if (!n) return;
-      var title = G.g === 'lvl' ? 'Против Stockfish ' + it.k : G.g === 'opp' ? (it.k === 'ai' ? 'Против компьютера' : 'Против людей') : it.label.replace(/^[^А-Яа-я]+/, '');
-      add('Режим партии', G.g === 'lvl' || it.k === 'ai' ? '🤖' : it.k === 'human' ? '👤' : '⏱', title,
+      var title = G.g === 'blt' ? 'Партии с зевком: ' + it.label.toLowerCase() : G.g === 'lvl' ? 'Против Stockfish ' + it.k : G.g === 'opp' ? (it.k === 'ai' ? 'Против компьютера' : 'Против людей') : it.label.replace(/^[^А-Яа-я]+/, '');
+      add(G.g === 'blt' ? 'Фильтры' : 'Режим партии', G.g === 'blt' ? '⚠' : G.g === 'lvl' || it.k === 'ai' ? '🤖' : it.k === 'human' ? '👤' : '⏱', title,
         n + ' ' + plural(n, 'партия', 'партии', 'партий') + ' · фильтр графика и таблицы',
         G.title + ' режим ' + it.label + ' ' + it.k, function() {
           cfilt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}};

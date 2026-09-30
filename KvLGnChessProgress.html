@@ -4330,8 +4330,9 @@ $('activityBtn').addEventListener('click', function(e) {
 //   момент: {p — полуход хода, at — полуход позиции «перед» (обычно p − 1), color, tint: 'good' | 'bad' | null,
 //            san, short — подпись в колонке, title — заголовок карточки (HTML), before / after — пояснение перед ходом / после,
 //            arrows — стрелки на доске в позиции at}
-var an = {gid: null, ply: null, lens: 'bl', master: 'all'};   // ply = null — при отрисовке встать на первый момент; master — чьи ходы во вкладке «Мастера»
-try { var anSaved = localStorage.getItem('anLens'); if (anSaved) an.lens = anSaved; an.master = localStorage.getItem('anMaster') || 'all'; } catch (e) {}
+// master — чьи ходы во вкладке «Мастера»: 'auto' — первый мастер студий дебюта партии по плану, 'all' — вся база, 'дебют/мастер' — выбранный
+var an = {gid: null, ply: null, lens: 'bl', master: 'auto'};   // ply = null — при отрисовке встать на первый момент
+try { var anSaved = localStorage.getItem('anLens'); if (anSaved) an.lens = anSaved; an.master = localStorage.getItem('anMaster.v2') || 'auto'; } catch (e) {}
 var AN_COLORS = {light: '#dee3e6', dark: '#8ca2ad',                             // клетки (доска Lichess «blue»)
                  coordOnLight: '#4a6272', coordOnDark: '#f1f5f9',               // координаты a–h / 1–8 на светлой / тёмной клетке
                  last: 'rgba(155,199,0,0.41)',                                  // последний ход
@@ -4488,12 +4489,31 @@ function anCaptureMoments(g, P) {
   return out;
 }
 // «Мастера»: мои ходы против ходов мастеров в тех же позициях (первые 15 своих ходов, поле ms из scripts/masters.mjs):
-//   выбран мастер из студий plan.js — его ходы (сколько раз); нет его в позиции или «Все мастера» — база мастеров Lichess
+//   мастера — из студий дебюта партии ПО ПЛАНУ (planOpening: название Lichess, иначе изучаемый дебют белыми / первый ход бота чёрными),
+//   по умолчанию первый из них; нет его в позиции или «Все мастера» — база мастеров Lichess
 //   (или сильные игроки Lichess 2000+, если у мастеров позиции почти нет). ✓ мой ход самый частый, ~ встречался, ✗ так не играли.
+//   Ключ мастера — «дебют/мастер» (italian/Carlsen): один мастер бывает в студиях разных дебютов. Новый дебют со студиями (ids) в plan.js подхватывается сам.
 var MASTER_RU = {Carlsen: 'Карлсен', So: 'Со', Kramnik: 'Крамник', Kasparov: 'Каспаров', Kamsky: 'Камский', Korchnoi: 'Корчной', Spassky: 'Спасский'};
-function masterName(m) { return MASTER_RU[m] || m; }
-function anMasters(g) { var set = {}; (g.ms || []).forEach(function(r) { Object.keys(r[2] || {}).forEach(function(k) { set[k] = 1; }); }); return Object.keys(set); }
-function anMasterPicked(g) { return anMasters(g).indexOf(an.master) >= 0 ? an.master : 'all'; }
+// дебюты партии по плану: точно определён — один, бот начал необычно — все кандидаты («Сицилианская? · Славянская?»)
+function anPlanOps(g) { var P = planOpening(g); return P.both ? [P.both] : P.plan ? [P.plan] : P.maybe || []; }
+// мастера для партии: ключи «дебют/мастер» из студий (с ids) её дебютов по плану — в порядке plan.js
+function anMasters(g) {
+  var out = [];
+  anPlanOps(g).forEach(function(o) { (o.studies || []).forEach(function(st) { if (st.ids && st.ids.length) out.push(o.id + '/' + st.master); }); });
+  return out;
+}
+// подпись мастера; если дебютов-кандидатов несколько — с названием дебюта: «Карлсен (Сицилианская)»
+function masterName(key, g) {
+  var parts = String(key).split('/'), m = parts.pop(), op = parts[0], name = MASTER_RU[m] || m;
+  if (g && op && anPlanOps(g).length > 1) { var o = (PLAN.openings || []).filter(function(x) { return x.id === op; })[0]; if (o) name += ' (' + o.name + ')'; }
+  return name;
+}
+// кого сравнивать: «Все мастера» — если так выбрано; выбранный мастер — если он есть у дебюта партии; иначе первый мастер дебюта по плану
+function anMasterPicked(g) {
+  var keys = anMasters(g);
+  if (an.master === 'all') return 'all';
+  return keys.indexOf(an.master) >= 0 ? an.master : keys[0] || 'all';
+}
 function anGamesN(n) { return n.toLocaleString('ru-RU') + ' ' + plural(n, 'партия', 'партии', 'партий'); }
 var AN_MS = {top: {c: '#4ade80', t: 'good', mark: '✓', txt: 'как чаще всего у мастеров'},
              alt: {c: '#facc15', t: null,   mark: '~', txt: 'встречалось, но не чаще всего'},
@@ -4509,15 +4529,16 @@ function anMasterMoments(g, P) {
     var san = P.moves[p - 1].san, i = list.map(function(x) { return x[0]; }).indexOf(san);
     var st = i === 0 ? 'top' : i > 0 ? 'alt' : 'off', S = AN_MS[st], top = list[0][0];
     function cnt(x) { return own ? '×' + x[1] : Math.round(x[1] / total * 100) + '%'; }
-    var src = own ? masterName(want) + ' · ' + anGamesN(total) : (base[2] === 'l' ? 'игроки Lichess 2000+' : 'база мастеров') + ' · ' + anGamesN(total) +
-      (want !== 'all' ? ' <span style="color:var(--fg-mute)">(у ' + masterName(want) + ' этой позиции нет)</span>' : '');
+    if (!own && !base) return;
+    var src = own ? masterName(want, g) + ' · ' + anGamesN(total) : (base[2] === 'l' ? 'игроки Lichess 2000+' : 'база мастеров') + ' · ' + anGamesN(total) +
+      (want !== 'all' ? ' <span style="color:var(--fg-mute)">(у ' + masterName(want, g) + ' этой позиции нет)</span>' : '');
     var rows = anRow('Ты', '<span style="color:' + S.c + '">' + anMoveNo(p) + esc(san) + ' ' + S.mark + '</span> — ' + S.txt) +
       anRow('Играли', list.slice(0, 4).map(function(x) { return '<b>' + esc(x[0]) + '</b> ' + cnt(x); }).join(' · ')) +
       anRow('Откуда', src);
     out.push({p: p, at: p - 1, color: S.c, tint: S.t, san: san, short: st === 'top' ? 'как у мастеров' : 'мастера: ' + top, dot: st !== 'top',
       title: '♟ ' + anMoveNo(p) + esc(san) + ' · <em>' + S.txt + '</em>', before: rows, after: rows,
       arrows: st === 'top' ? anArrows(P, p, AN_COLORS.best) : anArrows(P, p, S.c, top),
-      ms: {st: st, top: top, topN: cnt(list[0]), src: own ? masterName(want) : base[2] === 'l' ? 'игроки 2000+' : 'мастера'}});
+      ms: {st: st, top: top, topN: cnt(list[0]), src: own ? masterName(want, g) : base[2] === 'l' ? 'игроки 2000+' : 'мастера'}});
   });
   return out;
 }
@@ -4660,9 +4681,11 @@ function anMovesCol(g, P, v, moments) {
 }
 // выбор мастера во вкладке «Мастера»: «Все мастера» (база Lichess) или мастер из студий дебюта этой партии
 function anMasterPick(g) {
-  var cur = anMasterPicked(g), opts = [['all', 'Все мастера']].concat(anMasters(g).map(function(m) { return [m, masterName(m)]; }));
-  return '<span class="win-pick an-pick an-mpick"><button class="win-toggle" title="Чьи ходы сравнивать: мастер из твоих студий (plan.js) или вся база мастеров Lichess">' +
-    (cur === 'all' ? 'Все мастера' : masterName(cur)) + '<span class="caret">▾</span></button><div class="win-menu">' +
+  var cur = anMasterPicked(g), ops = anPlanOps(g);
+  var opts = anMasters(g).map(function(m) { return [m, masterName(m, g)]; }).concat([['all', 'Все мастера']]);
+  return '<span class="win-pick an-pick an-mpick"><button class="win-toggle" title="Чьи ходы сравнивать: мастера из студий дебюта ' +
+    esc(ops.length ? ops.map(function(o) { return o.name; }).join(' / ') : '—') + ' по твоему плану или вся база мастеров Lichess">' +
+    (cur === 'all' ? 'Все мастера' : masterName(cur, g)) + '<span class="caret">▾</span></button><div class="win-menu">' +
     opts.map(function(o) { return '<button class="win-opt' + (o[0] === cur ? ' on' : '') + '" data-master="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div></span>';
 }
 // моменты текущей линзы: ход и короткая подпись; клик — позиция перед ходом
@@ -4750,7 +4773,7 @@ function anSetLens(k) {
 }
 function anSetMaster(k) {
   an.master = k;
-  try { localStorage.setItem('anMaster', k); } catch (e) {}
+  try { localStorage.setItem('anMaster.v2', k); } catch (e) {}
   renderAnalysis();
 }
 // открыть партию в анализе (клик по зевку в отчёте о матче); если её прячет фильтр графика — фильтр снимается

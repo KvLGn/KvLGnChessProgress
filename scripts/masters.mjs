@@ -5,7 +5,8 @@
 //   база мастеров Lichess (explorer.lichess.ovh/masters, нужен токен) → «все мастера»; если у мастеров позиции почти нет
 //     (меньше MIN_GAMES партий — бот сыграл необычно), берётся база сильных игроков Lichess (2000+, блиц / рапид / классика);
 //     ответы кэшируются по позиции в cache/masters.json, запрашиваются только новые позиции.
-// Итог для партии — поле ms: [[p, [всего, [[ход, партий], …], источник 'm' | 'l'], {мастер: [[ход, раз], …]}], …],
+// Итог для партии — поле ms: [[p, [всего, [[ход, партий], …], источник 'm' | 'l'], {'дебют/мастер': [[ход, раз], …]}], …]
+//   (ключ с дебютом: один мастер бывает в студиях разных дебютов — «italian/Carlsen», «ruy/Carlsen»; какой брать, решает сайт по плану),
 //   p — полуход позиции перед моим ходом (мой ход — p + 1); база — топ-5 ходов, мастер из студии — все его ходы.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -112,8 +113,8 @@ export async function mastersForGames(Chess, games, plan, trees, token, cacheFil
   let asked = 0, failed = false;
   for (const g of games) {
     if (!g.mv) continue;
-    // мастера из студий дебютов моего цвета в этой партии
-    const my = (plan.openings || []).filter((o) => o.color === g.color && trees[o.id]).map((o) => trees[o.id]);
+    // студии всех дебютов моего цвета (какой дебют у партии по плану — решает сайт, planOpening)
+    const my = (plan.openings || []).filter((o) => o.color === g.color && trees[o.id]).map((o) => [o.id, trees[o.id]]);
     const c = new Chess(), sans = g.mv.split(' ').filter(Boolean), rows = [];
     let mine = 0;
     for (let p = 0; p < sans.length && mine < MAX_MOVES; p++) {
@@ -128,9 +129,9 @@ export async function mastersForGames(Chess, games, plan, trees, token, cacheFil
         }
         const base = cache[key] || null;
         const byMaster = {};
-        my.forEach((mm) => Object.keys(mm).forEach((name) => {
+        my.forEach(([op, mm]) => Object.keys(mm).forEach((name) => {
           const node = mm[name].tree[key];
-          if (node) byMaster[name] = Object.entries(node).sort((a, b) => b[1] - a[1]);
+          if (node) byMaster[op + '/' + name] = Object.entries(node).sort((a, b) => b[1] - a[1]);
         }));
         if ((!base || !base[0]) && !Object.keys(byMaster).length) break;   // позиции нет ни у кого — дальше сравнивать не с чем
         rows.push(Object.keys(byMaster).length ? [p, base, byMaster] : [p, base]);

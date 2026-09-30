@@ -172,7 +172,7 @@ window.PUZZLES = { rating, total,
 | `дебюты` | `opStats`, `renderOpeningCard` (карусель «Далее / В планах» — `opCarousel`, `startOpCarousel`), `renderOpeningDetail` |
 | `итоги` | **`buildVerdicts`** (все правила), `renderVerdictCard`, `renderVerdictDetail` |
 | `глобальный поиск` | **`gsIndex`** (все команды поиска), `gsRender`, `gsRun` |
-| `скрытый режим` | `hush` (localStorage `hush`), `applyHush`, `setEyeOut`; клик по аватарке — кнопка-глаз `#eyeBtn`. Каждая скрываемая часть проверяет `hush` в своей функции отрисовки (`renderWrBox`, `renderPuzzleCard/Detail`, `renderOpeningCard/Detail`, `renderVerdictCard`, `toggleVerdict`, `gsOpen`) |
+| `скрытый режим` | `hush` (localStorage `hush`), `applyHush`, `setEyeOut`; клик по аватарке — кнопка-глаз `#eyeBtn`. Каждая скрываемая часть проверяет `hush` в своей функции отрисовки (`renderWrBox`, `renderPuzzleCard/Detail`, `renderOpeningCard/Detail`, `renderVerdictCard`, `toggleVerdict`, `gsOpen`); график: `windowGames` и `activityBuckets` отдают пусто, `renderChart` рисует пустую сетку, `renderActivityStats` — прочерки, `renderTitle` — «Недавняя активность», рекорды / фильтр графика / легенда / «Сравнить» выключены |
 | `go` | порядок первичной отрисовки |
 
 ### Состояние в браузере (localStorage)

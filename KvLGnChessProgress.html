@@ -142,6 +142,10 @@
   body.hush .gs-box:hover { border-color: var(--border); }
   body.hush #gsInput { cursor: not-allowed; }
   body.hush .gs-kbd { display: none; }
+  body.hush .records-btn, body.hush #cf .f-btn { opacity: 0.45; cursor: not-allowed; }
+  body.hush .records-btn:hover { background: none; }
+  body.hush .legend-item, body.hush .stat.toggle { pointer-events: none; }
+  body.hush .legend-item { opacity: 0.45; }
   .wr-label {
     font-size: 11px;
     font-weight: 500;
@@ -1668,7 +1672,7 @@ try {
   if (WINDOWS.indexOf(savedWin) >= 0) avgWindow = savedWin;
 } catch (e) {}
 
-function windowGames() { return cgAll.slice(-avgWindow); }
+function windowGames() { return hush ? [] : cgAll.slice(-avgWindow); }
 
 /* ---------- выбор колонок графика: клик — одна партия, Ctrl+клик — несколько ---------- */
 var selCols = {};   // id партии → true
@@ -1688,7 +1692,7 @@ function cmpGames() { return windowGames().filter(function(g) { return cmpSet[g.
 function renderCmpBtn() {
   var b = $('cmpBtn'), h = $('cmpHint'), act = chartMode === 'activity';
   var mode = act ? aCmpMode : cmpMode, cnt = act ? aCmpCount() : cmpCount(), base = act ? actSelCount() : selCount();
-  var show = !showRecords && (base > 0 || mode);
+  var show = !hush && !showRecords && (base > 0 || mode);
   b.style.display = show ? '' : 'none';
   h.style.display = mode === 'pick' ? '' : 'none';
   $('chartBox').classList.toggle('cmp-picking', act && !!mode);   // в активности подсказка заменяет «Период»
@@ -1825,7 +1829,7 @@ function renderWindow() {
   renderStats();
   renderChart();
   var wr = winrate(statsGames());
-  $('legendWr').innerHTML = (wr === null ? '—' : Math.round(wr)) + '<small>%</small>';
+  $('legendWr').innerHTML = wr === null ? '—' : Math.round(wr) + '<small>%</small>';
   applySeries();
 }
 
@@ -1834,7 +1838,7 @@ function renderStats() {
   // прирост = вторая половина окна против первой: 10 → 5 vs 5, 20 → 10 vs 10; при окне 5 не показываем
   // если партий пока мало — сравниваем по максимуму доступного (приписка покажет, сколько игр)
   var half = Math.min(avgWindow / 2, Math.floor(cgAll.length / 2));
-  var withTrend = avgWindow >= 10 && half >= 2 && !selCount();   // при выбранных колонках прирост не считаем
+  var withTrend = !hush && avgWindow >= 10 && half >= 2 && !selCount();   // при выбранных колонках прирост не считаем
   function tr(fn) { return withTrend ? trend(fn, half) : null; }
   // без прироста строка остаётся пустой, чтобы высота блока не прыгала при переключении
   function th(diff, isPct, lowerIsBetter) {
@@ -1907,7 +1911,7 @@ function toggleSeries(key) {
 // клик по панели слева — выделить линию (повторный клик снимает), клик по легенде снизу — скрыть / показать
 document.addEventListener('click', function(e) {
   var t = e.target.closest && e.target.closest('.toggle[data-s]');
-  if (!t) return;
+  if (!t || hush) return;
   var k = t.getAttribute('data-s');
   if (t.closest('.legend')) {
     toggleSeries(k);
@@ -1974,6 +1978,7 @@ function streakTitle() {
 
 // заголовок блока: в показателях — партии за 2 недели, в активности — серия
 function renderTitle() {
+  if (hush) { $('chartTitle').textContent = 'Недавняя активность'; return; }
   if (chartMode === 'activity') $('chartTitle').innerHTML = streakTitle();
   else $('chartTitle').textContent = renderRecentCount();
 }
@@ -1986,6 +1991,16 @@ function renderChart() {
   $('chartBox').classList.toggle('cmp-on', !!cmpView);
   if (cmpView) { $('chart').innerHTML = cmpHtml(); return; }
   var list = chartGames, n = list.length;
+  if (hush) {
+    var g0 = [];
+    [100, 75, 50, 25, 0].forEach(function(p) {
+      var y = 180 - p / 100 * 150;
+      g0.push('<line x1="40" y1="' + y + '" x2="590" y2="' + y + '" stroke="#2a2d3a" stroke-width="0.5"/>');
+      if (p > 0) g0.push('<text x="34" y="' + (y + 3.5) + '" text-anchor="end" font-size="9" fill="#9ca3af">' + p + '%</text>');
+    });
+    $('chart').innerHTML = '<svg viewBox="10 -10 600 245" role="img" aria-label="График скрыт">' + g0.join('') + '</svg>';
+    return;
+  }
   if (!n) {
     $('chart').innerHTML = '<div class="rec-view"><div class="rec-empty">' + (games.length ? 'Нет партий под фильтр графика' : 'Партий пока нет') + '</div></div>';
     return;
@@ -2592,6 +2607,7 @@ $('cf').addEventListener('click', function(e) {
   e.stopPropagation();
   var t;
   if (e.target.closest('.f-btn')) {
+    if (hush) return;
     var open = !$('cf').classList.contains('open');
     closeDrops();
     $('cf').classList.toggle('open', open);
@@ -2793,7 +2809,7 @@ function shiftPeriod(d) {
 
 /* ---------- легенда активности: клик выделяет результат (победы / поражения / ничьи), остальное притухает ---------- */
 var actRes = null;   // null — ничего не выделено; иначе {win: true, ...}
-function toggleRes(k) { setRes(k, true); }   // легенда: каждый клик добавляет / убирает
+function toggleRes(k) { if (!hush) setRes(k, true); }   // легенда: каждый клик добавляет / убирает
 function setRes(k, add) {
   if (add) {
     actRes = actRes || {};
@@ -2836,7 +2852,7 @@ function activityBuckets() {
   var td = isoDay(gameToday());   // «сегодня» и «будущее» — по настоящей дате
   list.forEach(function(b) {
     var f = isoDay(b.from), t = isoDay(b.to);
-    b.games = cgAll.filter(function(g) { return g.day >= f && g.day <= t; });
+    b.games = hush ? [] : cgAll.filter(function(g) { return g.day >= f && g.day <= t; });
     b.today = td >= f && td <= t;
     b.future = f > td;
   });
@@ -3087,6 +3103,14 @@ function resShare(all) { return all.length ? byRes(all).length / all.length * 10
 function byRes(list) { return actRes ? list.filter(function(g) { return actRes[g.result]; }) : list; }
 
 function renderActivityStats() {
+  if (hush) {
+    var none0 = '<span class="trend" style="visibility:hidden">▲</span>';
+    $('actList').innerHTML = [['Партий', 'var(--yellow)'], ['Активн. дней', 'var(--c-debut)'], ['Точность', 'var(--c-acc)'], ['Винрейт', 'var(--green)']].map(function(r) {
+      return '<div class="stat" style="--sc:' + r[1] + '">' + statLine(r[0], r[1], '—') + '<div class="stat-trend">' + none0 + '</div></div>';
+    }).join('');
+    $('actElo').innerHTML = statLine('ELO', '#818cf8', '—') + '<div class="stat-trend">' + none0 + '</div>';
+    return;
+  }
   // выбраны столбики — сводка только по ним, без сравнения с прошлым периодом
   if (actSelCount()) {
     var picked = actBuckets.filter(function(b, i) { return selDays[i]; });
@@ -3227,6 +3251,7 @@ function setRecords(on) {
 
 $('recordsBtn').addEventListener('click', function(e) {
   e.stopPropagation();
+  if (hush) return;
   setRecords(!showRecords);
 });
 
@@ -4583,6 +4608,17 @@ function applyHush() {
   inp.placeholder = hush ? 'Поиск недоступен' : 'Поиск по всему…';
   if (hush) { gsClose(); inp.value = ''; }
   gsCloseSide();
+  if (hush) {
+    if (showRecords) setRecords(false);
+    $('cf').classList.remove('open');
+    selCols = {}; cmpMode = null; cmpSet = {};
+    selDays = {}; aCmpMode = null; aCmpSet = {};
+    pinnedSeries = null; markPinned();
+    if (actRes) { actRes = null; document.querySelectorAll('.res-toggle').forEach(function(el) { el.classList.remove('pinned', 'dim'); }); }
+  }
+  renderTitle();
+  renderWindow();
+  if (chartMode === 'activity') renderActivity();
   renderWrBox();
   renderPuzzleCard();
   renderOpeningCard();

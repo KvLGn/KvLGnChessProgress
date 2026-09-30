@@ -2714,14 +2714,16 @@ function selectBucket(i, add) {
   renderActivity();
 }
 
+// выделенный в легенде результат (победы / поражения / ничьи) — сводка только по нему
+function byRes(list) { return actRes ? list.filter(function(g) { return actRes[g.result]; }) : list; }
+
 function renderActivityStats() {
   // выбраны столбики — сводка только по ним, без сравнения с прошлым периодом
   if (actSelCount()) {
     var picked = actBuckets.filter(function(b, i) { return selDays[i]; });
-    var gs = [].concat.apply([], picked.map(function(b) { return b.games; }));
+    var gs = byRes([].concat.apply([], picked.map(function(b) { return b.games; })));
     var days = picked.reduce(function(sum, b) { return sum + daysBetween(b.from, b.to) + 1; }, 0);
-    var act = picked.filter(function(b) { return b.games.length; }).reduce(function(sum, b) {
-      return sum + b.games.map(function(g) { return g.day; }).filter(function(d, k, a) { return a.indexOf(d) === k; }).length; }, 0);
+    var act = gs.map(function(g) { return g.day; }).filter(function(d, k, a) { return a.indexOf(d) === k; }).length;
     var sacc = avg(gs, 'acc'), swr = winrate(gs);
     var none = '<span class="trend" style="visibility:hidden">▲</span>';
     var srows = [
@@ -2740,6 +2742,7 @@ function renderActivityStats() {
     return;
   }
   var cur = periodRange(0), prev = periodRange(1);
+  cur.games = byRes(cur.games); prev.games = byRes(prev.games);
   function activeDays(r) { return r.games.map(function(g) { return g.day; }).filter(function(d, i, a) { return a.indexOf(d) === i; }).length; }
   function diff(a, b) { return a === null || b === null ? null : a - b; }
 

@@ -798,6 +798,11 @@
   .gs-item.on, .gs-item:hover { background: var(--bg-card-hover); }
   .gs-item.on { box-shadow: inset 2px 0 0 #818cf8; }
   .gs-ic { width: 20px; text-align: center; font-size: 14px; flex-shrink: 0; }
+  .gs-parent .gs-ic { transition: transform 0.15s; }
+  .gs-parent.open .gs-ic { transform: rotate(180deg); }
+  .gs-child { padding-left: 30px; }
+  .gs-child .gs-ic { font-size: 12px; }
+  .gs-item.off { opacity: 0.45; cursor: default; }
   .gs-tx { min-width: 0; display: flex; flex-direction: column; }
   .gs-title { font: 13px Inter, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .gs-sub { font: 11px Inter, sans-serif; color: var(--fg-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -4152,6 +4157,17 @@ function gsIndex() {
   add('Разделы', '🎯', 'Итоги', 'что хорошо, что плохо, что делать', 'итоги советы вердикт слабости', function() { gsCloseSide(); toggleVerdict(true); gsFlash($('sideRow')); });
   add('Разделы', '📋', 'Таблица партий', 'последние 30 партий и фильтры', 'таблица партии список фильтры', function() { gsFlash($('filters')); });
   add('Разделы', '⏷', 'Фильтр графика', 'результат, цвет, дебют, показатели', 'фильтр графика', function() { gsChart(chartMode, false); $('cf').querySelector('.f-btn').click(); });
+  if (games.length >= 6) {
+    add('Разделы', '⏷', 'Сравнение партий', 'последние 3, 5 или 7 против стольких же до них',
+      'сравнить сравнение прогресс последние предыдущие', null);
+    items[items.length - 1].children = [3, 5, 7].map(function(k) {
+      if (games.length < 2 * k) return {icon: '⚖', title: 'Последние ' + k + ' vs предыдущие ' + k, sub: 'нужно ' + 2 * k + ' партий, сейчас ' + games.length, run: null};
+      var A = games.slice(-k), B = games.slice(-2 * k, -k);
+      return {icon: '⚖', title: 'Последние ' + k + ' vs предыдущие ' + k,
+        sub: '#' + A[0].n + '–#' + A[k - 1].n + ' против #' + B[0].n + '–#' + B[k - 1].n,
+        run: function() { gsCompareGames(A, B); }};
+    });
+  }
 
 
   /* --- быстрые ответы: ответ прямо в строке результата --- */
@@ -4247,11 +4263,6 @@ function gsIndex() {
 
   /* --- готовые сравнения (экран «Сравнить» одним нажатием) --- */
   function gN(n) { return n + ' ' + plural(n, 'партия', 'партии', 'партий'); }
-  [5, 10].forEach(function(k) {
-    if (games.length < 2 * k) return;
-    add('Сравнения', '⚖', 'Последние ' + k + ' vs предыдущие ' + k, 'растёт ли уровень · график показателей',
-      'сравнить сравнение прогресс последние предыдущие', function() { gsCompareGames(games.slice(-k), games.slice(-2 * k, -k)); });
-  });
   var last20 = games.slice(-20);
   [['win', 'lose', 'Победы vs поражения', 'чем отличаются выигранные партии'],
    ['white', 'black', 'Белыми vs чёрными', 'разница по цвету фигур']].forEach(function(p) {
@@ -4422,6 +4433,11 @@ function gsRender() {
   // не больше 6 в группе, чтобы список был обозримым
   var per = {}, LIMIT = words.length ? 6 : 20;
   gsShown = res.filter(function(it) { per[it.group] = (per[it.group] || 0) + 1; return per[it.group] <= LIMIT; });
+  gsShown = [].concat.apply([], gsShown.map(function(it) {
+    return it.children && gsOpenKey === it.title
+      ? [it].concat(it.children.map(function(c) { return {group: it.group, icon: c.icon, title: c.title, sub: c.sub, run: c.run, child: true, off: !c.run}; }))
+      : [it];
+  }));
   gsSel = Math.min(gsSel, Math.max(gsShown.length - 1, 0));
   var html = '', lastGroup = '';
   gsShown.forEach(function(it, i) {
@@ -4429,15 +4445,18 @@ function gsRender() {
       html += '<div class="gs-group">' + it.group + (per[it.group] > LIMIT ? ' <span>ещё ' + (per[it.group] - LIMIT) + ' — уточни запрос</span>' : '') + '</div>';
       lastGroup = it.group;
     }
-    html += '<button class="gs-item' + (i === gsSel ? ' on' : '') + '" data-i="' + i + '"><span class="gs-ic">' + it.icon + '</span>' +
+    html += '<button class="gs-item' + (i === gsSel ? ' on' : '') + (it.children ? ' gs-parent' + (gsOpenKey === it.title ? ' open' : '') : '') + (it.child ? ' gs-child' : '') + (it.off ? ' off' : '') +
+      '" data-i="' + i + '"><span class="gs-ic">' + it.icon + '</span>' +
       '<span class="gs-tx"><span class="gs-title">' + esc(it.title) + '</span><span class="gs-sub">' + esc(it.sub) + '</span></span></button>';
   });
   $('gsList').innerHTML = html || '<div class="gs-empty">Ничего не найдено</div>';
   var cur = $('gsList').querySelector('.gs-item.on');
   if (cur) cur.scrollIntoView({block: 'nearest'});
 }
+var gsOpenKey = null;   // какой пункт с вариантами раскрыт
 function gsOpen() {
   gsItems = gsIndex();
+  gsOpenKey = null;
   $('gs').classList.add('open');
   gsRender();
 }
@@ -4445,6 +4464,13 @@ function gsClose() { $('gs').classList.remove('open'); }
 function gsRun(i) {
   var it = gsShown[i];
   if (!it) return;
+  if (it.children) {   // пункт с вариантами — раскрыть / свернуть, поиск остаётся открытым
+    gsOpenKey = gsOpenKey === it.title ? null : it.title;
+    gsSel = gsOpenKey ? i + 1 : i;
+    gsRender();
+    return;
+  }
+  if (!it.run) return;   // недоступный вариант
   gsClose();
   $('gsInput').blur();
   it.run();
@@ -4462,6 +4488,7 @@ $('gs').addEventListener('mousedown', function(e) {
   var b = e.target.closest('.gs-item');
   if (!b) return;
   e.preventDefault();
+  if (gsShown[+b.getAttribute('data-i')] && gsShown[+b.getAttribute('data-i')].children) { gsRun(+b.getAttribute('data-i')); return; }
   // клик, который завершит это нажатие, не должен считаться «кликом мимо» и закрывать только что открытую панель
   function swallow(ev) { ev.stopPropagation(); document.removeEventListener('click', swallow, true); }
   document.addEventListener('click', swallow, true);

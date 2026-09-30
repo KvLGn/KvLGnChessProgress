@@ -695,7 +695,10 @@
   .md-disabled { opacity: 0.25; pointer-events: none; }
   .md-off-note { text-transform: none; letter-spacing: 0; }
   .md-zero.on { opacity: 1; }
-  .f-menu-mode { width: 380px; padding: 10px; }
+  .f-menu.f-menu-mode { width: 640px; padding: 10px 12px; left: auto; right: 0; }   /* две колонки, раскрывается влево от кнопки (селектор точнее общего .f-menu ниже) */
+  .md-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+  .md-col { min-width: 0; }
+  .md-col + .md-col { padding-left: 18px; border-left: 1px solid var(--border); }
   .md-lvl { flex-wrap: nowrap; }
   .md-lvl .md-chip { min-width: 0; flex: 1; padding: 4px 0; text-align: center; }
   .cf-more {
@@ -711,8 +714,8 @@
   .cf.more .cf-metrics { display: grid; }
   .cf .f-list { max-height: 180px; }
   /* широкая панель: раскрывается влево тремя колонками, без длинной прокрутки вниз */
-  .cf .f-menu { width: min(940px, calc(100vw - 48px)); padding: 14px 16px 10px; }
-  .cf-grid { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 0 22px; }
+  .cf .f-menu { width: min(1052px, calc(100vw - 48px)); padding: 14px 16px 10px; }
+  .cf-grid { display: grid; grid-template-columns: 1.1fr 1fr 1fr 1fr; gap: 0 22px; }
   .cf-col { min-width: 0; }
   .cf-col + .cf-col { padding-left: 22px; border-left: 1px solid var(--border); }
   .cf .cf-col .f-list { max-height: 440px; }
@@ -1540,7 +1543,10 @@
     .gs-drop { width: auto; left: 0; right: 0; }
     /* таблица */
     .filters { gap: 6px; }
-    .f-menu { width: min(320px, calc(100vw - 40px)); }
+    .f-menu, .f-menu.f-menu-mode { width: min(320px, calc(100vw - 40px)); }
+    .f-menu.f-menu-mode { left: 0; right: auto; }
+    .md-cols { grid-template-columns: 1fr; }
+    .md-col + .md-col { padding-left: 0; border-left: none; }
     /* анализ: всё в одну колонку — партии, ходы, доска, график */
     .an-box { order: 3; grid-template-columns: minmax(0, 1fr); }
     .an-list { grid-row: auto; border-right: none; border-bottom: 3px solid var(--divider); min-height: 0; }
@@ -1627,13 +1633,14 @@
     <div class="f-drop cf" id="cf">
       <button class="f-btn" aria-haspopup="true" aria-expanded="false" title="Фильтр для графика показателей и активности"></button>
       <div class="f-menu">
-        <!-- три колонки: партия и режим · дебют · показатели -->
+        <!-- четыре колонки: результат, цвет и режим · контроль, зевки, мат · дебют · показатели -->
         <div class="cf-grid">
           <div class="cf-col">
             <div class="cf-sec">Результат</div><div class="cf-results"></div>
             <div class="cf-sec">Цвет</div><div class="cf-colors"></div>
             <div class="cf-modes"></div>
           </div>
+          <div class="cf-col cf-modes2"></div>
           <div class="cf-col">
             <div class="cf-sec">Дебют</div>
             <input class="f-search" type="search" placeholder="Поиск дебюта…" autocomplete="off">
@@ -2978,7 +2985,7 @@ var MODE_GROUPS = [
   {g: 'blt', title: 'Зевки — был хотя бы один', items: [
     {k: 'hang', label: 'Под боем'}, {k: 'missedWin', label: 'Упущен выигрыш'}, {k: 'tactic', label: 'Тактика соперника'},
     {k: 'mateAllowed', label: 'Мат соперника'}, {k: 'mateMissed', label: 'Пропущен мат'}, {k: 'other', label: 'Позиционная'}]},
-  {g: 'mate', title: 'Мат в N — был форсированный мат', items: [{k: 'done', label: 'Довёл мат'}, {k: 'missed', label: 'Упустил мат'}]}
+  {g: 'mate', title: 'Мат в N — был в партии', items: [{k: 'done', label: 'Довёл мат'}, {k: 'missed', label: 'Упустил мат'}]}
 ];
 // группы, где у партии может быть несколько значений сразу (внутри группы — «или»)
 var MODE_MULTI = {blt: true, mate: true};
@@ -3036,10 +3043,11 @@ function modeLabel(grp, k) {
 }
 // кнопки-переключатели; число — сколько партий с таким значением
 // total — сколько партий проходит под ВСЕ условия фильтра (результат, цвет, режим, дебют, показатели)
-function modeChipsHtml(modes, total) {
+// only — какие группы выводить (по умолчанию все), чтобы разложить их по колонкам
+function modeChipsHtml(modes, total, only) {
   modes = modes || {};
   var humansOnly = !!(modes.opp && modes.opp.human && !modes.opp.ai);
-  return MODE_GROUPS.map(function(G) {
+  return MODE_GROUPS.filter(function(G) { return !only || only.indexOf(G.g) >= 0; }).map(function(G) {
     var cnt = {};
     games.forEach(function(g) {
       if (MODE_MULTI[G.g]) { G.items.forEach(function(it) { if (modeHas(g, G.g, it.k)) cnt[it.k] = (cnt[it.k] || 0) + 1; }); return; }
@@ -3054,6 +3062,11 @@ function modeChipsHtml(modes, total) {
   }).join('') +
   // итог по выбранным режимам — одной строкой под разделами
   (typeof total === 'number' ? '<div class="md-total">Под все условия фильтра подходит <b>' + total + '</b> из ' + games.length + ' ' + plural(games.length, 'партии', 'партий', 'партий') + '</div>' : '');
+}
+// меню растут в ширину, а не вниз: режимы партии — в две колонки
+var MODE_COLS = [['opp', 'lvl', 'rated'], ['speed', 'blt', 'mate']];
+function modeColsHtml(modes) {
+  return '<div class="md-cols">' + MODE_COLS.map(function(c) { return '<div class="md-col">' + modeChipsHtml(modes, undefined, c) + '</div>'; }).join('') + '</div>';
 }
 function toggleMode(f, grp, k) {
   f.modes = f.modes || {};
@@ -3191,7 +3204,7 @@ function toggleDrop(id) {
   el.classList.toggle('open', open);
   el.querySelector('.f-btn').setAttribute('aria-expanded', String(open));
   if (open && id === 'fOpening') { renderOpeningList(); el.querySelector('.f-search').focus(); }
-  if (open && id === 'fMode') el.querySelector('.md-body').innerHTML = modeChipsHtml(filt.modes);
+  if (open && id === 'fMode') el.querySelector('.md-body').innerHTML = modeColsHtml(filt.modes);
 }
 function closeDrops() {
   ['fOpening', 'fMetrics', 'fMode'].forEach(function(id) {
@@ -3215,7 +3228,7 @@ $('fMode').addEventListener('click', function(e) {
   if (t) toggleMode(filt, t.getAttribute('data-mg'), t.getAttribute('data-mk'));
   else if (e.target.closest('[data-act="clear"]')) filt.modes = {};
   else return;
-  $('fMode').querySelector('.md-body').innerHTML = modeChipsHtml(filt.modes);
+  $('fMode').querySelector('.md-body').innerHTML = modeColsHtml(filt.modes);
   filtersChanged();
 });
 
@@ -3297,7 +3310,8 @@ function renderCfMenu() {
     var on = !!cfilt.colors[c];
     return '<button class="f-chip' + (on ? ' on' : '') + '" data-c="' + c + '"><span class="f-knight">' + KNIGHT[c] + '</span>' + COLOR_NAME[c] + '</button>';
   }).join('');
-  el.querySelector('.cf-modes').innerHTML = modeChipsHtml(cfilt.modes);
+  el.querySelector('.cf-modes').innerHTML = modeChipsHtml(cfilt.modes, undefined, MODE_COLS[0]);
+  el.querySelector('.cf-modes2').innerHTML = modeChipsHtml(cfilt.modes, undefined, MODE_COLS[1]);
   var q = el.querySelector('.f-search').value.trim().toLowerCase();
   var items = openingStats().filter(function(o) { return !q || o.name.toLowerCase().indexOf(q) >= 0; });
   el.querySelector('.f-list').innerHTML = items.length ? items.map(function(o) {

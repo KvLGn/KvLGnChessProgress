@@ -159,7 +159,7 @@ window.PUZZLES = { rating, total,
 | `задачи: карточка + выдвижная панель` | карточка и панель задач, карусель `.pz-*` |
 | `---------- Chart ----------` | контейнер графика, панель средних, кнопки «Рекорды»/«Активность» |
 | `карточки рекордов` | `.rec-*` |
-| `фильтр графика` | `.cf-*` |
+| `фильтр графика` | `.cf-*` (4 колонки `.cf-grid`, раскрывается влево) |
 | `карточка «Дебюты»` / `карточка «Итоги»` | `.op-*`, `.vd-*`, карусель итогов |
 | `глобальный поиск` | `.gs-*` |
 | `скрытый режим` | `.eye-btn` (у аватарки), `.eye-all` (зелёный — показать все части, класс `.can-all`), `.sect-eye` (`#eyeHead`, `#eyeChart`, у таблицы), `body.hush-head / hush-chart / hush-table / hush-all`, `.hush-na`, `.hush-q` |
@@ -183,7 +183,7 @@ window.PUZZLES = { rating, total,
 | `chart` | `renderChart` (SVG), `streaks`, `streakTitle`, `renderTitle` |
 | `tooltip` | `tooltipHtml` (выделенный показатель — первой строкой) |
 | `table filters` | `filt`, `filterGames`, `F_METRICS` |
-| `chart filter` | `cfilt`, `filterChart`, `chartFilterChanged`; режимы партии — `MODE_GROUPS`, `modeMatch`, `modeChipsHtml` (общие для таблицы и графика, перед `table filters`) |
+| `chart filter` | `cfilt`, `filterChart`, `chartFilterChanged`; режимы партии — `MODE_GROUPS`, `modeMatch`, `modeChipsHtml` (параметр `only` — какие группы), `MODE_COLS` / `modeColsHtml` — раскладка групп по двум колонкам (меню растут влево, а не вниз; общие для таблицы и графика, перед `table filters`) |
 | `table` | `renderGames` |
 | `activity mode` / `activity panel` / `period dropdown` | `periodOffset`, `periodAnchor`, `shiftPeriod`, `PERIODS`, `activityBuckets`, `renderActivity`, `periodRange`, `renderActivityStats`, `periodElo` |
 | `records` | `setRecords`, `metricsRecordsHtml`, `activityRecordsHtml` |

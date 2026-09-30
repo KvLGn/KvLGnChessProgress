@@ -4665,13 +4665,13 @@ document.addEventListener('keydown', function(e) {
 function applyHush() {
   ['head', 'chart', 'table'].forEach(function(k) { document.body.classList.toggle('hush-' + k, hush[k]); });
   document.body.classList.toggle('hush-all', hushAll());
-  $('eyeBtn').classList.toggle('shut', hushAny());
-  $('eyeBtn').title = hushAny() ? 'Показать всё' : 'Скрыть всё';
+  $('eyeBtn').classList.toggle('shut', hushAll());
+  $('eyeBtn').title = hushAll() ? 'Показать всё' : 'Скрыть всё';
   $('eyeBtn').setAttribute('aria-label', $('eyeBtn').title);
   document.querySelectorAll('.sect-eye').forEach(function(b) {
     var on = hush[b.getAttribute('data-sec')];
     b.classList.toggle('shut', on);
-    b.style.display = on ? 'none' : '';   // скрытую часть открывает только глаз у аватарки
+    b.style.display = hushAll() ? 'none' : '';   // в скрытом режиме (скрыто всё) глаз частей нет — открыть можно только через аватарку
     b.title = (on ? 'Показать ' : 'Скрыть ') + SECT_NAME[b.getAttribute('data-sec')];
     b.setAttribute('aria-label', b.title);
   });
@@ -4728,7 +4728,7 @@ $('avatar').addEventListener('click', function(e) {
 $('eyeBtn').addEventListener('click', function(e) {
   e.stopPropagation();
   var btn = this;
-  var all = !hushAny();                   // что-то скрыто — показать всё; ничего не скрыто — скрыть всё
+  var all = !hushAll();                   // скрытый режим (скрыто всё) — показать всё; иначе — скрыть всё
   btn.classList.toggle('shut', all);     // глаз закрывается / открывается
   setTimeout(function() {
     hush = {head: all, chart: all, table: all};

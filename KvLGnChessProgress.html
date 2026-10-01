@@ -996,6 +996,10 @@
   .rd-tbl .up { color: var(--green); } .rd-tbl .down { color: var(--red); } .rd-tbl .same { color: var(--fg-mute); }
   .rd.with-list { grid-template-columns: minmax(0, 0.8fr) 250px minmax(0, 1.45fr); gap: 20px; }
   .rd.with-list .rd-right { overflow-x: hidden; }
+  .rd-by { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; justify-content: center; margin-top: 4px; }
+  .rd-seg button:disabled { opacity: 0.35; cursor: not-allowed; }
+  .rd-cap { flex-basis: 100%; text-align: center; font-size: 11px; color: var(--fg-mute); }
+  .rd-cap i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
   .rd.with-list .rd-tbl { font-size: 12.5px; }
   .rd.with-list .rd-tbl th, .rd.with-list .rd-tbl td { padding-left: 6px; }   /* таблица | список параметров | схема */
   .rd-pop { min-height: 0; overflow-y: auto; border-left: 1px solid rgba(46,50,68,0.7); border-right: 1px solid rgba(46,50,68,0.7); padding: 0 14px;
@@ -6398,7 +6402,7 @@ function renderVerdictDetail() {
    Шкала «Я против себя»: центр — твой худший уровень за всю историю (по скользящему окну из W партий), край — лучший.
    Шкала «К цели этапа»: оси — условия правила rule; центр — первые W партий этапа, край (зелёный контур) — требование правила.
    Параметр = {k, label, group, fn(list) → число | null, low: меньше — лучше, fmt}. Новый параметр — одна строка в RD_METRICS. */
-var RD = {on: false, scale: 'self', keys: ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles']};
+var RD = {on: false, scale: 'self', keys: ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles'], by: 'games', n: 10, days: 7};
 try { var rdSaved = JSON.parse(localStorage.getItem('vdRadar.v1') || 'null'); if (rdSaved) for (var rk in rdSaved) RD[rk] = rdSaved[rk]; } catch (e) {}
 if (!Array.isArray(RD.keys)) RD.keys = Array.isArray(RD.custom) ? RD.custom.slice() : ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles'];   // старый формат (set/custom)
 delete RD.set; delete RD.custom;
@@ -6493,13 +6497,36 @@ function rdGoalMetrics() {
       fmt: rdOne, unit: 'за партию'}
   ];
 }
+// что сравниваем: по партиям — последние W против W перед ними (W = 5 / 10 / 20, не больше половины партий);
+// по времени — последние P дней (7 / 30) против P дней перед ними. Окна истории для шкалы «Я против себя» — такие же скользящие
+var RD_N = [5, 10, 20], RD_DAYS = [[7, 'Неделя'], [30, 'Месяц']];
+function rdIso(day) { var q = day.split('-'); return new Date(+q[0], q[1] - 1, +q[2]); }
+function rdSel(list) {
+  var n = list.length;
+  if (RD.by === 'time') {
+    var P = RD.days || 7, today = gameToday(), d = function(k) { return isoDay(addDays(today, -k)); };
+    var inn = function(l, from, to) { return l.filter(function(g) { return g.day > from && g.day <= to; }); };
+    var wins = [];
+    if (n) {
+      var d0 = rdIso(list[0].day), span = Math.round((today - d0) / 864e5);
+      for (var k = 0; k <= span; k++) { var end = isoDay(addDays(d0, k)), w = inn(list, isoDay(addDays(d0, k - P)), end); if (w.length) wins.push(w); }
+    }
+    return {A: inn(list, d(P), d(0)), B: inn(list, d(2 * P), d(P)), first: n ? inn(list, isoDay(addDays(rdIso(list[0].day), -1)), isoDay(addDays(rdIso(list[0].day), P - 1))) : [],
+      wins: wins, ok: true, P: P};
+  }
+  var W = Math.min(RD.n || 10, Math.floor(n / 2));
+  if (W < 3) return {ok: false, W: W};
+  var ws = [];
+  for (var i = W; i <= n; i++) ws.push(list.slice(i - W, i));
+  return {A: list.slice(-W), B: list.slice(-2 * W, -W), first: list.slice(0, W), wins: ws, ok: true, W: W};
+}
 function rdData() {
   var goal = RD.scale === 'goal';
   var list = goal ? [].concat.apply([], CUR.colors.map(function(c) { return c.rel; })).sort(function(a, b) { return a.n - b.n; }) : games.slice();
-  var n = list.length, W = n >= 20 ? 10 : Math.floor(n / 2);
+  var n = list.length, Sl = rdSel(list), W = Sl.W;
   var metrics = goal ? rdGoalMetrics() : RD.keys.map(rdMetric).filter(Boolean);
-  if (W < 3) return {n: n, W: W, axes: [], goal: goal};
-  var A = list.slice(-W), B = list.slice(-2 * W, -W), first = list.slice(0, W);
+  if (!Sl.ok || !Sl.A.length) return {n: n, W: W, axes: [], goal: goal, sel: Sl};
+  var A = Sl.A, B = Sl.B, first = Sl.first;
   var axes = metrics.map(function(m) {
     var a = m.fn(A), b = m.fn(B), lo, hi, r = function() { return null; };
     if (goal) {   // центр — начало этапа, край — требование правила (дальше края — с запасом, до 1.15)
@@ -6512,16 +6539,16 @@ function rdData() {
         if (st === null || st === gl || (m.low ? st <= v : st >= v)) return 0.12;
         return 0.12 + 0.88 * Math.max(0, Math.min(1, (v - st) / (gl - st)));
       };
-    } else {     // худший и лучший уровень за историю — по всем окнам из W партий подряд
+    } else {     // худший и лучший уровень за историю — по всем скользящим окнам (W партий подряд или P дней)
       var vals = [];
-      for (var i = W; i <= n; i++) { var v = m.fn(list.slice(i - W, i)); if (v !== null) vals.push(v); }
+      Sl.wins.forEach(function(w) { var v = m.fn(w); if (v !== null) vals.push(v); });
       if (vals.length) { lo = Math.min.apply(null, vals); hi = Math.max.apply(null, vals); }
       if (m.low && vals.length) { var t = lo; lo = hi; hi = t; }   // для «меньше — лучше» худшее — максимум
       r = function(v) { if (v === null || lo === undefined) return null; if (hi === lo) return 0.55; return 0.12 + 0.88 * Math.max(0, Math.min(1, (v - lo) / (hi - lo))); };
     }
-    return {m: m, a: a, b: b, ra: r(a), rb: B.length === W ? r(b) : null, lo: lo, hi: hi};
+    return {m: m, a: a, b: b, ra: r(a), rb: B.length ? r(b) : null, lo: lo, hi: hi};
   });
-  return {n: n, W: W, axes: axes, goal: goal, hasB: B.length === W};
+  return {n: n, W: W, axes: axes, goal: goal, hasB: B.length > 0, sel: Sl};
 }
 function rdHtml() {
   var D = rdData(), S = 360, C = S / 2, R0 = 128;
@@ -6530,7 +6557,9 @@ function rdHtml() {
     '</div>';
   var axes = D.axes, k = axes.length, svg = '';
   if (k < 3) {
-    svg = '<div class="rd-note" style="margin-top:40px">' + (D.W < 3 ? 'Мало партий для схемы: нужно хотя бы 6' + (D.goal ? ' партий этапа' : '') + ', сейчас ' + D.n + '.' : 'Выбери хотя бы 3 параметра.') + '</div>';
+    var Sl = D.sel || {};
+    svg = '<div class="rd-note" style="margin:40px 0">' + (!Sl.ok ? 'Мало партий для схемы: нужно хотя бы 6' + (D.goal ? ' партий этапа' : '') + ', сейчас ' + D.n + '.'
+      : Sl.A && !Sl.A.length ? 'За последние ' + Sl.P + ' ' + plural(Sl.P, 'день', 'дня', 'дней') + ' партий нет — выбери период побольше или «Партии».' : 'Выбери хотя бы 3 параметра.') + '</div>';
   } else {
     var ang = function(i) { return -Math.PI / 2 + i * 2 * Math.PI / k; };
     var pt = function(i, r) { return [C + Math.cos(ang(i)) * R0 * r, C + Math.sin(ang(i)) * R0 * r]; };
@@ -6557,13 +6586,17 @@ function rdHtml() {
     });
     svg = '<svg class="rd-svg" viewBox="-95 -24 ' + (S + 190) + ' ' + (S + 48) + '">' + g + '</svg>';
   }
-  // справа: легенда, пояснение шкалы и таблица «сейчас / было»
-  var W = D.W, wN = W + ' ' + plural(W, 'партия', 'партии', 'партий');
-  var leg = '<div class="rd-leg"><span><i style="background:#fb923c"></i>последние ' + wN + '</span>' + (D.hasB ? '<span><i style="background:#9ca3af"></i>' + wN + ' перед ними</span>' : '') +
-    (D.goal ? '<span><i style="background:#4ade80"></i>требование правила</span>' : '') + '</div>';
-  var note = D.goal
-    ? 'Оси — условия перехода на следующий этап (партии этапа против его бота). Центр — где ты был в начале этапа, зелёный контур — требование правила; за контуром — с запасом.'
-    : 'Каждая ось — от твоего худшего уровня (центр) до лучшего (край) за всю историю, по ' + wN + ' подряд. Это сравнение с самим собой, а не с другими игроками.';
+  // под схемой: сравнивать по партиям (5 / 10 / 20) или по времени (неделя / месяц)
+  var Sl2 = D.sel || {}, byT = RD.by === 'time', nAll = D.n;
+  var cap = byT ? 'последние ' + Sl2.P + ' ' + plural(Sl2.P, 'день', 'дня', 'дней') + (Sl2.A ? ' (' + Sl2.A.length + ' ' + plural(Sl2.A.length, 'партия', 'партии', 'партий') + ')' : '') + ' против ' + Sl2.P + ' до них' + (Sl2.B ? ' (' + Sl2.B.length + ')' : '')
+    : Sl2.ok ? 'последние ' + Sl2.W + ' ' + plural(Sl2.W, 'партия', 'партии', 'партий') + ' против ' + Sl2.W + ' перед ними' : '';
+  var by = '<div class="rd-by"><span class="rd-seg">' +
+      '<button type="button" data-rdby="games" class="' + (byT ? '' : 'on') + '">Партии</button><button type="button" data-rdby="time" class="' + (byT ? 'on' : '') + '">Время</button></span>' +
+    '<span class="rd-seg">' + (byT
+      ? RD_DAYS.map(function(x) { return '<button type="button" data-rdd="' + x[0] + '" class="' + ((RD.days || 7) === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('')
+      : RD_N.map(function(v) { var can = nAll >= 2 * v, on = Sl2.ok && Sl2.W === v || (!Sl2.ok && false);
+          return '<button type="button" data-rdn="' + v + '" class="' + (on ? 'on' : '') + '"' + (can ? '' : ' disabled title="Нужно хотя бы ' + 2 * v + ' партий, сейчас ' + nAll + '"') + '>' + v + '</button>'; }).join('')) + '</span>' +
+    (cap ? '<div class="rd-cap"><i style="background:#fb923c"></i>' + esc(cap).replace(' против ', ' <i style="background:#9ca3af;margin-left:8px"></i>против ') + '</div>' : '') + '</div>';
   var fmt = function(x, v) { return v === null || v === undefined ? '—' : x.m.fmt(v); };
   var rows = axes.map(function(x) {
     var d = x.a !== null && x.b !== null ? x.a - x.b : null, better = d === null || Math.abs(d) < 1e-9 ? null : (x.m.low ? d < 0 : d > 0);
@@ -6571,9 +6604,9 @@ function rdHtml() {
       (d === null ? '—' : better === null ? '=' : (better ? '▲' : '▼')) + '</td>' : '') + '<td class="was">' + (D.goal ? fmt(x, x.m.goal) : fmt(x, x.m.low ? x.hi : x.hi)) + '</td></tr>';
   }).join('');
   var tbl = k ? '<table class="rd-tbl"><tr><th></th><th>сейчас</th>' + (D.hasB ? '<th>было</th><th></th>' : '') + '<th>' + (D.goal ? 'нужно' : 'лучшее') + '</th></tr>' + rows + '</table>' : '';
-  return '<div class="rd' + (D.goal ? '' : ' with-list') + '"><div class="rd-right">' + leg + '<div class="rd-note">' + note + '</div>' + tbl + '</div>' +
+  return '<div class="rd' + (D.goal ? '' : ' with-list') + '"><div class="rd-right">' + tbl + '</div>' +
     (D.goal ? '' : rdPopHtml()) +
-    '<div class="rd-left">' + bar + svg + '<div class="rd-tip"></div></div></div>';
+    '<div class="rd-left">' + bar + svg + by + '<div class="rd-tip"></div></div></div>';
 }
 // выпадающий список: готовые наборы сверху, ниже группы — клик раскрывает, галочки (3–8 параметров)
 // перерисовать, сохранив прокрутку выпадающего списка
@@ -6670,6 +6703,12 @@ $('vdDetail').addEventListener('click', function(e) {
   if (e.target.closest('.vd-rd-btn')) { RD.on = !RD.on; rdSave(); renderVerdictDetail(); return; }
   var rb = e.target.closest('[data-rds]');
   if (rb) { RD.scale = rb.getAttribute('data-rds'); rdSave(); renderVerdictDetail(); return; }
+  rb = e.target.closest('[data-rdby]');
+  if (rb) { RD.by = rb.getAttribute('data-rdby'); rdSave(); renderVerdictDetail(); return; }
+  rb = e.target.closest('[data-rdn]');
+  if (rb && !rb.disabled) { RD.n = +rb.getAttribute('data-rdn'); rdSave(); renderVerdictDetail(); return; }
+  rb = e.target.closest('[data-rdd]');
+  if (rb) { RD.days = +rb.getAttribute('data-rdd'); rdSave(); renderVerdictDetail(); return; }
   rb = e.target.closest('[data-rdset]');
   if (rb) { RD.keys = RD_SETS.filter(function(x) { return x.k === rb.getAttribute('data-rdset'); })[0].keys.slice(); rdSave(); rdRerender(); return; }
   rb = e.target.closest('[data-rdg]');

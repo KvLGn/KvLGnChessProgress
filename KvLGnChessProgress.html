@@ -994,11 +994,28 @@
   .rd-tbl td:first-child { color: var(--fg-dim); white-space: normal; }
   .rd-tbl td.was { color: var(--fg-mute); }
   .rd-tbl .up { color: var(--green); } .rd-tbl .down { color: var(--red); } .rd-tbl .same { color: var(--fg-mute); }
-  .rd-ck { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 14px; font-size: 12px; color: var(--fg-dim); }
-  .rd-ck label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-  .rd-ck label:hover { color: var(--fg); }
-  .rd-ck input { accent-color: #818cf8; }
-  .rd-ck .rd-ckg { grid-column: 1 / -1; font: 600 10px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); margin-top: 6px; }
+  .rd-pwrap { position: relative; }
+  .rd-pbtn { font: 500 12px Inter, sans-serif; color: var(--fg); background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+  .rd-pbtn:hover, .rd-pbtn.open { border-color: #818cf8; }
+  .rd-pbtn span { color: var(--fg-mute); margin-left: 4px; }
+  .rd-pop { position: absolute; top: calc(100% + 6px); right: 0; z-index: 8; width: 340px; max-height: 470px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,0.45); padding: 10px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+  .rd-pop-h { font: 600 10px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); margin: 2px 2px 6px; }
+  .rd-pre { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .rd-pre button { font: 500 11px Inter, sans-serif; color: var(--fg-dim); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+  .rd-pre button:hover { color: var(--fg); border-color: #6b7280; }
+  .rd-pre button.on { color: var(--fg); border-color: #818cf8; background: rgba(129,140,248,0.12); }
+  .rd-grp { border-top: 1px solid rgba(46,50,68,0.7); }
+  .rd-grp-h { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 4px; background: none; border: none; cursor: pointer; font: 600 12px Inter, sans-serif; color: var(--fg); text-align: left; }
+  .rd-grp-h:hover { color: #c7d2fe; }
+  .rd-grp-h small { margin-left: auto; font-weight: 400; color: var(--fg-mute); }
+  .rd-grp-h i { font-style: normal; color: var(--fg-mute); width: 10px; }
+  .rd-grp-b { padding: 0 4px 8px 22px; display: flex; flex-direction: column; gap: 4px; }
+  .rd-grp-b label { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; color: var(--fg-dim); cursor: pointer; line-height: 1.35; }
+  .rd-grp-b label:hover { color: var(--fg); }
+  .rd-grp-b label.off { opacity: 0.45; cursor: default; }
+  .rd-grp-b input { accent-color: #818cf8; margin-top: 2px; }
+  .rd-grp-b em { font-style: normal; color: var(--fg-mute); font-size: 11px; display: block; }
   .vdx-col { min-height: 0; display: flex; flex-direction: column; }
   .vdx-title { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
   .vdx-title span { color: var(--fg-mute); font-weight: 400; margin-left: 4px; }
@@ -6381,32 +6398,55 @@ function renderVerdictDetail() {
    Шкала «Я против себя»: центр — твой худший уровень за всю историю (по скользящему окну из W партий), край — лучший.
    Шкала «К цели этапа»: оси — условия правила rule; центр — первые W партий этапа, край (зелёный контур) — требование правила.
    Параметр = {k, label, group, fn(list) → число | null, low: меньше — лучше, fmt}. Новый параметр — одна строка в RD_METRICS. */
-var RD = {on: false, scale: 'self', set: 'main', custom: ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles']};
+var RD = {on: false, scale: 'self', keys: ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles']};
 try { var rdSaved = JSON.parse(localStorage.getItem('vdRadar.v1') || 'null'); if (rdSaved) for (var rk in rdSaved) RD[rk] = rdSaved[rk]; } catch (e) {}
+if (!Array.isArray(RD.keys)) RD.keys = Array.isArray(RD.custom) ? RD.custom.slice() : ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles'];   // старый формат (set/custom)
+delete RD.set; delete RD.custom;
+var rdPop = false, rdOpenG = {};   // выпадающий список параметров открыт? какие группы в нём раскрыты (не сохраняется)
 function rdSave() { try { localStorage.setItem('vdRadar.v1', JSON.stringify(RD)); } catch (e) {} }
 function rdAvg(list, f) { var v = list.map(f).filter(function(x) { return x !== null && x !== undefined; }); return v.length ? v.reduce(function(a, b) { return a + b; }, 0) / v.length : null; }
-function rdBlType(t) { return function(list) { return list.length ? list.reduce(function(s, g) { return s + (g.bl || []).filter(function(b) { return b.t === t; }).length; }, 0) / list.length : null; }; }
+function rdPerGame(cnt) { return function(list) { return list.length ? list.reduce(function(s, g) { return s + cnt(g); }, 0) / list.length : null; }; }
+function rdBlType(t) { return rdPerGame(function(g) { return (g.bl || []).filter(function(b) { return b.t === t; }).length; }); }
+function rdBlPhase(ph) { return rdPerGame(function(g) { return (g.bl || []).filter(function(b) { return b.p === ph; }).length; }); }
+function rdShare(list, base, ok) { var b = list.filter(base); return b.length ? b.filter(ok).length / b.length * 100 : null; }
+function rdDayAttempts(list) { var att = ((window.PUZZLES || {}).attempts || []), days = {}; list.forEach(function(g) { days[g.day] = true; }); return {a: att.filter(function(x) { return days[x.day]; }), d: Object.keys(days).length}; }
 var rdPct = function(v) { return Math.round(v) + '%'; }, rdOne = function(v) { return v.toFixed(1); };
+// low — меньше лучше; more — пояснение (подсказка у точки и в списке); unit — подпись к числу
 var RD_METRICS = [
   {k: 'acc', label: 'Точность', group: 'Фазы', fn: function(l) { return rdAvg(l, function(g) { return g.acc; }); }, fmt: rdPct},
-  {k: 'debut', label: 'Дебют', group: 'Фазы', fn: function(l) { return rdAvg(l, function(g) { return g.debut; }); }, fmt: rdPct},
-  {k: 'mid', label: 'Миттельшпиль', group: 'Фазы', fn: function(l) { return rdAvg(l, function(g) { return g.mid; }); }, fmt: rdPct},
-  {k: 'end', label: 'Эндшпиль', group: 'Фазы', fn: function(l) { return rdAvg(l, function(g) { return g.end; }); }, fmt: rdPct},
+  {k: 'debut', label: 'Дебют', group: 'Фазы', more: 'точность в дебюте', fn: function(l) { return rdAvg(l, function(g) { return g.debut; }); }, fmt: rdPct},
+  {k: 'mid', label: 'Миттельшпиль', group: 'Фазы', more: 'точность в миттельшпиле', fn: function(l) { return rdAvg(l, function(g) { return g.mid; }); }, fmt: rdPct},
+  {k: 'end', label: 'Эндшпиль', group: 'Фазы', more: 'точность в эндшпиле (если партия до него дошла)', fn: function(l) { return rdAvg(l, function(g) { return g.end; }); }, fmt: rdPct},
+  {k: 'acpl', label: 'Потеря за ход', group: 'Фазы', low: true, more: 'средняя потеря оценки за ход (ACPL у Lichess), в сотых пешки', fn: function(l) { return rdAvg(l, function(g) { return g.acpl; }); }, fmt: function(v) { return String(Math.round(v)); }},
+  {k: 'stab', label: 'Стабильность', group: 'Фазы', low: true, more: 'разброс точности между партиями — меньше значит ровнее', fn: function(l) {
+    var a = l.map(function(g) { return g.acc; }).filter(function(x) { return typeof x === 'number'; });
+    if (a.length < 3) return null;
+    var m = a.reduce(function(s, x) { return s + x; }, 0) / a.length;
+    return Math.sqrt(a.reduce(function(s, x) { return s + (x - m) * (x - m); }, 0) / a.length); }, fmt: function(v) { return '±' + Math.round(v) + '%'; }},
   {k: 'blunders', label: 'Зевки', group: 'Ошибки', low: true, fn: function(l) { return rdAvg(l, function(g) { return g.blunders; }); }, fmt: rdOne, unit: 'за партию'},
   {k: 'mistakes', label: 'Ошибки', group: 'Ошибки', low: true, fn: function(l) { return rdAvg(l, function(g) { return g.mistakes; }); }, fmt: rdOne, unit: 'за партию'},
   {k: 'inacc', label: 'Неточности', group: 'Ошибки', low: true, fn: function(l) { return rdAvg(l, function(g) { return g.inacc; }); }, fmt: rdOne, unit: 'за партию'},
-  {k: 'hang', label: 'Под боем', group: 'Ошибки', low: true, fn: rdBlType('hang'), fmt: rdOne, unit: 'зевков за партию'},
-  {k: 'tactic', label: 'Тактика бота', group: 'Ошибки', low: true, fn: rdBlType('tactic'), fmt: rdOne, unit: 'зевков за партию'},
+  {k: 'blDebut', label: 'Зевки в дебюте', group: 'Ошибки', low: true, fn: rdBlPhase('debut'), fmt: rdOne, unit: 'за партию'},
+  {k: 'blMid', label: 'Зевки в миттельшпиле', group: 'Ошибки', low: true, fn: rdBlPhase('mid'), fmt: rdOne, unit: 'за партию'},
+  {k: 'blEnd', label: 'Зевки в эндшпиле', group: 'Ошибки', low: true, fn: rdBlPhase('end'), fmt: rdOne, unit: 'за партию'},
+  {k: 'hang', label: 'Под боем', group: 'Типы зевков', low: true, more: 'оставил фигуру под боем', fn: rdBlType('hang'), fmt: rdOne, unit: 'за партию'},
+  {k: 'tactic', label: 'Тактика бота', group: 'Типы зевков', low: true, more: 'пропустил тактику соперника (вилка, связка…)', fn: rdBlType('tactic'), fmt: rdOne, unit: 'за партию'},
+  {k: 'missedWin', label: 'Упущенный выигрыш', group: 'Типы зевков', low: true, more: 'был выигрыш материала — не взял', fn: rdBlType('missedWin'), fmt: rdOne, unit: 'за партию'},
+  {k: 'mateMissed', label: 'Пропущенный мат', group: 'Типы зевков', low: true, more: 'был мат — не поставил', fn: rdBlType('mateMissed'), fmt: rdOne, unit: 'за партию'},
+  {k: 'mateAllowed', label: 'Мат себе', group: 'Типы зевков', low: true, more: 'пропустил мат своему королю', fn: rdBlType('mateAllowed'), fmt: rdOne, unit: 'за партию'},
+  {k: 'other', label: 'Позиционные', group: 'Типы зевков', low: true, more: 'зевки без явной тактики', fn: rdBlType('other'), fmt: rdOne, unit: 'за партию'},
   {k: 'punish', label: 'Наказание', group: 'Против бота', more: 'доля зевков бота, после которых перевес сохранён', fn: function(l) {
     var o = []; l.forEach(function(g) { if (g.mv) o = o.concat(mrOppBlunders(g)); });
     return o.length ? o.filter(function(x) { return x.kept; }).length / o.length * 100 : null; }, fmt: rdPct},
-  {k: 'convert', label: 'Реализация', group: 'Против бота', more: 'партии, где был перевес +3 и больше, — сколько выиграно', fn: function(l) {
-    var had = l.filter(function(g) { return g.ev && Math.max.apply(null, g.ev) >= 30; });
-    return had.length ? had.filter(function(g) { return g.result === 'win'; }).length / had.length * 100 : null; }, fmt: rdPct},
+  {k: 'convert', label: 'Реализация', group: 'Против бота', more: 'партии с перевесом +3 и больше — сколько выиграно', fn: function(l) {
+    return rdShare(l, function(g) { return g.ev && Math.max.apply(null, g.ev) >= 30; }, function(g) { return g.result === 'win'; }); }, fmt: rdPct},
   {k: 'defend', label: 'Защита', group: 'Против бота', more: 'партии, где перевес был у бота (−3 и хуже), — сколько не проиграно', fn: function(l) {
-    var bad = l.filter(function(g) { return g.ev && Math.min.apply(null, g.ev) <= -30; });
-    return bad.length ? bad.filter(function(g) { return g.result !== 'lose'; }).length / bad.length * 100 : null; }, fmt: rdPct},
+    return rdShare(l, function(g) { return g.ev && Math.min.apply(null, g.ev) <= -30; }, function(g) { return g.result !== 'lose'; }); }, fmt: rdPct},
   {k: 'winrate', label: 'Победы', group: 'Против бота', fn: function(l) { return l.length ? winrate(l) : null; }, fmt: rdPct},
+  {k: 'mates', label: 'Маты доведены', group: 'Против бота', more: 'короткие маты (до 3 ходов) — сколько доведено до конца; нужно хотя бы 2 таких момента', fn: function(l) {
+    var m = []; l.forEach(function(g) { mateSeries(g).forEach(function(x) { if (x.N && x.N <= 3) m.push(x); }); });
+    return m.length >= 2 ? m.filter(function(x) { return !x.lost; }).length / m.length * 100 : null; }, fmt: rdPct},
+  {k: 'botErr', label: 'Ошибки бота', group: 'Против бота', more: 'зевков бота за партию — насколько ты его «ломаешь»', fn: rdPerGame(function(g) { return g.mv ? mrOppBlunders(g).length : 0; }), fmt: rdOne, unit: 'за партию'},
   {k: 'theory', label: 'Теория', group: 'Дебют', more: 'сколько своих ходов подряд как у мастеров', fn: function(l) {
     return rdAvg(l, function(g) {
       var rows = msCompare(g, 'all').filter(function(c) { return anMine(g, c.p); });
@@ -6414,18 +6454,29 @@ var RD_METRICS = [
       var k = 0; for (var i = 0; i < rows.length && rows[i].st !== 'off'; i++) k++;
       return k;
     }); }, fmt: rdOne, unit: 'ходов'},
+  {k: 'evOut', label: 'Перевес после дебюта', group: 'Дебют', more: 'оценка позиции на выходе из дебюта, в пешках (+ — у тебя)', fn: function(l) {
+    return rdAvg(l, function(g) { return g.ev && g.div && g.div.mid && g.ev[g.div.mid] !== undefined ? g.ev[g.div.mid] / 10 : null; }); },
+    fmt: function(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1); }},
+  {k: 'planOp', label: 'Дебют по плану', group: 'Дебют', more: 'в скольких партиях на доске был твой дебют из плана', fn: function(l) {
+    return l.length ? l.filter(function(g) { return planOpening(g).both; }).length / l.length * 100 : null; }, fmt: rdPct},
   {k: 'puzzles', label: 'Задачи', group: 'Задачи', more: 'перфоманс по задачам за дни этих партий', fn: function(l) {
-    var att = ((window.PUZZLES || {}).attempts || []), days = {};
-    l.forEach(function(g) { days[g.day] = true; });
-    var a = att.filter(function(x) { return days[x.day]; });
-    return a.length >= 5 ? pzPerf(a) : null; }, fmt: function(v) { return String(Math.round(v)); }}
+    var a = rdDayAttempts(l).a; return a.length >= 5 ? pzPerf(a) : null; }, fmt: function(v) { return String(Math.round(v)); }},
+  {k: 'pzWin', label: 'Задачи решены', group: 'Задачи', more: 'доля решённых задач за дни этих партий', fn: function(l) {
+    var a = rdDayAttempts(l).a; return a.length >= 5 ? a.filter(function(x) { return x.win; }).length / a.length * 100 : null; }, fmt: rdPct},
+  {k: 'pzDay', label: 'Задач в день', group: 'Задачи', more: 'сколько задач решаешь в дни, когда играешь', fn: function(l) {
+    var D = rdDayAttempts(l); return D.d ? D.a.length / D.d : null; }, fmt: function(v) { return String(Math.round(v)); }},
+  {k: 'secMove', label: 'Время на ход', group: 'Время', more: 'сколько в среднем думаешь над ходом (больше — обдуманнее)', fn: function(l) {
+    return rdAvg(l, function(g) { return g.dur && g.plies ? g.dur / Math.max(1, Math.ceil(g.plies / 2)) : null; }); }, fmt: function(v) { return Math.round(v) + ' с'; }}
 ];
+var RD_GROUPS = ['Фазы', 'Ошибки', 'Типы зевков', 'Против бота', 'Дебют', 'Задачи', 'Время'];
 var RD_SETS = [
   {k: 'main', name: 'Главное', keys: ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles']},
-  {k: 'phases', name: 'Фазы', keys: ['debut', 'mid', 'end', 'acc', 'theory']},
-  {k: 'errors', name: 'Ошибки', keys: ['blunders', 'mistakes', 'inacc', 'hang', 'tactic']},
-  {k: 'bot', name: 'Против бота', keys: ['punish', 'convert', 'defend', 'winrate']},
-  {k: 'custom', name: 'Свой', keys: null}
+  {k: 'phases', name: 'Фазы', keys: ['debut', 'mid', 'end', 'acc', 'acpl', 'stab']},
+  {k: 'errors', name: 'Ошибки', keys: ['blunders', 'mistakes', 'inacc', 'blDebut', 'blMid', 'blEnd']},
+  {k: 'types', name: 'Типы зевков', keys: ['hang', 'tactic', 'missedWin', 'mateMissed', 'mateAllowed', 'other']},
+  {k: 'bot', name: 'Против бота', keys: ['punish', 'convert', 'defend', 'winrate', 'mates', 'botErr']},
+  {k: 'debutSet', name: 'Дебют', keys: ['debut', 'theory', 'evOut', 'planOp', 'blDebut']},
+  {k: 'pz', name: 'Задачи', keys: ['puzzles', 'pzWin', 'pzDay']}
 ];
 function rdMetric(k) { return RD_METRICS.filter(function(m) { return m.k === k; })[0]; }
 // оси «К цели этапа» — условия правила rule (на партиях этапа против его бота)
@@ -6446,8 +6497,7 @@ function rdData() {
   var goal = RD.scale === 'goal';
   var list = goal ? [].concat.apply([], CUR.colors.map(function(c) { return c.rel; })).sort(function(a, b) { return a.n - b.n; }) : games.slice();
   var n = list.length, W = n >= 20 ? 10 : Math.floor(n / 2);
-  var keys = goal ? null : (RD.set === 'custom' ? RD.custom : RD_SETS.filter(function(x) { return x.k === RD.set; })[0].keys);
-  var metrics = goal ? rdGoalMetrics() : keys.map(rdMetric).filter(Boolean);
+  var metrics = goal ? rdGoalMetrics() : RD.keys.map(rdMetric).filter(Boolean);
   if (W < 3) return {n: n, W: W, axes: [], goal: goal};
   var A = list.slice(-W), B = list.slice(-2 * W, -W), first = list.slice(0, W);
   var axes = metrics.map(function(m) {
@@ -6477,7 +6527,7 @@ function rdHtml() {
   var D = rdData(), S = 360, C = S / 2, R0 = 128;
   var bar = '<div class="rd-bar"><span class="rd-seg">' +
       [['self', 'Я против себя'], ['goal', 'К цели этапа']].map(function(x) { return '<button type="button" data-rds="' + x[0] + '" class="' + (RD.scale === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '</span>' +
-    (D.goal ? '' : '<span class="rd-seg">' + RD_SETS.map(function(x) { return '<button type="button" data-rdset="' + x.k + '" class="' + (RD.set === x.k ? 'on' : '') + '">' + x.name + '</button>'; }).join('') + '</span>') + '</div>';
+    (D.goal ? '' : '<span class="rd-pwrap"><button class="rd-pbtn' + (rdPop ? ' open' : '') + '" type="button">Параметры<span>' + RD.keys.length + ' ▾</span></button>' + (rdPop ? rdPopHtml() : '') + '</span>') + '</div>';
   var axes = D.axes, k = axes.length, svg = '';
   if (k < 3) {
     svg = '<div class="rd-note" style="margin-top:40px">' + (D.W < 3 ? 'Мало партий для схемы: нужно хотя бы 6' + (D.goal ? ' партий этапа' : '') + ', сейчас ' + D.n + '.' : 'Выбери хотя бы 3 параметра.') + '</div>';
@@ -6521,19 +6571,30 @@ function rdHtml() {
       (d === null ? '—' : better === null ? '=' : (better ? '▲' : '▼')) + '</td>' : '') + '<td class="was">' + (D.goal ? fmt(x, x.m.goal) : fmt(x, x.m.low ? x.hi : x.hi)) + '</td></tr>';
   }).join('');
   var tbl = k ? '<table class="rd-tbl"><tr><th></th><th>сейчас</th>' + (D.hasB ? '<th>было</th><th></th>' : '') + '<th>' + (D.goal ? 'нужно' : 'лучшее') + '</th></tr>' + rows + '</table>' : '';
-  var ck = '';
-  if (!D.goal && RD.set === 'custom') {
-    var groups = [];
-    RD_METRICS.forEach(function(m) { if (groups.indexOf(m.group) < 0) groups.push(m.group); });
-    ck = '<div class="rd-ck">' + groups.map(function(gname) {
-      return '<div class="rd-ckg">' + gname + '</div>' + RD_METRICS.filter(function(m) { return m.group === gname; }).map(function(m) {
-        var on = RD.custom.indexOf(m.k) >= 0, lock = (on && RD.custom.length <= 3) || (!on && RD.custom.length >= 8);
-        return '<label' + (lock ? ' style="opacity:0.5"' : '') + '><input type="checkbox" data-rdck="' + m.k + '"' + (on ? ' checked' : '') + (lock ? ' disabled' : '') + '>' + esc(m.label) + '</label>';
-      }).join('');
-    }).join('') + '</div><div class="rd-note">От 3 до 8 параметров.</div>';
-  }
-  return '<div class="rd"><div class="rd-right">' + leg + '<div class="rd-note">' + note + '</div>' + tbl + ck + '</div>' +
+  return '<div class="rd"><div class="rd-right">' + leg + '<div class="rd-note">' + note + '</div>' + tbl + '</div>' +
     '<div class="rd-left">' + bar + svg + '<div class="rd-tip"></div></div></div>';
+}
+// выпадающий список: готовые наборы сверху, ниже группы — клик раскрывает, галочки (3–8 параметров)
+// перерисовать, сохранив прокрутку выпадающего списка
+function rdRerender() {
+  var pop = $('vdDetail').querySelector('.rd-pop'), top = pop ? pop.scrollTop : 0;
+  renderVerdictDetail();
+  pop = $('vdDetail').querySelector('.rd-pop'); if (pop) pop.scrollTop = top;
+}
+function rdPopHtml() {
+  var same = function(a, b) { return a.length === b.length && a.every(function(x) { return b.indexOf(x) >= 0; }); };
+  return '<div class="rd-pop"><div class="rd-pop-h">Готовые наборы</div><div class="rd-pre">' +
+    RD_SETS.map(function(x) { return '<button type="button" data-rdset="' + x.k + '" class="' + (same(x.keys, RD.keys) ? 'on' : '') + '">' + x.name + '</button>'; }).join('') + '</div>' +
+    '<div class="rd-pop-h">Свой набор — от 3 до 8 <span style="text-transform:none;letter-spacing:0;font-weight:400">· ▼ — чем меньше, тем лучше</span></div>' +
+    RD_GROUPS.map(function(G) {
+      var ms = RD_METRICS.filter(function(m) { return m.group === G; }), on = ms.filter(function(m) { return RD.keys.indexOf(m.k) >= 0; }).length, open = rdOpenG[G];
+      return '<div class="rd-grp"><button type="button" class="rd-grp-h" data-rdg="' + esc(G) + '"><i>' + (open ? '▾' : '▸') + '</i>' + esc(G) + '<small>' + on + '/' + ms.length + '</small></button>' +
+        (open ? '<div class="rd-grp-b">' + ms.map(function(m) {
+          var sel = RD.keys.indexOf(m.k) >= 0, lock = (sel && RD.keys.length <= 3) || (!sel && RD.keys.length >= 8);
+          return '<label' + (lock ? ' class="off" title="' + (sel ? 'Нужно хотя бы 3 параметра' : 'Не больше 8 параметров') + '"' : '') + '><input type="checkbox" data-rdck="' + m.k + '"' + (sel ? ' checked' : '') + (lock ? ' disabled' : '') + '>' +
+            '<span>' + esc(m.label) + (m.low ? ' ▼' : '') + (m.more ? '<em>' + esc(m.more) + '</em>' : '') + '</span></label>';
+        }).join('') + '</div>' : '') + '</div>';
+    }).join('') + '</div>';
 }
 // подсказка у точки: настоящее значение, было, лучшее / худшее или цель
 $('vdDetail').addEventListener('mouseover', function(e) {
@@ -6559,6 +6620,7 @@ function toggleVerdict(open) {
   if (open) {
     if (row.classList.contains('open')) togglePuzzleDetail(false);
     if (row.classList.contains('op-open')) toggleOpeningDetail(false);
+    rdPop = false;
     renderVerdictDetail();
   }
   row.classList.toggle('vd-open', open);
@@ -6604,18 +6666,22 @@ $('vdCard').addEventListener('keydown', function(e) {
 });
 $('vdDetail').addEventListener('click', function(e) {
   if (e.target.closest('.vd-close')) { toggleVerdict(false); return; }
-  if (e.target.closest('.vd-rd-btn')) { RD.on = !RD.on; rdSave(); renderVerdictDetail(); return; }
+  if (e.target.closest('.vd-rd-btn')) { RD.on = !RD.on; rdPop = false; rdSave(); renderVerdictDetail(); return; }
   var rb = e.target.closest('[data-rds]');
   if (rb) { RD.scale = rb.getAttribute('data-rds'); rdSave(); renderVerdictDetail(); return; }
+  if (e.target.closest('.rd-pbtn')) { rdPop = !rdPop; renderVerdictDetail(); return; }
   rb = e.target.closest('[data-rdset]');
-  if (rb) { RD.set = rb.getAttribute('data-rdset'); rdSave(); renderVerdictDetail(); return; }
+  if (rb) { RD.keys = RD_SETS.filter(function(x) { return x.k === rb.getAttribute('data-rdset'); })[0].keys.slice(); rdSave(); rdRerender(); return; }
+  rb = e.target.closest('[data-rdg]');
+  if (rb) { var G = rb.getAttribute('data-rdg'); rdOpenG[G] = !rdOpenG[G]; rdRerender(); return; }
   rb = e.target.closest('[data-rdck]');
   if (rb) {
-    var ck = rb.getAttribute('data-rdck'), at = RD.custom.indexOf(ck);
-    if (rb.checked && at < 0 && RD.custom.length < 8) RD.custom.push(ck);
-    else if (!rb.checked && at >= 0 && RD.custom.length > 3) RD.custom.splice(at, 1);
-    rdSave(); renderVerdictDetail(); return;
+    var ck = rb.getAttribute('data-rdck'), at = RD.keys.indexOf(ck);
+    if (rb.checked && at < 0 && RD.keys.length < 8) RD.keys.push(ck);
+    else if (!rb.checked && at >= 0 && RD.keys.length > 3) RD.keys.splice(at, 1);
+    rdSave(); rdRerender(); return;
   }
+  if (rdPop && !e.target.closest('.rd-pop')) { rdPop = false; renderVerdictDetail(); return; }   // клик мимо списка — закрыть
   if (e.target.closest('a')) return;   // ссылка на Lichess — своя
   var it = e.target.closest('.vdx-item.go');
   if (it) { var v = vdItems[+it.getAttribute('data-vi')]; toggleVerdict(false); if (v && v.go) v.go(); return; }

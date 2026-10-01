@@ -5656,7 +5656,7 @@ function opStats(o) {
   var w = gl.filter(function(g) { return g.result === 'win'; }).length;
   var l = gl.filter(function(g) { return g.result === 'lose'; }).length;
   var pz = ((window.PUZZLES || {}).attempts || []).filter(function(a) { return opMatch(o, a.op); });
-  return {games: gl, w: w, l: l, d: gl.length - w - l, debut: avg(gl, 'debut'), byPlan: isCur,
+  return {games: gl, w: w, l: l, d: gl.length - w - l, debut: avg(gl, 'debut'), byPlan: isCur, blk: o.color === 'black',
           board: board.filter(function(g) { return gl.indexOf(g) >= 0; }), away: away,
           pz: pz.length, pzOk: pz.filter(function(a) { return a.win; }).length};
 }
@@ -5664,7 +5664,7 @@ function opName(o) { return esc(o.name) + ' <span class="op-kn">' + KNIGHT[o.col
 function opGamesLine(st) {
   if (!st.games.length) return 'партий пока нет';
   var onBoard = st.byPlan && st.board.length < st.games.length;
-  return '<span' + (st.byPlan ? ' title="Партии по плану: каждая партия этим цветом' + (onBoard ? '. На доске дебют получился в ' + st.board.length + ', в остальных бот ответил иначе' : '') + '"' : '') + '>' +
+  return '<span' + (st.byPlan ? ' title="Партии по плану: каждая партия этим цветом' + (onBoard ? '. На доске дебют получился в ' + st.board.length + (st.blk ? ', в остальных на доске было другое' : ', в остальных бот ответил иначе') : '') + '"' : '') + '>' +
     st.games.length + ' ' + plural(st.games.length, 'партия', 'партии', 'партий') + ' · ' + Math.round(st.w / st.games.length * 100) + '% побед' +
     (onBoard ? ' · на доске ' + st.board.length : '') + '</span>';
 }
@@ -6532,13 +6532,18 @@ var AI_ASKS = [
     // пункты по изучаемым дебютам плана (OPENINGS.current): на этапе 2 сами появятся Сицилианская и Славянская
     var out = [];
     ((window.OPENINGS || {}).current || []).forEach(function(o) {
-      var n = o.name, e = opEn(o);
-      out.push({op: o, t: 'Что учить в дебюте «' + n + '»', tEn: 'What to learn in the ' + e, ru: 'Два вопроса: линии дебюта по моим партиям и где ломается моя схема, когда бот уходит в другой дебют', en: 'Two questions: the opening lines from my games and where my setup breaks when the bot steers into another opening',
+      var n = o.name, e = opEn(o), blk = o.color === 'black', vs = o.vs || '…';
+      out.push({op: o, t: 'Что учить в дебюте «' + n + '»', tEn: 'What to learn in the ' + e,
+        ru: blk ? 'Два вопроса: линии дебюта по моим партиям и что было в партиях, где он не получился' : 'Два вопроса: линии дебюта по моим партиям и где ломается моя схема, когда бот уходит в другой дебют',
+        en: blk ? 'Two questions: the opening lines from my games and what happened in the games where it did not appear' : 'Two questions: the opening lines from my games and where my setup breaks when the bot steers into another opening',
         sub: [
           {t: 'Линии «' + n + '» по моим партиям', tEn: 'Lines of the ' + e + ' from my games', d: 'opLines',
            ru: 'Какие линии дебюта «' + n + '» мне важнее всего понять на моём уровне и в каком порядке? Опирайся на партии, где «' + n + '» был на доске.', en: 'Which lines of the ' + e + ' matter most at my level, and in what order? Use the games where the ' + e + ' was on the board.',
            h: 'Я учу дебют «' + n + '». Какие линии в нём важнее всего понять на моём уровне? Вот партии, где он получился.', hEn: 'I am learning the ' + e + '. Which lines matter most at my level? Here are the games where it appeared.'},
-          {t: 'Когда бот уходит от «' + n + '»', tEn: 'When the bot avoids the ' + e, d: 'opAway',
+          blk ? {t: 'Когда «' + n + '» не получается', tEn: 'When the ' + e + ' does not appear', d: 'opAway',
+           ru: 'В части партий по плану «' + n + '» (бот начал ' + vs + ') дебют на доске не получился. Что там пошло не так, что играют мастера вместо моих ходов и что выучить в первую очередь?', en: 'In some planned ' + e + ' games (the bot opened ' + vs + ') the opening did not appear on the board. What went wrong there, what do the masters play instead of my moves, and what should I learn first?',
+           h: 'Я играю дебют «' + n + '» чёрными против ' + vs + ', но он получается не всегда. Что я делаю не так и что выучить в первую очередь?', hEn: 'I play the ' + e + ' as Black against ' + vs + ', but it does not always appear. What am I doing wrong and what should I learn first?'}
+          : {t: 'Когда бот уходит от «' + n + '»', tEn: 'When the bot avoids the ' + e, d: 'opAway',
            ru: 'Бот часто отвечает не по дебюту «' + n + '». Где моя схема ломается в таких партиях, что играют мастера вместо моих ходов и что выучить в первую очередь?', en: 'The bot often avoids the ' + e + '. Where does my setup break in those games, what do the masters play instead of my moves, and what should I learn first?',
            h: 'Я играю схему «' + n + '», но бот часто отвечает иначе. Где моя схема ломается и что выучить в первую очередь?', hEn: 'I play the ' + e + ' setup, but the bot often replies differently. Where does my setup break and what should I learn first?'}
         ]});
@@ -6804,8 +6809,8 @@ function aiBoardLine(o) {
   var st = opStats(o), n = st.games.length, b = st.board, w = b.filter(function(g) { return g.result === 'win'; }).length, l = b.filter(function(g) { return g.result === 'lose'; }).length;
   if (!st.byPlan || !n) return '';
   if (b.length === n) return AL('Дебют «' + o.name + '» получился на доске во всех ' + n + ' партиях по плану.', 'The ' + opEn(o) + ' appeared on the board in all ' + n + ' planned games.');
-  return AL('Дебют «' + o.name + '» на доске получился в ' + b.length + ' из ' + n + ' партий по плану (' + w + ' ' + plural(w, 'победа', 'победы', 'побед') + ', ' + l + ' ' + plural(l, 'поражение', 'поражения', 'поражений') + '); в остальных бот ответил иначе: ',
-            'The ' + opEn(o) + ' appeared on the board in ' + b.length + ' of ' + n + ' planned games (' + w + ' won, ' + l + ' lost); in the rest the bot replied differently: ') + opAwayText(st) + '.';
+  return AL('Дебют «' + o.name + '» на доске получился в ' + b.length + ' из ' + n + ' партий по плану (' + w + ' ' + plural(w, 'победа', 'победы', 'побед') + ', ' + l + ' ' + plural(l, 'поражение', 'поражения', 'поражений') + (o.color === 'black' ? '); в остальных на доске было другое: ' : '); в остальных бот ответил иначе: '),
+            'The ' + opEn(o) + ' appeared on the board in ' + b.length + ' of ' + n + ' planned games (' + w + ' won, ' + l + ' lost); in the rest ' + (o.color === 'black' ? 'something else was on the board: ' : 'the bot replied differently: ')) + opAwayText(st) + '.';
 }
 function themeName(k) { var P = window.PUZZLES || {}; return AL((P.themeNames || {})[k] || PZ_NAMES[k] || k, k.replace(/([a-z])([A-Z0-9])/g, '$1 $2').toLowerCase()); }
 function aiWeakThemes(n) {
@@ -7130,12 +7135,12 @@ function aiAwaySummary(o, A) {   // «Итого: 7 партий; мой ход 
     'Total: ' + A.away.length + ' games; my move differed from the masters in ' + dev + ' of ' + A.away.length + '; middlegame in these games ' + aiPct(avg(A.away, 'mid')) + ' on average' +
       (b.length ? ' (with the opening on the board — ' + aiPct(avg(b, 'mid')) + ')' : '') + '.');
 }
-function aiAwayFreq(A) {   // «Самый частый ответ бота — Sicilian Defense (2). Одинаково часто, по 1 партии: …»
+function aiAwayFreq(A, o) {   // «Самый частый ответ бота — Sicilian Defense (2). Одинаково часто, по 1 партии: …»
   var by = {}, out = [];
   A.keys.forEach(function(k) { var n = A.grp[k].length; (by[n] = by[n] || []).push(k); });
   var ns = Object.keys(by).map(Number).sort(function(a, b) { return b - a; });
   if (!ns.length) return out;
-  if (by[ns[0]].length === 1 && A.keys.length > 1) out.push(AL('Самый частый ответ бота — ', 'The bot\'s most frequent reply is ') + by[ns[0]][0] + ' (' + ns[0] + ').');
+  if (by[ns[0]].length === 1 && A.keys.length > 1) out.push((o && o.color === 'black' ? AL('Чаще всего на доске — ', 'Most often on the board: ') : AL('Самый частый ответ бота — ', 'The bot\'s most frequent reply is ')) + by[ns[0]][0] + ' (' + ns[0] + ').');
   ns.forEach(function(n) { if (by[n].length > 1) out.push(AL('Одинаково часто, по ' + n + ' ' + plural(n, 'партии', 'партии', 'партий') + ': ', 'Equally often, ' + n + ' game' + (n === 1 ? '' : 's') + ' each: ') + by[n].join(', ') + '.'); });
   return out;
 }
@@ -7154,14 +7159,17 @@ function aiAwayDev(gl) {   // мои отходы от мастеров в гр�
 AI_DATA.opAway = function() {
   var o = aiOp(); if (!o) return [AL('Изучаемый дебют не задан', 'No opening being studied')];
   var A = aiAwayGroups(o, 20), out = [];
-  if (!A.away.length) return [AL('Бот всегда отвечал по дебюту «' + o.name + '» — уходов не было.', 'The bot always followed the ' + opEn(o) + ' — no deviations.')];
-  out.push(AL('Последние ' + A.away.length + ' партий по плану «' + o.name + '», где бот ответил иначе и дебюта на доске не было.', 'The last ' + A.away.length + ' planned ' + opEn(o) + ' games where the bot replied differently and the opening never appeared.'),
-    aiAwaySummary(o, A), AL('По ответам бота, от частого к редкому:', 'By the bot\'s reply, most frequent first:'));
+  var blk = o.color === 'black';
+  if (!opStats(o).games.length) return [AL('Партий по плану «' + o.name + '» пока нет.', 'No planned ' + opEn(o) + ' games yet.')];   // иначе «бот всегда отвечал по дебюту» при нуле партий
+  if (!A.away.length) return [blk ? AL('Во всех партиях по плану «' + o.name + '» дебют получился на доске.', 'The ' + opEn(o) + ' appeared on the board in every planned game.') : AL('Бот всегда отвечал по дебюту «' + o.name + '» — уходов не было.', 'The bot always followed the ' + opEn(o) + ' — no deviations.')];
+  out.push(blk ? AL('Последние ' + A.away.length + ' партий по плану «' + o.name + '» (бот начал ' + o.vs + '), где дебюта на доске не было.', 'The last ' + A.away.length + ' planned ' + opEn(o) + ' games (the bot opened ' + o.vs + ') where the opening never appeared.')
+    : AL('Последние ' + A.away.length + ' партий по плану «' + o.name + '», где бот ответил иначе и дебюта на доске не было.', 'The last ' + A.away.length + ' planned ' + opEn(o) + ' games where the bot replied differently and the opening never appeared.'),
+    aiAwaySummary(o, A), blk ? AL('По тому, что получилось на доске, от частого к редкому:', 'By what appeared on the board, most frequent first:') : AL('По ответам бота, от частого к редкому:', 'By the bot\'s reply, most frequent first:'));
   A.keys.forEach(function(k) {
     var gl = A.grp[k], dev = aiAwayDev(gl);
     out.push('– ' + k + ': ' + gl.length + ' (' + aiWL(gl) + AL('), миттельшпиль ', '), middlegame ') + aiPct(avg(gl, 'mid')) + AL('; партии ', '; games ') + gl.map(aiGid).join(', ') + (dev ? AL('; мой отход: ', '; my deviation: ') + dev : ''));
   });
-  out = out.concat(aiAwayFreq(A));
+  out = out.concat(aiAwayFreq(A, o));
   return out;
 };
 // 15. планы после дебюта: что происходит в миттельшпиле моих партий этого дебюта
@@ -7171,7 +7179,7 @@ AI_DATA.plans = function() {
   if (!gl.length) return [AL('Партий в дебюте «' + o.name + '» пока нет', 'No games in the ' + opEn(o) + ' yet')];
   var st = opStats(o), on = st.board, off = all.filter(function(g) { return on.indexOf(g) < 0; });
   out.push(AL('Миттельшпиль в партиях по плану дебюта «' + o.name + '»: когда дебют получился на доске (' + on.length + ') — ', 'Middlegame in planned ' + opEn(o) + ' games: when it appeared on the board (' + on.length + ') — ') + aiPct(avg(on, 'mid')) +
-    (off.length ? AL('; когда бот увёл в другой дебют (' + off.length + ') — ', '; when the bot steered into another opening (' + off.length + ') — ') + aiPct(avg(off, 'mid')) : '') + '.');
+    (off.length ? (o.color === 'black' ? AL('; когда дебют не получился (' + off.length + ') — ', '; when it did not appear (' + off.length + ') — ') : AL('; когда бот увёл в другой дебют (' + off.length + ') — ', '; when the bot steered into another opening (' + off.length + ') — ')) + aiPct(avg(off, 'mid')) : '') + '.');
   out.push(aiVarNote(), AL('Партии с дебютом на доске — от худшего миттельшпиля к лучшему:', 'Games with the opening on the board — from the worst middlegame to the best:'));
   if (!on.length) out.push(AL('таких партий пока нет', 'no such games yet'));
   aiSortBy(on.slice(-8), function(g) { return g.mid; }).forEach(function(g) {
@@ -7471,11 +7479,14 @@ var AI_SIMPLE = {
   opAway: function() {
     var o = aiOp(); if (!o) return [AL('Изучаемый дебют не задан.', 'No opening being studied.')];
     var A = aiAwayGroups(o, 20), out = [];
-    if (!A.away.length) return [AL('Бот всегда отвечал по дебюту — уходов не было.', 'The bot always followed the opening — no deviations.')];
-    out.push(AL('Партии по плану «' + o.name + '», где бот ответил иначе (' + A.away.length + '), по ответу бота:', 'Planned ' + opEn(o) + ' games where the bot replied differently (' + A.away.length + '), by the bot\'s reply:'));
+    var blk = o.color === 'black';
+    if (!opStats(o).games.length) return [AL('Партий по плану «' + o.name + '» пока нет.', 'No planned ' + opEn(o) + ' games yet.')];   // иначе «бот всегда отвечал по дебюту» при нуле партий
+    if (!A.away.length) return [blk ? AL('Во всех партиях по плану дебют получился на доске.', 'The opening appeared on the board in every planned game.') : AL('Бот всегда отвечал по дебюту — уходов не было.', 'The bot always followed the opening — no deviations.')];
+    if (blk) out.push(AL('Партии по плану «' + o.name + '» (бот начал ' + o.vs + '), где дебюта на доске не было (' + A.away.length + '), по тому, что получилось на доске:', 'Planned ' + opEn(o) + ' games (the bot opened ' + o.vs + ') where the opening never appeared (' + A.away.length + '), by what appeared on the board:'));
+    else out.push(AL('Партии по плану «' + o.name + '», где бот ответил иначе (' + A.away.length + '), по ответу бота:', 'Planned ' + opEn(o) + ' games where the bot replied differently (' + A.away.length + '), by the bot\'s reply:'));
     out.push(aiAwaySummary(o, A));
     A.keys.forEach(function(k) { var gl = A.grp[k], dev = aiAwayDev(gl); out.push('– ' + k + ': ' + gl.length + ' (' + aiWL(gl) + ')' + (dev ? AL('; мой отход: ', '; my deviation: ') + dev : '')); });
-    out = out.concat(aiAwayFreq(A));
+    out = out.concat(aiAwayFreq(A, o));
     return out;
   },
   plans: function() {
@@ -7484,7 +7495,7 @@ var AI_SIMPLE = {
     if (!gl.length) return [AL('Партий в изучаемом дебюте пока нет.', 'No games in the studied opening yet.')];
     var st = opStats(o), on = st.board, off = all.filter(function(g) { return on.indexOf(g) < 0; });
     out.push(AL('Миттельшпиль: когда «' + o.name + '» получилась на доске (' + on.length + ' ' + plural(on.length, 'партия', 'партии', 'партий') + ') — ', 'Middlegame: when the ' + opEn(o) + ' appeared on the board (' + on.length + ' games) — ') + aiPct(avg(on, 'mid')) +
-      (off.length ? AL('; когда бот увёл в другой дебют (' + off.length + ') — ', '; when the bot steered into another opening (' + off.length + ') — ') + aiPct(avg(off, 'mid')) : '') + '.');
+      (off.length ? (o.color === 'black' ? AL('; когда дебют не получился (' + off.length + ') — ', '; when it did not appear (' + off.length + ') — ') : AL('; когда бот увёл в другой дебют (' + off.length + ') — ', '; when the bot steered into another opening (' + off.length + ') — ')) + aiPct(avg(off, 'mid')) : '') + '.');
     out.push(aiVarNote(), AL('Партии с дебютом на доске — от худшего миттельшпиля к лучшему:', 'Games with the opening on the board — from the worst middlegame to the best:'));
     aiSortBy(on.slice(-5), function(g) { return g.mid; }).forEach(function(g) { out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + ', ' + g.opening + AL(': миттельшпиль ', ': middlegame ') + aiPct(g.mid) + AL(', зевков в нём ', ', blunders in it ') + (g.bl || []).filter(function(b) { return b.p === 'mid'; }).length); });
     return out;

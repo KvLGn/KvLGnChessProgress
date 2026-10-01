@@ -2334,7 +2334,7 @@ document.addEventListener('click', function(e) {
   e.stopPropagation();
   if (hush.chart) return;   // график скрыт — режим зевков не переключается
   blMode = !blMode;
-  if (blMode && cmpMode === 'view') cmpBlOpen = true;   // сравнение уже открыто — «Зевки» сразу раскрыты
+  cmpBlOpen = blMode && cmpMode === 'view';   // сравнение открыто: включили — «Зевки» первыми и раскрыты, выключили — на своё место и свёрнуты
   renderWindow();
 }, true);
 function statLine(label, color, value, dotOpacity) {
@@ -3263,7 +3263,7 @@ function toggleBlType(t) {
 }
 document.addEventListener('click', function(e) {
   if (!e.target.closest) return;
-  if (e.target.closest('.bl-leg-x')) { blMode = false; renderWindow(); return; }
+  if (e.target.closest('.bl-leg-x')) { blMode = false; cmpBlOpen = false; renderWindow(); return; }
   var t = e.target.closest('.bl-leg[data-blt]');
   if (t) toggleBlType(t.getAttribute('data-blt'));
 });

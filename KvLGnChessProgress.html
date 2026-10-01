@@ -6212,14 +6212,13 @@ function aiSummary() {
   L.push('Соперники: ' + Object.keys(byOpp).map(function(k) { return k + ' — ' + byOpp[k].length + ' (' + wl(byOpp[k]) + ')'; }).join('; '));
   ['white', 'black'].forEach(function(c) {
     var gl = games.filter(function(g) { return g.color === c; });
-    if (gl.length) L.push(COLOR_WORD[c].replace(/^./, function(x) { return x.toUpperCase(); }) + ': ' + gl.length + ' (' + wl(gl) + '); последние 10 (' + wl(gl.slice(-10)) + '): ' + phases(gl.slice(-10)));
+    if (!gl.length) return;
+    var l10 = gl.slice(-10), ph = [['дебют', avg(l10, 'debut')], ['миттельшпиль', avg(l10, 'mid')], ['эндшпиль', avg(l10, 'end')]].filter(function(x) { return x[1] !== null; }).sort(function(a, b) { return a[1] - b[1]; });
+    L.push(COLOR_WORD[c].replace(/^./, function(x) { return x.toUpperCase(); }) + ': ' + gl.length + ' (' + wl(gl) + '); последние 10 (' + wl(l10) + '): ' + phases(l10) +
+      (ph.length > 1 ? '. Самая слабая фаза — ' + ph[0][0] + ' (' + pct(ph[0][1]) + '), самая сильная — ' + ph[ph.length - 1][0] + ' (' + pct(ph[ph.length - 1][1]) + ')' : ''));
   });
   var l5 = games.slice(-5), p5 = games.slice(-10, -5);
   if (p5.length === 5) L.push('Последние 5 против предыдущих 5: точность ' + pct(avg(l5, 'acc')) + ' vs ' + pct(avg(p5, 'acc')) + ', зевков ' + r1(avg(l5, 'blunders')) + ' vs ' + r1(avg(p5, 'blunders')));
-  L.push('Последние партии:');
-  games.slice(-6).reverse().forEach(function(g) {
-    L.push('- #' + g.n + ' ' + g.date + ' ' + COLOR_WORD[g.color] + ' vs ' + g.engine + ': ' + RESULT[g.result].label + ', точность ' + g.acc + '%, зевков ' + g.blunders + ', ' + g.opening);
-  });
   L.push('');
   L.push('## Дебюты');
   var O = window.OPENINGS || {};
@@ -6239,8 +6238,10 @@ function aiSummary() {
       var th = Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k] && P.themeStats[k].nb >= PZ_MIN_THEME; })
         .map(function(k) { return {n: (P.themeNames || {})[k] || PZ_NAMES[k] || k, p: P.themeStats[k].perf}; }).sort(function(a, b) { return b.p - a.p; });
       if (th.length) {
-        L.push('Сильные темы: ' + th.slice(0, 3).map(function(x) { return x.n + ' ' + x.p; }).join(', '));
-        L.push('Слабые темы: ' + th.slice(-3).reverse().map(function(x) { return x.n + ' ' + x.p; }).join(', '));
+        var gp = P.global ? P.global.perf : null;
+        L.push('Перфоманс тем задач (общий перфоманс ' + (gp || '—') + '):');
+        L.push('- слабые, от самой слабой: ' + th.slice(-3).reverse().map(function(x, i) { return (i + 1) + ') ' + x.n + ' ' + x.p; }).join(', '));
+        L.push('- сильные, от самой сильной: ' + th.slice(0, 3).map(function(x, i) { return (i + 1) + ') ' + x.n + ' ' + x.p; }).join(', '));
       }
     }
   }
@@ -6251,9 +6252,12 @@ function aiSummary() {
   L.push('');
   L.push('## Автовыводы сайта');
   var V = buildVerdicts();
-  [['bad', 'Проседает'], ['good', 'Хорошо'], ['tip', 'Советы']].forEach(function(k) {
-    var it = V.filter(function(v) { return v.t === k[0]; });
-    if (it.length) L.push(k[1] + ': ' + it.map(function(v) { return v.text; }).join('; '));
+  // каждый вывод полной фразой: заголовок + пояснение, чтобы число не оторвалось от своего смысла (главная ошибка моделей — число не к тому)
+  [['bad', 'Проседает', 6], ['good', 'Хорошо', 4], ['tip', 'Советы сайта', 4]].forEach(function(k) {
+    var it = V.filter(function(v) { return v.t === k[0]; }).slice(0, k[2]);
+    if (!it.length) return;
+    L.push(k[1] + ':');
+    it.forEach(function(v) { L.push('- ' + v.text + (v.more && v.more !== v.text ? ' — ' + v.more : '')); });
   });
   L.push('');
   return L.join('\n');
@@ -6293,6 +6297,10 @@ var AI_PROMPT = {
       '(что делать, сколько, как понять, что получилось); учитывай, что игрок новичок и играет против Stockfish; если данных мало — так и скажи.',
       'Когда ссылаешься на партию, сверяй её результат и цифры с данными; не обобщай («все три — поражения»), если это верно не для всех. Перфоманс темы задач — не рейтинг.',
       'Отделяй факты из данных от предположений: всё, чего нет в цифрах, помечай словом «возможно».',
+      'Не всё в сводке относится к вопросу — бери только то, что нужно для ответа.',
+      'Если чего-то нет в данных — так и напиши; шахматные объяснения, которых нет в данных, не придумывай.',
+      'Термины: «бот» — мой соперник (Stockfish), «движок советовал X» — подсказка анализа Lichess, «мастера» — база партий сильных игроков.',
+      'Перед отправкой сверь каждое число в ответе с данными — та же партия, тот же смысл (победа или поражение, какая метрика): игрок проверяет цифры по сайту.',
       'Отвечай по-русски, коротко, списком.'
     ],
     plan: [
@@ -6319,6 +6327,10 @@ var AI_PROMPT = {
       '(what, how much, how to know it worked); the player is a beginner playing Stockfish; if data is thin, say so.',
       'When you cite a game, check its result and numbers against the data; do not generalise ("all three were losses") unless it is true for all of them. A puzzle theme performance is not a rating.',
       'Separate facts from the data and assumptions: mark anything not in the numbers with "possibly".',
+      'Not everything in the summary is relevant — use only what the question needs.',
+      'If something is not in the data, say so; do not invent chess explanations that are not in the data.',
+      'Terms: "bot" is my opponent (Stockfish), "the engine suggested X" is the Lichess analysis hint, "masters" is the database of strong players\' games.',
+      'Before sending, check every number in your answer against the data — same game, same meaning (win or loss, which metric): the player checks the numbers on the site.',
       'Answer in English, briefly, as a list.'
     ],
     plan: [
@@ -6454,7 +6466,7 @@ function aiMove(g, p) { var s = aiSans(g)[p - 1]; return anMoveNo(p) + (s || '?'
 function aiGame(g) {
   aiRef(g);
   var how = g.how && g.result !== 'draw' ? ' (' + AL(HOW_RU[g.how] || g.how, HOW_EN[g.how] || g.how) + ')' : '';
-  return aiGid(g) + ' ' + AL(COLOR_WORD[g.color], 'as ' + COLOR_EN[g.color]) + ' vs ' + g.engine + ': ' + AL(RESULT[g.result].label, RES_EN[g.result]) + how +
+  return aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + how + ', ' + AL(COLOR_WORD[g.color], 'as ' + COLOR_EN[g.color]) + ' vs ' + g.engine +
     AL(', ходов ', ', moves ') + g.moves + (g.dur ? AL(', ' + Math.max(1, Math.round(g.dur / 60)) + ' мин', ', ' + Math.max(1, Math.round(g.dur / 60)) + ' min') : '') +
     AL(', точность ', ', accuracy ') + g.acc + '%' + AL(' (дебют ', ' (opening ') + aiPct(g.debut) + AL(', миттельшпиль ', ', middlegame ') + aiPct(g.mid) +
     AL(', эндшпиль ', ', endgame ') + (hasEnd(g) ? g.end + '%' : AL('не дошли', 'not reached')) + ')' +
@@ -6471,7 +6483,7 @@ function aiGameBl(g) {
 // зевок: «ход 9. cxd6, лучше a4 — позиционная, миттельшпиль, −3.6 пешки»
 function aiBl(g, b) {
   var p = blPly(g, b);
-  return AL('ход ', 'move ') + anMoveNo(p) + b.s + (b.b ? AL(', лучше ', ', better ') + b.b : '') + ' — ' + aiBlType(b.t) + (b.p ? ', ' + aiPhase(b.p) : '') +
+  return AL('ход ', 'move ') + anMoveNo(p) + b.s + (b.b ? AL(', движок советовал ', ', the engine suggested ') + b.b : '') + ' — ' + aiBlType(b.t) + (b.p ? ', ' + aiPhase(b.p) : '') +
     (typeof b.d === 'number' ? ', −' + b.d + ' ' + AL(b.d % 1 ? 'пешки' : plural(b.d, 'пешка', 'пешки', 'пешек'), 'pawns') : '') + (PLAIN ? ' (' + aiLink(g, p) + ')' : '');
 }
 function aiTurn(g) {
@@ -6486,8 +6498,8 @@ function aiOpp(g) {
   return mrOppBlunders(g).map(function(o) {
     var mine = (g.jd || []).filter(function(j) { return j[0] === o.q + 1; })[0], better = mine ? (mine[2] || '').split(' ')[0] : '';
     var mineBest = mine && mine[1] !== 'B' && (mine[2] || '') ? mine[2].split(' ')[0] : '';
-    return {kept: o.kept, line: AL('бот: ', 'bot: ') + aiMove(g, o.q) + ' — ' + (o.kept ? AL('наказал', 'punished') + ' (' + aiMove(g, o.q + 1) + (mineBest ? AL(' — перевес сохранился, хотя лучше было ', ' — the advantage was kept, though better was ') + mineBest : '') + ')' :
-      AL('пропустил: ответил ', 'missed: replied ') + (sans[o.q] ? aiMove(g, o.q + 1) : '—') + (better ? AL(', лучше ', ', better ') + better : '') + (PLAIN ? ' (' + aiLink(g, o.q) + ')' : aiFen(g, o.q + 1)))};
+    return {kept: o.kept, line: AL('бот: ', 'bot: ') + aiMove(g, o.q) + ' — ' + (o.kept ? AL('наказал', 'punished') + ' (' + aiMove(g, o.q + 1) + (mineBest ? AL(' — перевес сохранился, хотя движок советовал ', ' — the advantage was kept, though the engine suggested ') + mineBest : '') + ')' :
+      AL('пропустил: ответил ', 'missed: replied ') + (sans[o.q] ? aiMove(g, o.q + 1) : '—') + (better ? AL(', движок советовал ', ', the engine suggested ') + better : '') + (PLAIN ? ' (' + aiLink(g, o.q) + ')' : aiFen(g, o.q + 1)))};
   });
 }
 function aiMates(g) {
@@ -6691,7 +6703,7 @@ var AI_DATA = {
       (g.bl || []).forEach(function(b) { out.push('- ' + aiBl(g, b) + aiFen(g, blPly(g, b))); });
     }
     var sans = aiSans(g), M = (g.jd || []).filter(function(j) { return j[1] === 'M' && anMine(g, j[0]); }).slice(0, 5);
-    if (M.length) out.push(AL('Мои ошибки (слабее зевка): ', 'My mistakes (less than a blunder): ') + M.map(function(j) { return aiMove(g, j[0]) + ((j[2] || '') ? AL(', лучше ', ', better ') + j[2].split(' ')[0] : '') + (PLAIN ? ' (' + aiLink(g, j[0]) + ')' : ''); }).join('; '));
+    if (M.length) out.push(AL('Мои ошибки (слабее зевка): ', 'My mistakes (less than a blunder): ') + M.map(function(j) { return aiMove(g, j[0]) + ((j[2] || '') ? AL(', движок советовал ', ', the engine suggested ') + j[2].split(' ')[0] : '') + (PLAIN ? ' (' + aiLink(g, j[0]) + ')' : ''); }).join('; '));
     var opp = aiOpp(g);
     if (opp.length) out.push(AL('Ошибки бота: ', 'Bot blunders: ') + opp.map(function(o) { return o.line; }).join('; '));
     var t = aiTurn(g); if (t) out.push(t);
@@ -6950,12 +6962,14 @@ AI_DATA.roadmap = function() {
 
 /* ---------- текст для нейросети: промпт → сводка → данные под вопрос → просьба ---------- */
 function aiText(ask, isPlan, dataKey) {
-  var P = AI_PROMPT[aiLang], out = P.base.slice(), data = dataKey && AI_DATA[dataKey] ? AI_DATA[dataKey](aiCtx()) : [];
+  // «сэндвич»: задача одной строкой сверху → промпт → блоки данных в метках → полный вопрос в самом конце (Anthropic, Google, OpenAI)
+  var P = AI_PROMPT[aiLang], data = dataKey && AI_DATA[dataKey] ? AI_DATA[dataKey](aiCtx()) : [];
+  var out = [AL('Задача: ', 'Task: ') + ask, ''].concat(P.base);
   if (isPlan) out = out.concat([''], P.plan);
-  out.push('', AL('=== СВОДКА С САЙТА ===', '=== SUMMARY FROM THE SITE ==='), aiSummary());
-  if (data.length) out.push('', AL('=== ДАННЫЕ ПОД ЭТОТ ВОПРОС ===', '=== DATA FOR THIS REQUEST ==='), data.join('\n'));
-  if (isPlan) out.push('', AL('=== ТЕКУЩИЙ data/plan.js ===', '=== CURRENT data/plan.js ==='), planSource());
-  out.push('', AL('=== ПРОСЬБА ===', '=== REQUEST ==='), ask);
+  out.push('', AL('<сводка>', '<summary>'), aiSummary().replace(/\s+$/, ''), AL('</сводка>', '</summary>'));
+  if (data.length) out.push('', AL('<данные_под_вопрос>', '<data_for_question>'), data.join('\n'), AL('</данные_под_вопрос>', '</data_for_question>'));
+  if (isPlan) out.push('', '<plan.js>', planSource(), '</plan.js>');
+  out.push('', AL('Вопрос: ', 'Question: ') + ask);
   return out.join('\n');
 }
 /* ---------- текст для человека: совет — письмо (верх годится как пост в чат), план — задание программисту по шагам ---------- */

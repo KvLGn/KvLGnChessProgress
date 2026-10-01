@@ -5507,6 +5507,13 @@ $('pzCard').addEventListener('mouseleave', function() { pzPaused = false; });
 // служебные метки Lichess — не тактические темы
 var PZ_SKIP = {middlegame: 1, endgame: 1, opening: 1, short: 1, long: 1, veryLong: 1, oneMove: 1,
   advantage: 1, crushing: 1, equality: 1, master: 1, masterVsMaster: 1, superGM: 1, mate: 1};
+var PZ_EN = {attackingF2F7: 'attacking f2 or f7', capturingDefender: 'capture the defender', pillsburysMate: "Pillsbury's mate", intermezzo: 'intermezzo (in-between move)',
+  exposedKing: 'exposed king', discoveredAttack: 'discovered attack', discoveredCheck: 'discovered check', backRankMate: 'back rank mate', cornerMate: 'corner mate',
+  hangingPiece: 'hanging piece', trappedPiece: 'trapped piece', defensiveMove: 'defensive move', kingsideAttack: 'kingside attack', queensideAttack: 'queenside attack',
+  advancedPawn: 'advanced pawn', doubleCheck: 'double check', quietMove: 'quiet move', xRayAttack: 'x-ray attack', zugzwang: 'zugzwang', smotheredMate: 'smothered mate',
+  anastasiaMate: "Anastasia's mate", arabianMate: 'Arabian mate', bodenMate: "Boden's mate", hookMate: 'hook mate', dovetailMate: 'dovetail mate', doubleBishopMate: 'double bishop mate',
+  mateIn1: 'mate in 1', mateIn2: 'mate in 2', mateIn3: 'mate in 3', mateIn4: 'mate in 4', mateIn5: 'mate in 5 or more'};
+function themeEn(k) { return PZ_EN[k] || k.replace(/([a-z])([A-Z0-9])/g, '$1 $2').toLowerCase(); }   // discoveredAttack → discovered attack
 var PZ_NAMES = {mateIn1: 'Мат в 1 ход', mateIn2: 'Мат в 2 хода', mateIn3: 'Мат в 3 хода', mateIn4: 'Мат в 4 хода', mateIn5: 'Мат в 5+ ходов'};
 var PZ_MIN_THEME = 5;   // тема в рейтинге, если решено хотя бы столько задач
 
@@ -6505,7 +6512,7 @@ function aiCtx() {
   var P = window.PUZZLES, th = [];
   if (P && P.themeStats) th = Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k] && P.themeStats[k].nb >= PZ_MIN_THEME; })
     .sort(function(a, b) { return P.themeStats[a].perf - P.themeStats[b].perf; }).slice(0, 3);
-  var thEn = th.map(function(k) { return k.replace(/([a-z])([A-Z0-9])/g, '$1 $2').toLowerCase(); });   // discoveredAttack → discovered attack
+  var thEn = th.map(themeEn);
   th = th.map(function(k) { return (P.themeNames || {})[k] || PZ_NAMES[k] || k; });
   var op = ((window.OPENINGS || {}).current || [])[0];
   return {phase: ph, themes: th.join(', ') || '—', themesEn: thEn.join(', ') || '—', op: op ? op.name : 'мой дебют', opEn: op ? (op.match || [op.name])[0] : 'my opening',
@@ -6554,7 +6561,7 @@ var AI_ASKS = [
      ru: 'Дай короткий чек-лист из 5 пунктов, который мне проходить перед каждым ходом, — именно против моих типичных ошибок.', en: 'Give a short 5-point checklist to go through before each move — aimed at my typical mistakes.',
      h: 'Что мне проверять перед каждым ходом, чтобы меньше ошибаться? Вот мои типичные ошибки.', hEn: 'What should I check before each move to make fewer mistakes? Here are my typical mistakes.'},
     {t: 'Как разбирать свою партию', tEn: 'How to review my own game', d: 'review',
-     ru: 'Пошагово: как мне самому разбирать партию после игры, чтобы был толк (у меня есть движок Lichess и режим «Анализ» на сайте).', en: 'Step by step: how should I review my own game afterwards (I have the Lichess engine and the «Анализ» mode on my site)?',
+     ru: 'Пошагово: как мне самому разбирать партию после игры, чтобы был толк (у меня есть движок Lichess и режим «Анализ» на сайте).', en: 'Step by step: how should I review my own game afterwards (I have the Lichess engine and the «Анализ» (Analysis) mode on my site)?',
      h: 'Как правильно разбирать свои партии после игры, чтобы был толк?', hEn: 'How should I review my own games afterwards so that it actually helps?'}
   ]},
   {g: 'Дебюты', gEn: 'Openings', dyn: function() {
@@ -6905,7 +6912,7 @@ function aiBoardLine(o) {
   return AL('Дебют «' + o.name + '» на доске получился в ' + b.length + ' из ' + n + ' партий по плану (' + w + ' ' + plural(w, 'победа', 'победы', 'побед') + ', ' + l + ' ' + plural(l, 'поражение', 'поражения', 'поражений') + (o.color === 'black' ? '); в остальных на доске было другое: ' : '); в остальных бот ответил иначе: '),
             'The ' + opEn(o) + ' appeared on the board in ' + b.length + ' of ' + n + ' planned games (' + w + ' won, ' + l + ' lost); in the rest ' + (o.color === 'black' ? 'something else was on the board: ' : 'the bot replied differently: ')) + opAwayText(st) + '.';
 }
-function themeName(k) { var P = window.PUZZLES || {}; return AL((P.themeNames || {})[k] || PZ_NAMES[k] || k, k.replace(/([a-z])([A-Z0-9])/g, '$1 $2').toLowerCase()); }
+function themeName(k) { var P = window.PUZZLES || {}; return AL((P.themeNames || {})[k] || PZ_NAMES[k] || k, themeEn(k)); }
 function aiWeakThemes(n) {
   var P = window.PUZZLES;
   return P && P.themeStats ? Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k] && P.themeStats[k].nb >= PZ_MIN_THEME; })
@@ -7018,7 +7025,7 @@ var AI_DATA = {
     var ks = Object.keys(by).sort(function(a, b) { return by[b].length - by[a].length; });
     if (!ks.length) return [AL('В последних 10 партиях зевков нет', 'No blunders in the last 10 games')];
     out.push(AL('Зевки в последних 10 партиях (' + last.length + ' партий, зевков ' + last.reduce(function(s, g) { return s + (g.bl || []).length; }, 0) + '), по типам, с примерами (самые свежие):',
-                'Blunders in the last 10 games (' + last.length + ' games), by type, with the latest examples:'));
+                'Blunders in the last 10 games (' + last.length + ' games, ' + last.reduce(function(s, g) { return s + (g.bl || []).length; }, 0) + ' blunders), by type, with the latest examples:'));
     ks.forEach(function(t) {
       out.push(aiBlType(t) + ' — ' + by[t].length + ' (' + aiTip(t) + '):');
       by[t].slice(-4).reverse().forEach(function(x, i) { aiRef(x.g); out.push('- ' + aiGid(x.g) + ', ' + x.g.opening + ': ' + aiBl(x.g, x.b) + (i < 2 ? aiFen(x.g, blPly(x.g, x.b)) : '')); });
@@ -7304,7 +7311,7 @@ AI_DATA.nextstage = function() {
   out.push(AL('Этапы плана: ', 'Plan stages: ') + PLAN.stages.map(function(S, i) { return (i + 1) + ') ' + S.name + ' — Stockfish ' + S.engine + ', ' + (S.colors.length > 1 ? AL('оба цвета', 'both colours') : AL(COLOR_WORD[S.colors[0]], 'as ' + COLOR_EN[S.colors[0]])) + (i === CUR.idx ? AL(' ← сейчас', ' ← now') : ''); }).join('; '));
   var free = ((window.OPENINGS || {}).planned || []);
   out.push(AL('Дебюты без этапа (их можно поставить в новый этап, в его openings): ', 'Openings without a stage (can go into a new stage\'s openings): ') +
-    (free.length ? free.map(function(o) { return o.name + ' (' + AL(COLOR_WORD[o.color], COLOR_EN[o.color]) + ', id ' + o.id + ')'; }).join(', ') : AL('нет', 'none')) + '.');
+    (free.length ? free.map(function(o) { return o.name + ' (' + AL('', opEn(o) + ', ') + AL(COLOR_WORD[o.color], COLOR_EN[o.color]) + ', id ' + o.id + ')'; }).join(', ') : AL('нет', 'none')) + '.');
   return out.concat(AI_DATA.progress());
 };
 // 21. смена дебюта: результаты по дебютам, мой дебют подробно, дебюты плана
@@ -7562,7 +7569,7 @@ var AI_SIMPLE = {
   },
   review: function() {
     var g = games[games.length - 1];
-    return [AL('На моём сайте есть режим «Анализ»: доска с ходами партии, мои зевки со стрелками «сыграно / лучше», упущенные маты, взятия и сравнение с мастерами.', 'My site has an «Анализ» mode: a board with the game, my blunders with "played / better" arrows, missed mates, captures and a comparison with masters.'),
+    return [AL('На моём сайте есть режим «Анализ»: доска с ходами партии, мои зевки со стрелками «сыграно / лучше», упущенные маты, взятия и сравнение с мастерами.', 'My site has an «Анализ» (Analysis) mode: a board with the game, my blunders with "played / better" arrows, missed mates, captures and a comparison with masters.'),
       AL('Анализ движка Lichess доступен по ссылке на каждую партию.', 'The Lichess engine analysis is available via each game link.')].concat(g ? [AL('Последняя партия: ', 'Last game: ') + aiSGame(g) + ' — ' + aiLink(g)] : []);
   },
   opening: function() {

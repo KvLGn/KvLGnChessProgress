@@ -189,6 +189,7 @@
   body.hush-chart .records-btn:hover { background: none; }
   body.hush-chart .legend-item, body.hush-chart .stat.toggle { pointer-events: none; }
   body.hush-chart .legend-item { opacity: 0.45; }
+  body.hush-chart #chart .hit { pointer-events: none; cursor: default; }   /* график скрыт: столбики / колонки не нажимаются и без подсказок; период и стрелки работают */
   .wr-label {
     font-size: 11px;
     font-weight: 500;
@@ -3268,6 +3269,7 @@ function placeTooltip(x, y) {
 
 var activeHit = null;
 function showTooltip(el, x, y) {
+  if (hush.chart) return;   // график скрыт — подсказок нет (и с клавиатуры / касанием)
   if (activeHit) activeHit.classList.remove('active');
   activeHit = el;
   el.classList.add('active');
@@ -3290,6 +3292,7 @@ function bindTooltip() {
     // touch: tap toggles
     el.addEventListener('click', function(e) {
       e.stopPropagation();
+      if (hush.chart) return;   // график скрыт — выбор дней / колонок недоступен
       if (el.hasAttribute('data-i')) {   // график показателей: выбор колонок
         if (cmpMode === 'pick') toggleCmp(chartGames[+el.getAttribute('data-i')]);
         else selectColumn(chartGames[+el.getAttribute('data-i')], e.ctrlKey || e.metaKey);

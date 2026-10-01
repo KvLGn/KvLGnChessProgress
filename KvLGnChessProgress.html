@@ -6280,8 +6280,8 @@ var AI_DICT = [
 var AI_FMT = {
   advice: {ru: 'ровно 3 пункта по важности. В каждом: что делать (одно конкретное действие) → почему (цифра, ход или партия из данных) → как понять, что получилось. В конце одна строка: что сделать сегодня.',
            en: 'exactly 3 points by importance. Each: what to do (one concrete action) → why (a number, move or game from the data) → how to tell it worked. Finish with one line: what to do today.'},
-  game:   {ru: 'разбери 3 главных момента партии. Для каждого: номер хода → что я сыграл и что было лучше → почему, простыми словами → правило на будущее одной фразой. В конце — главный урок партии.',
-           en: 'go through the 3 key moments of the game. For each: move number → what I played and what was better → why, in simple words → a rule for the future in one sentence. Finish with the main lesson of the game.'},
+  game:   {ru: 'разбери 3 главных момента партии (один из них — «Перелом» из данных, если он есть). Для каждого: номер хода → что я сыграл и что было лучше → почему, простыми словами → правило на будущее одной фразой. В конце — главный урок партии.',
+           en: 'go through the 3 key moments of the game (one of them is the "Turning point" from the data, if there is one). For each: move number → what I played and what was better → why, in simple words → a rule for the future in one sentence. Finish with the main lesson of the game.'},
   errors: {ru: 'сгруппируй мои ошибки по причинам (не больше 3 групп). Для каждой: что я делаю не так (с ходами из данных) → как заметить это во время партии → упражнение, чтобы отучиться. В конце — одно правило, которое проверять перед каждым ходом.',
            en: 'group my mistakes by cause (at most 3 groups). For each: what I do wrong (with moves from the data) → how to notice it during the game → an exercise to unlearn it. Finish with one rule to check before every move.'},
   days:   {ru: 'план по дням: день → что делать → сколько минут или задач. Всё конкретно: темы задач, сколько партий и против кого. В конце — как через неделю понять, что план сработал.',
@@ -6446,7 +6446,8 @@ function aiOpp(g) {
   var sans = aiSans(g);
   return mrOppBlunders(g).map(function(o) {
     var mine = (g.jd || []).filter(function(j) { return j[0] === o.q + 1; })[0], better = mine ? (mine[2] || '').split(' ')[0] : '';
-    return {kept: o.kept, line: AL('бот: ', 'bot: ') + aiMove(g, o.q) + ' — ' + (o.kept ? AL('наказал', 'punished') + ' (' + aiMove(g, o.q + 1) + ')' :
+    var mineBest = mine && mine[1] !== 'B' && (mine[2] || '') ? mine[2].split(' ')[0] : '';
+    return {kept: o.kept, line: AL('бот: ', 'bot: ') + aiMove(g, o.q) + ' — ' + (o.kept ? AL('наказал', 'punished') + ' (' + aiMove(g, o.q + 1) + (mineBest ? AL(' — перевес сохранился, хотя лучше было ', ' — the advantage was kept, though better was ') + mineBest : '') + ')' :
       AL('пропустил: ответил ', 'missed: replied ') + (sans[o.q] ? aiMove(g, o.q + 1) : '—') + (better ? AL(', лучше ', ', better ') + better : '') + (PLAIN ? ' (' + aiLink(g, o.q) + ')' : ''))};
   });
 }
@@ -6597,7 +6598,9 @@ var AI_DATA = {
     var g = games[games.length - 1];
     if (!g) return [AL('Партий пока нет', 'No games yet')];
     AI_BL_MAX = 99;
-    var out = [AL('Последняя партия: ', 'Last game: ') + aiGame(g)].concat(PLAIN ? [] : [AL('Ходы: ', 'Moves: ') + aiMovesText(g)]), dv = g.div || {};
+    var o = aiOp(), isPlanOp = o && g.color === o.color && opMatch(o, g.opening);
+    var out = [AL('Последняя партия: ', 'Last game: ') + aiGame(g),
+      AL('Дебют этой партии — ', 'The opening of this game is ') + g.opening + (o ? (isPlanOp ? AL(' (это мой изучаемый дебют «' + o.name + '»)', ' (this is the opening I am studying)') : (PLAIN ? AL(' (это не тот дебют, который я учу, — учу «' + o.name + '»)', ' (not the opening I am learning — I am learning the ' + opEn(o) + ')') : AL(' — это НЕ мой изучаемый дебют («' + o.name + '»); советы про дебют давай по дебюту этой партии.', ' — NOT the opening I am studying (' + opEn(o) + '); give opening advice for this game\'s opening.'))) : '')].concat(PLAIN ? [] : [AL('Ходы: ', 'Moves: ') + aiMovesText(g)]), dv = g.div || {};
     out.push(AL('Фазы: дебют с 1-го хода', 'Phases: opening from move 1') + (dv.mid ? AL(', миттельшпиль с хода ', ', middlegame from move ') + Math.ceil(dv.mid / 2) : AL(', миттельшпиля не было', ', no middlegame')) +
       (dv.end ? AL(', эндшпиль с хода ', ', endgame from move ') + Math.ceil(dv.end / 2) : AL(', эндшпиля не было', ', no endgame')) + '.');
     if (!PLAIN) {

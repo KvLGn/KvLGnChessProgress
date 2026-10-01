@@ -934,7 +934,8 @@
   .ai-parent.open .ai-chev { transform: rotate(90deg); }
   .ai-subs { margin: 0 0 4px 14px; border-left: 1px solid rgba(74,222,128,0.25); padding-left: 6px; }
   .ai-subitem .ai-t { font-size: 12.5px; }
-  .ai-times { display: flex; gap: 6px; margin: 2px 0 6px 22px; }
+  .ai-times { display: flex; align-items: center; gap: 6px; margin: 2px 0 6px 22px; }
+  .ai-times-l { font-size: 12px; color: var(--fg-dim); margin-right: 2px; }
   .ai-time { padding: 3px 10px; font: 500 12px Inter, sans-serif; color: var(--fg); background: none; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
   .ai-time:hover { border-color: var(--fg-dim); background: rgba(255,255,255,0.05); }
   .ai-time.done { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.4); }
@@ -6507,12 +6508,12 @@ var AI_ASKS = [
      h: 'Чем мои победы отличаются от поражений? Что стоит повторять, а чего избегать?', hEn: 'How do my wins differ from my losses? What should I repeat and what should I avoid?'}
   ]},
   {g: 'Тренировки', gEn: 'Training', items: [
-    {t: 'План на сегодня', tEn: 'Plan for today', d: 'today', times: [30, 60, 120, 180],
+    {t: 'План на сегодня', tEn: 'Plan for today', d: 'today', times: [30, 60, 120, 180], tl: 'На сегодня:', tlEn: 'For today:', tw: '', twEn: '',
      s: 'Что мне сделать сегодня, чтобы стать сильнее, с учётом того, что я уже сыграл и решил сегодня. Время — на выбор.', sEn: 'What should I do today to get stronger, taking into account what I already played and solved today. Choose the time.',
      ru: function() { return 'Что мне сделать сегодня, чтобы стать сильнее? ' + aiTasks('ru') + ' на ' + aiMinLabel('ru') + ', с учётом того, что я уже сыграл и решил сегодня.'; },
      en: function() { return 'What should I do today to get stronger? ' + aiTasks('en') + ' for ' + aiMinLabel('en') + ', taking into account what I already played and solved today.'; },
      h: function() { return 'Чем мне лучше заняться сегодня, если есть ' + aiMinLabel('ru') + '?'; }, hEn: function() { return 'What should I work on today if I have ' + aiMinLabel('en') + '?'; }},
-    {t: 'План на неделю', tEn: 'Weekly plan', d: 'week', times: [30, 60, 120, 180],
+    {t: 'План на неделю', tEn: 'Weekly plan', d: 'week', times: [30, 60, 120, 180], tl: 'В день:', tlEn: 'Per day:', tw: ' в день', twEn: ' a day',
      s: 'План тренировок на 7 дней по дням: задачи, партии, дебют. Время в день — на выбор.', sEn: 'A 7-day training plan, day by day: puzzles, games, opening. Choose the time per day.',
      ru: function() { return 'Составь план тренировок на 7 дней по ' + aiMinLabel('ru') + ' в день: задачи, партии, дебют. По дням.'; },
      en: function() { return 'Make a 7-day training plan, ' + aiMinLabel('en') + ' a day: puzzles, games, opening. Day by day.'; },
@@ -7652,7 +7653,7 @@ function renderAiMenu() {
           var key = gi + ':' + ii, open = aiSubOpen === key;
           var par = it.sub || it.times;
           var btn = '<button class="ai-item' + (par ? ' ai-parent' + (open ? ' open' : '') : '') + '" data-g="' + gi + '" data-i="' + ii + '"><span class="ai-t">' + esc(v(aiLang === 'en' && it.tEn ? it.tEn : it.t)) + (par ? '<span class="ai-chev">▸</span>' : '') + '</span><span class="ai-s">' + esc(it.times ? AL(it.s, it.sEn) : v(it[aiLang])) + '</span></button>';
-          if (it.times && open) return btn + '<div class="ai-times">' + it.times.map(function(m) { return '<button class="ai-time" data-g="' + gi + '" data-i="' + ii + '" data-min="' + m + '">' + aiMinShort(m) + '</button>'; }).join('') + '</div>';
+          if (it.times && open) return btn + '<div class="ai-times"><span class="ai-times-l">' + AL(it.tl, it.tlEn) + '</span>' + it.times.map(function(m) { return '<button class="ai-time" data-g="' + gi + '" data-i="' + ii + '" data-min="' + m + '">' + aiMinShort(m) + '</button>'; }).join('') + '</div>';
           return btn + (it.sub && open ? '<div class="ai-subs">' + it.sub.map(function(sb, si) {
             return '<button class="ai-item ai-subitem" data-g="' + gi + '" data-i="' + ii + '" data-s="' + si + '"><span class="ai-t">' + esc(aiLang === 'en' ? sb.tEn : sb.t) + '</span><span class="ai-s">' + esc(sb[aiLang]) + '</span></button>';
           }).join('') + '</div>' : '');
@@ -7705,7 +7706,7 @@ $('aiMenu').addEventListener('click', function(e) {
   if (tb) {   // кнопка времени: пакет под выбранное время
     var TG = AI_ASKS[+tb.getAttribute('data-g')], TI = aiItems(TG)[+tb.getAttribute('data-i')];
     AI_MIN = +tb.getAttribute('data-min');
-    try { copyText(helpText(TI[aiLang](aiCtx()), !!TG.plan, TI.d, TI)); helpToast(AL(TI.t, TI.tEn) + ', ' + aiMinLabel(aiLang)); } finally { AI_MIN = null; }
+    try { copyText(helpText(TI[aiLang](aiCtx()), !!TG.plan, TI.d, TI)); helpToast(AL(TI.t, TI.tEn) + ', ' + aiMinLabel(aiLang) + AL(TI.tw, TI.twEn)); } finally { AI_MIN = null; }
     tb.classList.add('done'); setTimeout(function() { tb.classList.remove('done'); }, 1500);
     return;
   }

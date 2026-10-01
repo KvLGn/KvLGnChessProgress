@@ -7564,7 +7564,7 @@ function helpText(ask, isPlan, dataKey, item) {
 
 /* ---------- окно «Справка» ---------- */
 function renderAiMenu() {
-  var prevList = $('aiMenu').querySelector('.ai-list'), keepScroll = prevList ? prevList.scrollTop : 0, prevKind = $('aiMenu').getAttribute('data-kind');   // перерисовка не должна сбрасывать прокрутку
+  var prevList = $('aiMenu').querySelector('.ai-list'), keepScroll = prevList ? prevList.scrollTop : 0, prevKind = $('aiMenu').getAttribute('data-shown-kind');   // перерисовка не должна сбрасывать прокрутку
   var c = aiCtx(), H = aiMode === 'human', T = aiKind === 'tech';
   function v(x) { return typeof x === 'function' ? x(c) : x; }
   function dd(key, label, cls, opts) {   // выпадающий список: кнопка с выбранным + меню
@@ -7619,7 +7619,7 @@ function renderAiMenu() {
   '</div>';
   var list = $('aiMenu').querySelector('.ai-list');
   if (list && prevKind === aiKind) list.scrollTop = keepScroll;   // при смене сути список другой — тогда с начала
-  $('aiMenu').setAttribute('data-kind', aiKind);
+  $('aiMenu').setAttribute('data-shown-kind', aiKind);
 }
 function openAiMenu() { renderAiMenu(); $('aiMenu').classList.add('open'); if (AI_FEN) anNeedChess(function() {}); }   // chess.js — для FEN и PGN в пакетах
 function closeAiMenu() { $('aiMenu').classList.remove('open'); }

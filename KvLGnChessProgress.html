@@ -1289,9 +1289,11 @@
   /* ---------- Table filters ---------- */
   .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 12px; }
   /* скрытый режим: вместо фильтров — одна надпись той же высоты */
-  .filters-na { display: none; align-items: center; height: 48px; padding: 0 16px; border: 1px dashed var(--border); border-radius: 10px; font-size: 12px; color: var(--fg-mute); }
-  body.hush-table #filters > :not(.filters-na) { display: none; }
-  body.hush-table .filters-na { display: flex; }
+  /* таблица скрыта — фильтры видны, но приглушены и не нажимаются (как «Фильтр графика» в скрытом режиме) */
+  body.hush-table #filters { opacity: 0.45; cursor: not-allowed; }
+  body.hush-table #filters > * { pointer-events: none; }
+  body.hush-table #fCount { font-size: 0; }   /* число партий не показываем — таблица скрыта */
+  body.hush-table #fCount::after { content: '—'; font-size: 12px; }
   body.hush-table .pager { visibility: hidden; }
   /* пустая таблица: колонки на тех же местах, что и с партиями (доли замерены по обычной таблице) */
   body.hush-table .table-wrap th:nth-child(1) { width: 11.2%; }
@@ -1899,7 +1901,6 @@
   </div>
   <!-- фильтры таблицы -->
   <div class="filters" id="filters">
-    <div class="filters-na">🔒 Фильтры недоступны</div>
     <div class="f-chips" id="fResult" role="group" aria-label="Результат"></div>
     <div class="f-chips" id="fColor" role="group" aria-label="Цвет"></div>
     <div class="f-drop" id="fOpening">

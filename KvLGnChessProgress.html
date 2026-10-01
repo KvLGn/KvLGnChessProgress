@@ -6911,7 +6911,7 @@ function gsIndex() {
     var below = ranked.filter(function(k) { return P2.themeStats[k].perf < gp; });
     ranked.slice(0, Math.min(7, Math.max(3, below.length))).forEach(function(k) {
       var t = P2.themeStats[k];
-      ext('Слабая тема: ' + ((P2.themeNames || {})[k] || PZ_NAMES[k] || k), 'перфоманс ' + t.perf + ' (средний ' + gp + ') · ' + t.nb + ' задач · ' + Math.round(t.first / t.nb * 100) + '% с 1-й попытки',
+      ext('Слабая тема: ' + ((P2.themeNames || {})[k] || PZ_NAMES[k] || k), 'перфоманс ' + t.perf + ' (средний ' + gp + ') · ' + t.nb + ' ' + plural(t.nb, 'задача', 'задачи', 'задач') + ' · ' + Math.round(t.first / t.nb * 100) + '% с 1-й попытки',
         'задачи слабая тема тренировать ' + k, 'https://lichess.org/training/' + k);
     });
   }

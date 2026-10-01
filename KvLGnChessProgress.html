@@ -6810,6 +6810,20 @@ function aiDurLine() {
   return AL('Партия длится в среднем ' + m + ' мин (последние ' + d.length + ' партий, от ' + Math.min.apply(null, d) + ' до ' + Math.max.apply(null, d) + ' мин).',
             'A game takes ' + m + ' min on average (last ' + d.length + ' games, from ' + Math.min.apply(null, d) + ' to ' + Math.max.apply(null, d) + ' min).');
 }
+function aiSgn(v) { return (v > 0 ? '+' : '') + aiR1(v); }   // рост со знаком «+»: без него «точность 1.1 п.п.» не читается как рост
+function aiWeekSplit() {
+  var t = gameToday(), a0 = isoDay(addDays(t, -6)), b0 = isoDay(addDays(t, -13)), b1 = isoDay(addDays(t, -7));
+  var A = games.filter(function(g) { return g.day >= a0; }), B = games.filter(function(g) { return g.day >= b0 && g.day <= b1; }), n = Math.min(A.length, B.length);
+  return {t: t, a0: a0, b0: b0, b1: b1, A: A, B: B, n: n, a: n ? A.slice(-n) : [], b: n ? B.slice(-n) : []};
+}
+function aiWeekHead(W) {   // что и как сравнивается — первой строкой данных
+  if (!W.n) return [AL('Партии сравнивать не с чем: на этой неделе ' + W.A.length + ', на прошлой ' + W.B.length + ' — так и скажи; числа из сводки за другие отрезки (последние 5 или 10 партий) сюда не подставляй.',
+    'There is nothing to compare game-wise: ' + W.A.length + ' games this week, ' + W.B.length + ' last week — say so; do not use summary numbers from other windows (last 5 or 10 games).')];
+  var out = [AL('Партии сравниваются поровну: последние ' + W.n + ' ' + plural(W.n, 'партия', 'партии', 'партий') + ' каждой недели (всего на этой неделе ' + W.A.length + ', на прошлой ' + W.B.length + '). Сравнивай только числа из этого блока — в сводке другие отрезки.',
+    'Games are compared equally: the last ' + W.n + ' games of each week (' + W.A.length + ' this week, ' + W.B.length + ' last week in total). Compare only the numbers in this block — the summary uses other windows.')];
+  if (W.n < 3) out.push(AL('Мало партий для сравнения (' + W.n + ') — выводы ненадёжны, так и скажи.', 'Too few games to compare (' + W.n + ') — conclusions are unreliable, say so.'));
+  return out;
+}
 function aiCurOps() { var cs = (window.OPENINGS || {}).current || []; return cs.length ? AL('Изучаю дебют: ', 'Studying the opening: ') + cs.map(function(o) { return AL(o.name, opEn(o)); }).join(', ') + '.' : null; }
 var AI_CUR_OP = null;   // дебют пункта, для которого собирается пакет (пункты «Дебюты» — по каждому изучаемому дебюту)
 function aiOp() { return AI_CUR_OP || ((window.OPENINGS || {}).current || [])[0]; }
@@ -7029,17 +7043,18 @@ var AI_DATA = {
   },
   // эта неделя (последние 7 дней) против предыдущих 7 дней
   weekcmp: function() {
-    var t = gameToday(), a0 = isoDay(addDays(t, -6)), b0 = isoDay(addDays(t, -13)), P = window.PUZZLES || {}, att = P.attempts || [];
-    function part(from, to) {
-      var gl = games.filter(function(g) { return g.day >= from && g.day <= to; }), pz = att.filter(function(a) { return a.day >= from && a.day <= to; });
-      var days = {}; gl.forEach(function(g) { days[g.day] = 1; });
-      return [aiAvgLine(gl), AL('  дней с партиями: ', '  days with games: ') + Object.keys(days).length + AL('; зевки по типам: ', '; blunders by type: ') + aiBlTypes(gl) + '; ' + aiOppStat(gl),
-        AL('  задачи: ', '  puzzles: ') + pz.length + (pz.length ? AL(', решено ', ', solved ') + Math.round(pz.filter(function(x) { return x.win; }).length / pz.length * 100) + '%' : '')];
+    var W = aiWeekSplit(), t = W.t, P = window.PUZZLES || {}, att = P.attempts || [];
+    function part(from, to, gl) {   // партии — только выровненные (последние n), активность и задачи — вся неделя
+      var all = games.filter(function(g) { return g.day >= from && g.day <= to; }), pz = att.filter(function(a) { return a.day >= from && a.day <= to; });
+      var days = {}; all.forEach(function(g) { days[g.day] = 1; });
+      return (W.n ? [aiAvgLine(gl), AL('  зевки по типам: ', '  blunders by type: ') + aiBlTypes(gl) + '; ' + aiOppStat(gl)] : [])
+        .concat([AL('  активность за всю неделю: партий ', '  activity over the whole week: games ') + all.length + AL(', дней с партиями ', ', days with games ') + Object.keys(days).length + AL(', задач ', ', puzzles ') + pz.length +
+          (pz.length ? AL(' (решено ', ' (solved ') + Math.round(pz.filter(function(x) { return x.win; }).length / pz.length * 100) + '%)' : '')]);
     }
     function rating(day) { var h = (P.history || []).filter(function(x) { return x.day <= day; }); return h.length ? h[h.length - 1].rating : null; }
-    var r1 = rating(isoDay(addDays(t, -7))), r2 = P.rating;
-    return [AL('Эта неделя (', 'This week (') + ddmm(fromIso(a0)) + '–' + ddmm(t) + '):'].concat(part(a0, isoDay(t)))
-      .concat([AL('Прошлая неделя (', 'Last week (') + ddmm(fromIso(b0)) + '–' + ddmm(addDays(t, -7)) + '):'], part(b0, isoDay(addDays(t, -7))))
+    var r1 = rating(W.b1), r2 = P.rating;
+    return aiWeekHead(W).concat([AL('Эта неделя (', 'This week (') + ddmm(fromIso(W.a0)) + '–' + ddmm(t) + '):'], part(W.a0, isoDay(t), W.a))
+      .concat([AL('Прошлая неделя (', 'Last week (') + ddmm(fromIso(W.b0)) + '–' + ddmm(fromIso(W.b1)) + '):'], part(W.b0, W.b1, W.b))
       .concat(r2 ? [AL('Рейтинг задач: ', 'Puzzle rating: ') + (r1 ? r1 + ' → ' : '') + r2] : []);
   },
   themes: function() {
@@ -7524,12 +7539,10 @@ var AI_SIMPLE = {
     return out;
   },
   weekcmp: function() {
-    var t = gameToday(), a0 = isoDay(addDays(t, -6)), b0 = isoDay(addDays(t, -13)), b1 = isoDay(addDays(t, -7)), out = [];
-    var A = games.filter(function(g) { return g.day >= a0; }), B = games.filter(function(g) { return g.day >= b0 && g.day <= b1; });
-    function line(lbl, list) { return lbl + ': ' + (list.length ? list.length + AL(' партий (', ' games (') + aiWL(list) + AL('), точность ', '), accuracy ') + aiPct(avg(list, 'acc')) + AL(', миттельшпиль ', ', middlegame ') + aiPct(avg(list, 'mid')) + AL(', зевков за партию ', ', blunders per game ') + aiR1(avg(list, 'blunders')) : AL('партий не было', 'no games')) + '.'; }
-    out.push(line(AL('Эта неделя', 'This week'), A), line(AL('Прошлая неделя', 'Last week'), B));
-    if (A.length && B.length) out.push(AL('Изменения: точность ', 'Changes: accuracy ') + aiR1(avg(A, 'acc') - avg(B, 'acc')) + AL(' п.п., зевков ', ' pts, blunders ') + aiR1(avg(A, 'blunders') - avg(B, 'blunders')) + AL(' за партию.', ' per game.'));
-    else out.push(AL('Сравнивать не с чем — в одной из недель партий нет.', 'Nothing to compare — one of the weeks has no games.'));
+    var W = aiWeekSplit(), out = aiWeekHead(W), A = W.a, B = W.b;
+    function line(lbl, list) { return lbl + ': ' + (list.length ? list.length + AL(' ' + plural(list.length, 'партия', 'партии', 'партий') + ' (', ' games (') + aiWL(list) + AL('), точность ', '), accuracy ') + aiPct(avg(list, 'acc')) + AL(', миттельшпиль ', ', middlegame ') + aiPct(avg(list, 'mid')) + AL(', зевков за партию ', ', blunders per game ') + aiR1(avg(list, 'blunders')) : AL('партий не было', 'no games')) + '.'; }
+    if (W.n) out.push(line(AL('Эта неделя', 'This week'), A), line(AL('Прошлая неделя', 'Last week'), B));
+    if (W.n) out.push(AL('Изменения: точность ', 'Changes: accuracy ') + aiSgn(avg(A, 'acc') - avg(B, 'acc')) + AL(' п.п., зевков ', ' pts, blunders ') + aiSgn(avg(A, 'blunders') - avg(B, 'blunders')) + AL(' за партию.', ' per game.'));
     return out;
   },
   goal: function() {
@@ -7547,7 +7560,7 @@ var AI_SIMPLE = {
     var f = games.slice(0, 10), l = games.slice(-10), P = window.PUZZLES || {}, h = P.history || [], out = [];
     function line(lbl, list) { return lbl + ': ' + aiWL(list) + AL('; точность ', '; accuracy ') + aiPct(avg(list, 'acc')) + AL(', миттельшпиль ', ', middlegame ') + aiPct(avg(list, 'mid')) + AL(', зевков за партию ', ', blunders per game ') + aiR1(avg(list, 'blunders')) + '.'; }
     out.push(line(AL('Первые 10 партий', 'First 10 games'), f), line(AL('Последние 10 партий', 'Last 10 games'), l));
-    out.push(AL('Изменения: точность ', 'Changes: accuracy ') + aiR1(avg(l, 'acc') - avg(f, 'acc')) + AL(' п.п., миттельшпиль ', ' pts, middlegame ') + aiR1(avg(l, 'mid') - avg(f, 'mid')) + AL(' п.п., зевков ', ' pts, blunders ') + aiR1(avg(l, 'blunders') - avg(f, 'blunders')) + AL(' за партию.', ' per game.'));
+    out.push(AL('Изменения: точность ', 'Changes: accuracy ') + aiSgn(avg(l, 'acc') - avg(f, 'acc')) + AL(' п.п., миттельшпиль ', ' pts, middlegame ') + aiSgn(avg(l, 'mid') - avg(f, 'mid')) + AL(' п.п., зевков ', ' pts, blunders ') + aiSgn(avg(l, 'blunders') - avg(f, 'blunders')) + AL(' за партию.', ' per game.'));
     if (games.length < 20) out.push(AL('Партий меньше 20 — первые и последние 10 частично совпадают, выводы предварительные.', 'Fewer than 20 games — the first and last 10 overlap, conclusions are preliminary.'));
     if (h.length && P.rating) out.push(AL('Рейтинг задач: ', 'Puzzle rating: ') + h[0].rating + ' → ' + P.rating + '.');
     return out;

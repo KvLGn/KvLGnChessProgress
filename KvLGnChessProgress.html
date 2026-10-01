@@ -6257,10 +6257,17 @@ function aiSummary() {
     var it = V.filter(function(v) { return v.t === k[0]; }).slice(0, k[2]);
     if (!it.length) return;
     L.push(k[1] + ':');
-    it.forEach(function(v) { L.push('- ' + v.text + (v.more && v.more !== v.text ? ' — ' + v.more : '')); });
+    it.forEach(function(v) { L.push('- ' + aiOf(v.text + (v.more && v.more !== v.text ? ' — ' + v.more : ''))); });
   });
   L.push('');
   return L.join('\n');
+}
+// «6 из 19» → «6 из 19 (32%)»: доля посчитана заранее, модель не вычисляет сама
+function aiOf(t) {
+  return String(t).replace(/(\d+) из (\d+)(?! ?\()/g, function(m, a, b, at, str) {
+    if (/(пятёрок|нужно) $/.test(str.slice(Math.max(0, at - 9), at))) return m;   // «пятёрок 0 из 2», «нужно 4 из 5» — это счёт и порог, не доля
+    a = +a; b = +b; return b > 0 && a <= b ? m + ' (' + Math.round(a / b * 100) + '%)' : m;
+  });
 }
 function copyText(t) {
   function old() {
@@ -6585,7 +6592,9 @@ function aiOppStat(list) {
   list.forEach(function(g) { all = all.concat(mrOppBlunders(g)); });
   if (!all.length) return AL('ошибок бота не было', 'the bot made no blunders');
   var k = all.filter(function(o) { return o.kept; }).length;
-  return AL('бот ошибся ' + all.length + ' ' + plural(all.length, 'раз', 'раза', 'раз') + ', наказал ' + k + ', пропустил ' + (all.length - k), 'the bot blundered ' + all.length + ' times, punished ' + k + ', missed ' + (all.length - k));
+  var pc = function(x) { return Math.round(x / all.length * 100) + '%'; };
+  return AL('бот ошибся ' + all.length + ' ' + plural(all.length, 'раз', 'раза', 'раз') + ': наказал ' + k + ' (' + pc(k) + '), пропустил ' + (all.length - k) + ' (' + pc(all.length - k) + ')',
+            'the bot blundered ' + all.length + ' times: punished ' + k + ' (' + pc(k) + '), missed ' + (all.length - k) + ' (' + pc(all.length - k) + ')');
 }
 // дебюты списка партий по семействам (название Lichess до двоеточия): «Italian Game — 4: 2 победы, 2 поражения, точность 70%», частые первыми
 function aiFamilies(list) {
@@ -6703,11 +6712,11 @@ var AI_DATA = {
       (g.bl || []).forEach(function(b) { out.push('- ' + aiBl(g, b) + aiFen(g, blPly(g, b))); });
     }
     var sans = aiSans(g), M = (g.jd || []).filter(function(j) { return j[1] === 'M' && anMine(g, j[0]); }).slice(0, 5);
-    if (M.length) out.push(AL('Мои ошибки (слабее зевка): ', 'My mistakes (less than a blunder): ') + M.map(function(j) { return aiMove(g, j[0]) + ((j[2] || '') ? AL(', движок советовал ', ', the engine suggested ') + j[2].split(' ')[0] : '') + (PLAIN ? ' (' + aiLink(g, j[0]) + ')' : ''); }).join('; '));
+    if (M.length) out.push(AL('Мои ошибки (слабее зевка):\n', 'My mistakes (less than a blunder):\n') + M.map(function(j) { return aiMove(g, j[0]) + ((j[2] || '') ? AL(', движок советовал ', ', the engine suggested ') + j[2].split(' ')[0] : '') + (PLAIN ? ' (' + aiLink(g, j[0]) + ')' : ''); }).map(function(x) { return '- ' + x; }).join('\n'));
     var opp = aiOpp(g);
-    if (opp.length) out.push(AL('Ошибки бота: ', 'Bot blunders: ') + opp.map(function(o) { return o.line; }).join('; '));
+    if (opp.length) out.push(AL('Ошибки бота:\n', 'Bot blunders:\n') + opp.map(function(o) { return '- ' + o.line; }).join('\n'));
     var t = aiTurn(g); if (t) out.push(t);
-    var m = aiMates(g); if (m.length) out.push(AL('Маты: ', 'Mates: ') + m.join('; '));
+    var m = aiMates(g); if (m.length) out.push(AL('Маты:\n', 'Mates:\n') + m.map(function(x) { return '- ' + x; }).join('\n'));
     var ms = aiMs(g); if (ms) out.push(ms);
     AI_BL_MAX = 3;
     return out;

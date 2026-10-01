@@ -161,7 +161,7 @@
   .vdx-bar { padding: 2px; border-radius: 4px; border: 1px solid transparent; }
   .vdx-bar.ok { border-color: rgba(74,222,128,0.5); }
   .vdx-bar.no { border-color: rgba(248,113,113,0.35); }
-  /* глаза частей: шапка (у поиска), график (у «Активность»), партии (у заголовка) */
+  /* глаза частей: шапка (у поиска), график (у «Активность»), партии (в строке фильтров, справа от «Показатели») */
   .sect-eye {
     width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; padding: 0;
     display: inline-flex; align-items: center; justify-content: center;
@@ -173,7 +173,6 @@
   .sect-eye .eye-shut { opacity: 0; }
   .sect-eye.shut .eye-open { transform: scaleY(0.1); opacity: 0; }
   .sect-eye.shut .eye-shut { opacity: 1; }
-  .sect-eye.shut { color: #a5b4fc; border-color: rgba(129,140,248,0.5); }
   #eyeChart { position: absolute; top: 9px; right: 14px; z-index: 2; }   /* справа налево: глаз, «Активность», «Анализ» (кнопки ставит placeChartBtns) */
   #eyeHead { margin-left: 2px; width: 32px; height: 32px; }
   #eyeHead svg { width: 18px; height: 18px; }
@@ -181,11 +180,16 @@
   .links .link { padding-right: 10px; }   /* место для глаза шапки, чтобы поиск не обрезался */
   .tbl-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
   .tbl-head .chart-title { margin: 0; }
+  /* обе надписи в одной клетке: ширина — по длинной, глазик рядом не сдвигается при скрытии */
+  #tableTitle { display: inline-grid; }
+  #tableTitle > span { grid-area: 1 / 1; }
+  #tableTitle .tt-off, body.hush-table #tableTitle .tt-on { visibility: hidden; }
+  body.hush-table #tableTitle .tt-off { visibility: visible; }
   .hush-q { color: var(--fg-mute) !important; letter-spacing: 2px; }
   body.hush-head .vd-card { cursor: default; }
   body.hush-head .vd-card:hover { background: linear-gradient(90deg, rgba(99,102,241,0.14) 0%, rgba(99,102,241,0.04) 100%); }
   body.hush-head .vd-go { opacity: 0.5; }   /* «i» на месте, но карточка в скрытой шапке не открывается */
-  body.hush-chart .records-btn, body.hush-chart #cf .f-btn { opacity: 0.45; cursor: not-allowed; }
+  body.hush-chart .records-btn { opacity: 0.45; cursor: not-allowed; }   /* кнопка «Фильтр» приглушается вместе со своим блоком (.cf-summary) — не дважды */
   body.hush-chart .records-btn:hover { background: none; }
   body.hush-chart .legend-item, body.hush-chart .stat.toggle, body.hush-chart #legendWrBox { pointer-events: none; }
   body.hush-chart .legend-item { opacity: 0.45; }
@@ -670,7 +674,10 @@
   /* фильтр графика — в строке заголовка, общий для показателей и активности */
   .chart-head { display: flex; align-items: center; gap: 10px; margin: 8px 0 16px; min-height: 30px; }
   .chart-head .chart-title { margin: 0; flex-shrink: 0; }
-  .cf-pills { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; min-width: 0; }
+  .cf-pills { display: flex; gap: 6px; flex-wrap: nowrap; justify-content: flex-end; margin-left: auto; min-width: 0; overflow: hidden; }   /* в одну строку: что не влезло — в метку «+N» (cfFit) */
+  .cf-pill { flex-shrink: 0; }
+  .cf-pill.cf-more-p { padding: 2px 10px; cursor: pointer; font: inherit; font-size: 12px; color: var(--fg-dim); }
+  .cf-pill.cf-more-p:hover { color: var(--fg); }
   .cf-pill {
     display: inline-flex; align-items: center; gap: 2px;
     max-width: 220px;
@@ -684,7 +691,17 @@
   .cf-pill button { font-size: 14px; line-height: 1; color: var(--fg-dim); background: none; border: none; padding: 0 4px; cursor: pointer; }
   .cf-pill button:hover { color: var(--fg); }
   .cf { flex-shrink: 0; }
-  .cf-pills:empty + .cf { margin-left: auto; }
+  .f-summary.cf-summary { margin-left: 0; flex-shrink: 0; padding-left: 4px; }
+  .cf-summary .f-menu { white-space: normal; }   /* меню внутри блока — без nowrap блока */
+  /* меню фильтра — от строки заголовка, а не от кнопки: правый край ровно по краю графика (справа от кнопки стоит блок «Без фильтров · Сброс») */
+  .chart-head { position: relative; }
+  .f-drop.cf { position: static; }   /* тот же блок, что у фильтров таблицы (.f-summary) — сразу справа от кнопки */
+  body.hush-chart .cf-summary, body.hush-chart .cf-pills { opacity: 0.45; pointer-events: none; }   /* скрытый график: метки и блок фильтра приглушены и не нажимаются, как фильтры таблицы */
+  body.hush-chart #cfCount { font-size: 0; }
+  body.hush-chart #cfCount::after { content: '—'; font-size: 12px; }
+  .cf-pills:empty + .cf-summary { margin-left: auto; }
+  .cf-summary .cf .f-btn { height: 37px; padding: 0 12px; display: inline-flex; align-items: center; }
+  .cf-summary .cf .f-btn:not(.active) { border-color: transparent; background: transparent; }   /* без рамки внутри блока; подсветка — только когда что-то выбрано (.active) */   /* кнопка «Фильтр» вместо «Без фильтров» — высотой со «Сброс» */
   .cf .f-menu { left: auto; right: 0; width: 340px; }
   .cf-sec { font-size: 10px; color: var(--fg-mute); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 2px 6px; }
   .cf-results, .cf-colors { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
@@ -696,6 +713,8 @@
   .md-n { font-size: 10px; color: var(--fg-mute); margin-left: 5px; font-weight: 500; }
   .md-chip.on .md-n { color: inherit; opacity: 0.75; }
   .md-zero { opacity: 0.45; }
+  .md-chip:disabled { cursor: not-allowed; }
+  .md-chip:disabled:hover { color: var(--fg-dim); }
   .md-total { font-size: 12px; color: var(--fg-mute); margin: 0 2px 10px; }
   .md-total b { color: var(--fg); }
   .cf-n { color: #fff; }
@@ -1210,6 +1229,10 @@
   .mn-body { padding: 8px 10px 12px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
   .mn-sub { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); padding: 10px 8px 4px; }
   .mn-sub:first-child { padding-top: 4px; }
+  .mn-sub-tg { display: block; width: 100%; text-align: left; background: none; border: 0; font-family: inherit; cursor: pointer; }
+  .mn-sub-tg:hover { color: var(--fg); }
+  .mn-sub-tg i { font-style: normal; }
+  .mn-sub-tg small { font-size: 10px; font-weight: 500; letter-spacing: 0; text-transform: none; opacity: 0.8; margin-left: 4px; }
   .mn-it { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 8px; border: none; border-radius: 6px; background: none; text-align: left; cursor: pointer; color: var(--fg); }
   .mn-it:hover { background: var(--bg-card-hover); }
   .mn-it.off { opacity: 0.45; cursor: default; }
@@ -1482,11 +1505,20 @@
   .an-lock { grid-column: 2 / -1; display: flex; align-items: center; justify-content: center; min-height: 300px; font-size: 13px; color: var(--fg-mute); }
 
   /* ---------- Table filters ---------- */
-  .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 12px; }
+  .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 8px; margin-bottom: 12px; }
   /* скрытый режим: вместо фильтров — одна надпись той же высоты */
   /* таблица скрыта — фильтры видны, но приглушены и не нажимаются (как «Фильтр графика» в скрытом режиме) */
-  body.hush-table #filters { opacity: 0.45; cursor: not-allowed; }
-  body.hush-table #filters > * { pointer-events: none; }
+  body.hush-table #filters { cursor: not-allowed; }
+  body.hush-table #filters > :not(.f-eye) { opacity: 0.45; pointer-events: none; }   /* глаз таблицы — в строке фильтров, он нажимается всегда */
+  .sect-eye.f-eye { width: 30px; height: 30px; }
+  /* длинное название дебюта не переносит строку фильтров: на широком экране строка одна, кнопка дебюта сжимается с «…» (полное — в подсказке) */
+  #fOpening .f-btn { display: inline-flex; align-items: center; max-width: 100%; }
+  #fOpening .f-lbl { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  @media (min-width: 1200px) {
+    .filters { flex-wrap: nowrap; }
+    .filters > * { flex-shrink: 0; }
+    .filters > #fOpening { flex-shrink: 1; min-width: 96px; max-width: 280px; }
+  }
   body.hush-table #fCount { font-size: 0; }   /* число партий не показываем — таблица скрыта */
   body.hush-table #fCount::after { content: '—'; font-size: 12px; }
   body.hush-table .pager { visibility: hidden; }
@@ -1613,7 +1645,7 @@
   .f-num::-webkit-outer-spin-button, .f-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .f-num:focus { border-color: #818cf8; }
   /* сводка справа от фильтров таблицы */
-  .f-summary { margin-left: auto; display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 10px; white-space: nowrap; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); }
+  .f-summary { margin-left: auto; display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 10px; white-space: nowrap; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); }
   .f-cond { display: inline-flex; align-items: center; font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
   .f-count { font-size: 12px; color: var(--fg-mute); white-space: nowrap; padding-left: 10px; border-left: 1px solid var(--border); }
   .f-count b { color: var(--fg); }
@@ -1867,7 +1899,7 @@
     .chart-head { flex-wrap: wrap; gap: 8px; }
     .chart-head .chart-title { flex-basis: 100%; }
     .cf-pills { margin-left: 0; justify-content: flex-start; }
-    .cf-pills:empty + .cf { margin-left: 0; }
+    .cf-pills:empty + .cf-summary { margin-left: 0; }
     .cf .f-menu { left: 0; right: auto; width: min(340px, calc(100vw - 40px)); }
     .cf-grid { grid-template-columns: 1fr; }
     .cf-col + .cf-col { padding-left: 0; border-left: none; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; }
@@ -1995,32 +2027,37 @@
   <div class="chart-head">
     <h2 class="chart-title" id="chartTitle"></h2>
     <div class="cf-pills" id="cfPills"></div>
-    <div class="f-drop cf" id="cf">
-      <button class="f-btn" aria-haspopup="true" aria-expanded="false" title="Фильтр для графика показателей и активности"></button>
-      <div class="f-menu">
-        <!-- четыре колонки: результат, цвет и режим · контроль, зевки, мат · дебют · показатели -->
-        <div class="cf-grid">
-          <div class="cf-col">
-            <div class="cf-sec">Результат</div><div class="cf-results"></div>
-            <div class="cf-sec">Цвет</div><div class="cf-colors"></div>
-            <div class="cf-modes"></div>
+    <!-- как у таблицы: кнопка «Фильтр» (меню), сколько партий, сброс -->
+    <div class="f-summary cf-summary">
+      <div class="f-drop cf" id="cf">
+        <button class="f-btn" aria-haspopup="true" aria-expanded="false" title="Фильтр для графика показателей и активности"></button>
+        <div class="f-menu">
+          <!-- четыре колонки: результат, цвет и режим · контроль, зевки, мат · дебют · показатели -->
+          <div class="cf-grid">
+            <div class="cf-col">
+              <div class="cf-sec">Результат</div><div class="cf-results"></div>
+              <div class="cf-sec">Цвет</div><div class="cf-colors"></div>
+              <div class="cf-modes"></div>
+            </div>
+            <div class="cf-col cf-modes2"></div>
+            <div class="cf-col">
+              <div class="cf-sec">Дебют</div>
+              <input class="f-search" type="search" placeholder="Поиск дебюта…" autocomplete="off">
+              <div class="f-seg" role="group" aria-label="Какие названия дебютов"></div>
+              <div class="f-list"></div>
+            </div>
+            <div class="cf-col">
+              <button class="cf-more" aria-expanded="false">Показатели <span class="caret">▸</span></button>
+              <div class="f-metrics cf-metrics"></div>
+              <div class="cf-sec" style="margin-top:12px">Даты</div>
+              <div class="f-dates" data-scope="chart"></div>
+            </div>
           </div>
-          <div class="cf-col cf-modes2"></div>
-          <div class="cf-col">
-            <div class="cf-sec">Дебют</div>
-            <input class="f-search" type="search" placeholder="Поиск дебюта…" autocomplete="off">
-            <div class="f-seg" role="group" aria-label="Какие названия дебютов"></div>
-            <div class="f-list"></div>
-          </div>
-          <div class="cf-col">
-            <button class="cf-more" aria-expanded="false">Показатели <span class="caret">▸</span></button>
-            <div class="f-metrics cf-metrics"></div>
-            <div class="cf-sec" style="margin-top:12px">Даты</div>
-            <div class="f-dates" data-scope="chart"></div>
-          </div>
+                  <div class="f-foot"><button class="f-link" data-act="clear">Сбросить фильтр графика</button></div>
         </div>
-                <div class="f-foot"><button class="f-link" data-act="clear">Сбросить фильтр графика</button></div>
       </div>
+      <span class="f-count" id="cfCount"></span>
+      <button class="f-reset" id="cfReset" type="button" title="Сбросить фильтр графика">Сброс</button>
     </div>
   </div>
   <div class="chart-container" id="chartBox">
@@ -2091,8 +2128,7 @@
 <!-- Game table -->
 <div class="section">
   <div class="tbl-head">
-    <h2 class="chart-title" id="tableTitle">Последние 30 партий</h2>
-    <button class="sect-eye" type="button" data-sec="table"></button>
+    <h2 class="chart-title" id="tableTitle"><span class="tt-on">Последние 30 партий</span><span class="tt-off">Последние партии</span></h2>
   </div>
   <!-- фильтры таблицы -->
   <div class="filters" id="filters">
@@ -2121,6 +2157,7 @@
         <div class="f-foot"><button class="f-link" data-act="clear">Сбросить показатели</button></div>
       </div>
     </div>
+    <button class="sect-eye f-eye" type="button" data-sec="table"></button>
     <!-- справа: условий, найдено, сброс -->
     <div class="f-summary">
       <span class="f-cond" id="fCond"></span>
@@ -2921,6 +2958,7 @@ function renderTitle() {
   if (chartMode === 'activity') $('chartTitle').innerHTML = streakTitle();
   else if (chartMode === 'analysis') $('chartTitle').textContent = 'Анализ партий';
   else $('chartTitle').textContent = renderRecentCount();
+  cfFit();   // ширина заголовка меняется — метки фильтра пересчитать
 }
 
 function renderChart() {
@@ -3642,6 +3680,7 @@ function modeMatch(g, modes) {
   for (var grp in modes) {
     if (!hasKeys(modes[grp])) continue;
     if (MODE_MULTI[grp]) { if (!Object.keys(modes[grp]).some(function(k) { return modeHas(g, grp, k); })) return false; continue; }
+    if (grp === 'lvl' && modeVal(g, 'opp') !== 'ai') continue;   // уровень Stockfish — условие только для партий с компьютером (партии с людьми не отсекает)
     if (!modes[grp][modeVal(g, grp)]) return false;
   }
   return true;
@@ -3671,8 +3710,9 @@ function modeChipsHtml(modes, total, only) {
     var off = G.g === 'lvl' && humansOnly;
     return '<div class="md-sec">' + G.title + (off ? ' <span class="md-off-note">— только для игр с компьютером</span>' : '') + '</div><div class="md-chips' + (G.g === 'lvl' ? ' md-lvl' : '') + (off ? ' md-disabled' : '') + '">' + G.items.map(function(it) {
       var on = !!(modes[G.g] && modes[G.g][it.k]), n = cnt[it.k] || 0;
+      // таких партий нет — кнопка потухшая и не нажимается (иначе фильтр без партий); уже выбранную можно снять
       return '<button class="f-chip md-chip' + (on ? ' on' : '') + (n ? '' : ' md-zero') + '" data-mg="' + G.g + '" data-mk="' + it.k + '"' +
-        ' title="Партий: ' + n + '">' + it.label + '</button>';
+        (!n && !on ? ' disabled title="Таких партий пока нет"' : ' title="Партий: ' + n + '"') + '>' + it.label + '</button>';
     }).join('') + '</div>';
   }).join('') +
   // итог по выбранным режимам — одной строкой под разделами
@@ -3720,7 +3760,7 @@ function filtersChanged() {
 /* результат — кнопки-переключатели */
 function renderResultChips() {
   $('fResult').innerHTML = F_RESULTS.map(function(r) {
-    var on = !!filt.results[r.key];
+    var on = !hush.table && !!filt.results[r.key];   // скрытая таблица — выбранное не показываем
     return '<button class="f-chip' + (on ? ' on' : '') + '" data-r="' + r.key + '" aria-pressed="' + on + '" style="--c:' + r.c + ';--bg-c:' + r.bg + '">' + r.label + '</button>';
   }).join('');
 }
@@ -3735,7 +3775,7 @@ $('fResult').addEventListener('click', function(e) {
 /* цвет — белые / чёрные (кони как в таблице) */
 function renderColorChips() {
   $('fColor').innerHTML = ['white', 'black'].map(function(c) {
-    var on = !!filt.colors[c];
+    var on = !hush.table && !!filt.colors[c];
     return '<button class="f-chip f-chip-color' + (on ? ' on' : '') + '" data-c="' + c + '" aria-pressed="' + on + '">' +
       '<span class="f-knight">' + KNIGHT[c] + '</span>' + COLOR_NAME[c] + '</button>';
   }).join('');
@@ -3939,28 +3979,31 @@ $('fMode').addEventListener('click', function(e) {
 });
 
 function renderFilterButtons() {
-  var mc = modeCount(filt.modes);
+  filtSave('tblFilt.v1', filt);
+  var H = hush.table;   // скрытая таблица: что выбрано в фильтрах, не показываем (кнопки как без фильтров), сами фильтры сохраняются
+  var mc = H ? 0 : modeCount(filt.modes);
   var mdb = $('fMode').querySelector('.f-btn');
   mdb.innerHTML = 'Режим' + (mc ? ' · ' + mc : '') + '<span class="caret">▾</span>';
   mdb.classList.toggle('active', mc > 0);
-  var names = Object.keys(filt.openings).concat(Object.keys(filt.planOps || {}).map(function(k) { return 'План: ' + planOpLabel(k); }));
+  var names = H ? [] : Object.keys(filt.openings).concat(Object.keys(filt.planOps || {}).map(function(k) { return 'План: ' + planOpLabel(k); }));
   var ob = $('fOpening').querySelector('.f-btn');
-  ob.innerHTML = esc(names.length === 0 ? 'Дебют: все' : names.length === 1 ? names[0] : 'Дебюты: ' + names.length) + '<span class="caret">▾</span>';
+  ob.innerHTML = '<span class="f-lbl">' + esc(names.length === 0 ? 'Дебют: все' : names.length === 1 ? names[0] : 'Дебюты: ' + names.length) + '</span><span class="caret">▾</span>';
   ob.title = names.join('\n');
   ob.classList.toggle('active', names.length > 0);
 
-  var mk = Object.keys(filt.ranges).length;
+  var mk = H ? 0 : Object.keys(filt.ranges).length;
   var mb = $('fMetrics').querySelector('.f-btn');
   mb.innerHTML = 'Показатели' + (mk ? ' · ' + mk : '') + '<span class="caret">▾</span>';
   mb.classList.toggle('active', mk > 0);
 
-  var dk = dateActive(filt.dates) ? 1 : 0, db = $('fDates').querySelector('.f-btn');
+  var dk = !H && dateActive(filt.dates) ? 1 : 0, db = $('fDates').querySelector('.f-btn');
   db.innerHTML = esc(dk ? 'Дата: ' + dateLabel(filt.dates) : 'Дата') + '<span class="caret">▾</span>';
   db.classList.toggle('active', !!dk);
-  var any = mc > 0 || hasKeys(filt.results) || hasKeys(filt.colors) || names.length > 0 || mk > 0 || dk > 0;
+  var rc = H ? 0 : Object.keys(filt.results).length + Object.keys(filt.colors).length;
+  var any = mc > 0 || rc > 0 || names.length > 0 || mk > 0 || dk > 0;
   $('filters').classList.toggle('any', any);
   var shown = filterGames(games).length;
-  var cond = Object.keys(filt.results).length + Object.keys(filt.colors).length + names.length + mk + mc + dk;
+  var cond = rc + names.length + mk + mc + dk;
   $('fCond').innerHTML = cond ? '<span class="cf-cnt">' + cond + '</span>' + plural(cond, 'фильтр', 'фильтра', 'фильтров') : 'Без фильтров';
   var inTable = Math.min(shown, TABLE_N);
   $('fCount').innerHTML = '<b>' + shown + '</b> из ' + games.length;
@@ -3977,6 +4020,17 @@ function renderFilterBar() {
 
 /* ---------- chart filter: общий для показателей и активности (отдельно от таблицы) ---------- */
 var cfilt = {results: {}, colors: {}, openings: {}, ranges: {}};
+// фильтры графика и таблицы запоминаются между перезагрузками (localStorage: chartFilt.v1, tblFilt.v1); сохраняются при каждой перерисовке кнопок
+function filtSave(key, f) { try { localStorage.setItem(key, JSON.stringify(f)); } catch (e) {} }
+function filtLoad(key, def) {
+  try {
+    var o = JSON.parse(localStorage.getItem(key) || 'null');
+    if (!o || typeof o !== 'object') return def;
+    ['results', 'colors', 'openings', 'ranges', 'modes', 'planOps'].forEach(function(k) { if (o[k] !== undefined && (!o[k] || typeof o[k] !== 'object')) delete o[k]; });
+    ['results', 'colors', 'openings', 'ranges'].forEach(function(k) { o[k] = o[k] || {}; });
+    return o;
+  } catch (e) { return def; }
+}
 
 function filterChart(list) {
   return list.filter(function(g) {
@@ -3998,6 +4052,8 @@ function filterChart(list) {
 
 function cfActive() { return modeCount(cfilt.modes) > 0 || hasKeys(cfilt.results) || hasKeys(cfilt.colors) || hasKeys(cfilt.openings) || hasKeys(cfilt.planOps || {}) || hasKeys(cfilt.ranges) || dateActive(cfilt.dates); }
 
+function cfClear() { cfilt = {results: {}, colors: {}, openings: {}, ranges: {}}; renderCfInputs(); renderCfDates(); chartFilterChanged(); }
+$('cfReset').addEventListener('click', function(e) { e.stopPropagation(); if (!cfActive()) return; if ($('cf').classList.contains('open')) $('cf').querySelector('.f-btn').click(); cfClear(); });
 function chartFilterChanged() {
   cgAll = filterChart(games);
   winPage = 0;
@@ -4072,6 +4128,7 @@ function rangeLabel(k) {
 
 // активные фильтры — метками с крестиком в строке заголовка
 function renderChartFilter(keepMenu) {
+  filtSave('chartFilt.v1', cfilt);
   var pills = [];
   F_RESULTS.forEach(function(r) { if (cfilt.results[r.key]) pills.push({t: 'r', k: r.key, label: r.label}); });
   ['white', 'black'].forEach(function(c) { if (cfilt.colors[c]) pills.push({t: 'c', k: c, label: KNIGHT[c] + ' ' + COLOR_NAME[c]}); });
@@ -4080,20 +4137,44 @@ function renderChartFilter(keepMenu) {
   Object.keys(cfilt.planOps || {}).forEach(function(k) { pills.push({t: 'po', k: k, label: 'План: ' + planOpLabel(k)}); });
   Object.keys(cfilt.ranges).forEach(function(k) { pills.push({t: 'm', k: k, label: rangeLabel(k)}); });
   if (dateActive(cfilt.dates)) pills.push({t: 'd', k: 'd', label: 'Даты: ' + dateLabel(cfilt.dates)});
+  // скрытый график: что выбрано в фильтре, не показываем вовсе (ни меток, ни числа условий, ни подсветки) — как будто фильтра нет
+  var H = hush.chart, act = !H && cfActive();
+  if (H) pills = [];
+  // справа от кнопки — блок как у таблицы: «N фильтров | X из Y | Сброс» (до cfFit: ширина блока меняется)
+  $('cfCount').innerHTML = '<b>' + cgAll.length + '</b> из ' + games.length;
+  $('cfReset').disabled = !act;
   $('cfPills').innerHTML = pills.map(function(p) {
     return '<span class="cf-pill" title="' + esc(p.label) + '"><span class="cf-pill-t">' + esc(p.label) + '</span>' +
       '<button data-t="' + p.t + '" data-k="' + esc(p.k) + '" aria-label="Убрать фильтр">×</button></span>';
-  }).join('');
+  }).join('') + (pills.length > 1 ? '<button type="button" class="cf-pill cf-more-p" data-cfmore style="display:none" title="Все условия — в «Фильтре графика»"></button>' : '');
+  cfFit();
   var btn = $('cf').querySelector('.f-btn');
-  btn.classList.toggle('active', cfActive());
+  btn.classList.toggle('active', act);
   // на кнопке — сколько партий осталось под фильтром
   // слева — сколько условий выбрано, справа — сколько партий осталось
-  btn.innerHTML = (cfActive() ? '<span class="cf-cnt">' + pills.length + '</span>' : '⏷ ') + 'Фильтр графика' + (cfActive() ? ' · <b class="cf-n">' + cgAll.length + '</b> из ' + games.length : '');
-  btn.title = cfActive() ? 'Под фильтр подходит ' + cgAll.length + ' из ' + games.length + ' партий · условий: ' + pills.length : 'Фильтр для графика показателей и активности';
+  btn.innerHTML = (pills.length ? '<span class="cf-cnt">' + pills.length + '</span>' : '⏷ ') + 'Фильтр';   // кнопка в блоке «Фильтр | X из Y | Сброс»; число условий — кружком
+  btn.title = act ? 'Под фильтр подходит ' + cgAll.length + ' из ' + games.length + ' партий · условий: ' + pills.length : 'Фильтр для графика показателей и активности';
   if (!keepMenu && $('cf').classList.contains('open')) renderCfMenu();
 }
 
+// метки фильтра — в одну строку между заголовком и кнопкой: лишние с конца прячутся, вместо них «+N» (клик — открыть фильтр)
+function cfFit() {
+  var box = $('cfPills'), more = box.querySelector('.cf-more-p');
+  if (!more) return;
+  var ps = [].slice.call(box.querySelectorAll('.cf-pill:not(.cf-more-p)')), gap = 6, w = function(el) { return el.getBoundingClientRect().width; };
+  ps.forEach(function(p) { p.style.display = ''; }); more.style.display = 'none';
+  var W = box.clientWidth, total = ps.reduce(function(s, p) { return s + w(p) + gap; }, -gap);
+  if (!W || total <= W + 0.5) return;
+  more.style.display = '';
+  for (var i = ps.length - 1, hid = 0; i > 0; i--) {
+    total -= w(ps[i]) + gap; ps[i].style.display = 'none'; hid++;
+    more.textContent = '+' + hid;
+    if (total + gap + w(more) <= W + 0.5) break;
+  }
+}
+window.addEventListener('resize', cfFit);
 $('cfPills').addEventListener('click', function(e) {
+  if (e.target.closest('[data-cfmore]')) { e.stopPropagation(); $('cf').querySelector('.f-btn').click(); return; }   // «+N»: открыть фильтр, повторный клик — закрыть
   var b = e.target.closest('button[data-t]');
   if (!b) return;
   e.stopPropagation();
@@ -4133,7 +4214,7 @@ $('cf').addEventListener('click', function(e) {
     else toggleKey(cfilt.openings, t.getAttribute('data-o'));
     chartFilterChanged(); return;
   }
-  if (e.target.closest('[data-act="clear"]')) { cfilt = {results: {}, colors: {}, openings: {}, ranges: {}}; renderCfInputs(); renderCfDates(); chartFilterChanged(); }
+  if (e.target.closest('[data-act="clear"]')) cfClear();
 });
 $('cf').addEventListener('change', function(e) { if (e.target.closest('.f-dates') && datesInput(cfilt, e)) { renderCfDates(); chartFilterChanged(); } });
 function renderCfDates() { $('cf').querySelector('.f-dates').innerHTML = datesHtml(cfilt.dates); }
@@ -9083,6 +9164,13 @@ function gsWr(elo) {
 
 // значок фильтра (воронка) для пунктов поиска
 var GS_FUNNEL = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" style="vertical-align:-2px"><path fill="#a1a1aa" d="M1.5 2h13l-5 6v5l-3 1.5V8z"/></svg>';
+// открыть «Итоги»: radar — списком (false) или «Схемой» (true); set — что поменять в схеме перед открытием
+function gsVd(radar, set) {
+  gsCloseSide();
+  RD.on = radar; rdPage = 0; rdPick = null; rdSideMenu = false;
+  if (set) set();
+  rdSave(); toggleVerdict(true); gsFlash($('sideRow'));
+}
 function gsIndex() {
   var items = [], RG0 = window.RATING_GAMES || [];
   function add(group, icon, title, sub, keys, run) { items.push({group: group, icon: icon, title: title, sub: sub || '', keys: gsNorm(title + ' ' + (sub || '') + ' ' + (keys || '')), run: run}); }
@@ -9095,7 +9183,7 @@ function gsIndex() {
   add('Разделы', '🏆', 'Рекорды активности', 'лучший и худший день, рекорды', 'рекорды день неделя активность', function() { gsChart('activity', true); });
   add('Разделы', '🧩', 'Задачи', 'рейтинг, режимы, сильные и слабые темы', 'задачи пазлы рейтинг темы микс puzzle', function() { gsCloseSide(); togglePuzzleDetail(true); gsFlash($('sideRow')); });
   add('Разделы', '📖', 'Дебюты', 'изучаю, следующие, в планах', 'дебюты репертуар студии план', function() { gsCloseSide(); toggleOpeningDetail(true); gsFlash($('sideRow')); });
-  add('Разделы', '🎯', 'Итоги', 'что хорошо, что плохо, что делать', 'итоги советы вердикт слабости', function() { gsCloseSide(); toggleVerdict(true); gsFlash($('sideRow')); });
+  add('Разделы', '🎯', 'Итоги', 'что хорошо, что плохо, что делать', 'итоги советы вердикт слабости', function() { gsVd(false); });
   add('Разделы', '📋', 'Таблица партий', 'последние 30 партий и фильтры', 'таблица партии список фильтры', function() { gsFlash($('filters')); });
   add('Разделы', GS_FUNNEL, 'Фильтр графика', 'результат, цвет, дебют, показатели', 'фильтр графика', function() {
     gsCloseSide();
@@ -9401,9 +9489,53 @@ function gsIndex() {
   // итоги по вкладкам
   buildVerdicts().forEach(function(v) {
     add('Итоги', v.t === 'bad' ? '▼' : v.t === 'good' ? '▲' : '💡', v.text, v.t === 'bad' ? 'проседает' : v.t === 'good' ? 'хорошо' : 'совет', '', function() {
-      gsCloseSide(); vdTab = v.t; toggleVerdict(true); gsFlash($('sideRow'));
+      vdTab = v.t; gsVd(false);
     });
   });
+  // «Схема» в «Итогах»: открыть с нужными настройками (что не задано — остаётся как было)
+  var rdCols = {white: games.some(function(g) { return g.color === 'white'; }), black: games.some(function(g) { return g.color === 'black'; })};
+  add('Схема', '🕸', 'Схема', 'паутинка показателей: сейчас против среднего', 'схема паутинка радар показатели', function() { gsVd(true); });
+  add('Схема', '🕸', 'Сравнение с прошлыми', 'последние партии против таких же до них', 'схема сравнение прошлые было', function() {
+    gsVd(true, function() { RD.scale = 'self'; RD.vs = false; RD.prev = true; }); });
+  // цвет: только белыми / чёрными / все и цвет против цвета; партий цветом нет — пункт есть, схема покажет «пока нет» (сайт на будущее)
+  var rdNone = function(c) { return rdCols[c] ? '' : ' · партий ' + (c === 'white' ? 'белыми' : 'чёрными') + ' пока нет'; };
+  ['white', 'black'].forEach(function(c) {
+    add('Цвет на схеме', KNIGHT[c], 'Только ' + (c === 'white' ? 'белыми' : 'чёрными'), 'схема по партиям ' + (c === 'white' ? 'белыми' : 'чёрными') + rdNone(c), 'схема цвет конь ' + COLOR_NAME[c], function() {
+      gsVd(true, function() { RD.side = c; RD.vs = false; }); });
+  });
+  add('Цвет на схеме', '♞', 'Все партии', 'схема по партиям обоими цветами', 'схема цвет все партии оба', function() {
+    gsVd(true, function() { RD.side = 'all'; RD.vs = false; if (rdGoalOff()) RD.scale = 'self'; }); });
+  ['white', 'black'].forEach(function(c) {
+    var o = c === 'white' ? 'black' : 'white', w = function(x) { return x === 'white' ? 'Белые' : 'Чёрные'; };
+    add('Цвет на схеме', '⚔', w(c) + ' vs ' + w(o).toLowerCase(), 'тот же отрезок, сравнение по цветам' + (rdCols.white && rdCols.black ? '' : ' · ' + (rdCols.white ? 'чёрными' : 'белыми') + ' пока нет'),
+      'схема vs цвет против цвета сравнение ' + COLOR_NAME[c] + ' ' + COLOR_NAME[o], function() {
+      gsVd(true, function() { RD.scale = 'self'; RD.side = c; RD.vs = true; }); });
+  });
+  if (CUR.stage && !(CUR.colors.length > 1 && (RD.side || 'all') === 'all')) add('Схема', '🎯', 'Цель этапа на схеме', 'оси — условия перехода, зелёный контур — требование', 'схема цель этапа переход правило', function() {
+    gsVd(true, function() { RD.scale = 'goal'; }); });
+  RD_SETS.forEach(function(x) {
+    add('Шаблоны схемы', '🕸', x.name, x.keys.map(function(k) { var m = rdMetric(k); return m ? m.label : k; }).join(', '), 'схема шаблон ' + x.name, function() {
+      gsVd(true, function() { RD.scale = 'self'; RD.keys = x.keys.slice(); }); });
+  });
+  try {   // «Слабее всего» — по всем параметрам схемы (до 7, хуже среднего на 5%+); в меню сначала 2, клик по заголовку — все
+    var rdK0 = RD.keys, rdS0 = RD.scale, rdV0 = {side: RD.side, vs: RD.vs, prev: RD.prev, by: RD.by, n: RD.n, days: RD.days};   // при клике — те же цвет / сравнение / отрезок, при которых параметр слабый
+    RD.keys = RD_METRICS.map(function(m) { return m.k; }); RD.scale = 'self';
+    var rdD = rdData();
+    RD.keys = rdK0; RD.scale = rdS0;
+    // порядок — по показанному числу (у % параметров — пункты, как в таблице схемы); одинаковые значения (винрейт = винрейт белыми, пока все партии одним цветом) — один раз
+    var shown = function(o) { var x = o.x, base = rdD.hasB ? x.b : x.avg; return x.m.fmt === rdPct && x.a !== null && base !== null ? Math.abs(x.a - base) : o.bad * 100; };
+    var seen = {}, wkL = rdWeak(rdD, 42).filter(function(o) { var id = o.x.m.label.split(' ')[0] + '|' + o.x.m.fmt(o.x.a) + '|' + o.x.m.fmt(rdD.hasB ? o.x.b : o.x.avg); if (seen[id]) return false; seen[id] = true; return true; })
+      .sort(function(p, q) { return shown(q) - shown(p); }).slice(0, 7);
+    if (!rdD.empty) wkL.forEach(function(o) {
+      var k = o.x.m.k;
+      add('Слабее на схеме', '▼', o.x.m.label, rdDiff(o.x.m, -o.bad, o.x.a, rdD.hasB ? o.x.b : o.x.avg) + (rdD.hasB ? ' к прошлым' : ' к среднему') + ' · разбор по партиям', 'схема слабое ' + o.x.m.label, function() {
+        gsVd(true, function() {   // параметра нет на схеме — добавить его (при 8 осях — вместо последней)
+          RD.scale = 'self'; for (var vk in rdV0) RD[vk] = rdV0[vk];
+          if (RD.keys.indexOf(k) < 0) { RD.keys = RD.keys.slice(0, 7); RD.keys.push(k); }
+          rdPick = k;
+        }); });
+    });
+  } catch (e) {}
 
   // партии (новые сначала)
   games.slice().reverse().forEach(function(g) {
@@ -9461,7 +9593,7 @@ function gsSections(it) {
   }
   if (/^(Виды графика|Сравнения|Активность|Дни|Анализ)$/.test(g)) return ['chart'];
   if (g === 'Фильтры' || g === 'Режим партии') return ['chart', 'table'];
-  if (/^(Задачи|Студии|Итоги|Темы задач|Слабые темы задач)$/.test(g)) return ['head'];
+  if (/^(Задачи|Студии|Итоги|Схема|Шаблоны схемы|Слабее на схеме|Цвет на схеме|Темы задач|Слабые темы задач)$/.test(g)) return ['head'];
   if (g === 'Дебюты') return /в таблице/.test(it.sub) ? ['table'] : ['head'];
   if (g === 'Партии') return ['table'];
   if (g === 'Lichess') return /^Анализ/.test(t) ? ['table'] : /^(Задачи по|Сыграть|Слабая тема)/.test(t) ? ['head'] : /^Слабая фаза/.test(t) ? ['chart'] : [];
@@ -9607,7 +9739,7 @@ function fixAiText() {
 var MN_GROUPS = [
   {k: 'an', icon: '♞', name: 'Анализ партий'}, {k: 'ch', icon: '📈', name: 'Графики'}, {k: 'fl', icon: GS_FUNNEL, name: 'Фильтры'},
   {k: 'gm', icon: '📋', name: 'Партии'}, {k: 'st', icon: '📊', name: 'Статистика'}, {k: 'pz', icon: '🧩', name: 'Задачи'},
-  {k: 'op', icon: '📖', name: 'Дебюты'}, {k: 'vd', icon: '🎯', name: 'Итоги'}, {k: 'li', icon: '↗', name: 'Lichess'}, {k: 'sv', icon: '⚙', name: 'Сервис'}
+  {k: 'op', icon: '📖', name: 'Дебюты'}, {k: 'vd', icon: '🎯', name: 'Итоги'}, {k: 'rd', icon: '🕸', name: 'Схема'}, {k: 'li', icon: '↗', name: 'Lichess'}, {k: 'sv', icon: '⚙', name: 'Сервис'}
 ];
 // куда положить пункт: [группа меню, подгруппа]. Новый пункт в gsIndex попадёт сюда по своей группе
 function mnPlace(it) {
@@ -9638,6 +9770,10 @@ function mnPlace(it) {
   if (g === 'Студии') return ['op', 'Студии мастеров'];
   if (g === 'Дебюты') return ['op', /в таблице/.test(sub) ? 'Сыгранные' : /^изучаю/.test(sub) ? 'Изучаю' : /^следующий/.test(sub) ? 'Следующие' : /^изучен/.test(sub) ? 'Изучено' : 'В планах'];   // как в панели «Дебюты»
   if (g === 'Итоги') return ['vd', sub === 'проседает' ? 'Проседает' : sub === 'хорошо' ? 'Хорошо' : 'Что делать'];
+  if (g === 'Схема') return ['rd', 'Открыть'];
+  if (g === 'Слабее на схеме') return ['rd', 'Слабее всего'];
+  if (g === 'Шаблоны схемы') return ['rd', 'Готовые шаблоны'];
+  if (g === 'Цвет на схеме') return ['rd', 'Цвет'];
   if (g === 'Lichess') return ['li', /^Слабая (тема|фаза)/.test(t) ? 'Слабые места' : 'Lichess'];
   if (g === 'Сервис') return ['sv', it.expand ? 'Если сайт сломался' : /^(К графику|К последним партиям)$/.test(t) ? 'Навигация' : 'Сервис'];
   return ['sv', 'Другое'];
@@ -9646,8 +9782,9 @@ function mnPlace(it) {
 var MN_SUB_ORDER = ['Быстро', 'Вкладки', 'Мастера', 'Показатели', 'Сравнения', 'Линии', 'Активность', 'Дни',
   'Слабые темы', 'Открыть', 'Результат и цвет', 'Даты', 'Мой дебют', 'Режим партии', 'Зевки и маты', 'Сброс',
   'Таблица', 'Все партии', 'Цифры', 'Партии', 'Тренировки', 'Темы', 'Изучаю', 'Следующие', 'В планах', 'Изучено', 'Студии мастеров', 'Сыгранные',
-  'Проседает', 'Хорошо', 'Что делать', 'Слабые места', 'Lichess', 'Если сайт сломался', 'Сервис', 'Навигация'];
-var mn = {g: null, items: [], tree: {}, exp: {}};   // exp — раскрытые пункты («Если сайт сломался»), независимо друг от друга
+  'Проседает', 'Хорошо', 'Что делать', 'Слабее всего', 'Готовые шаблоны', 'Цвет', 'Слабые места', 'Lichess', 'Если сайт сломался', 'Сервис', 'Навигация'];
+var mn = {g: null, items: [], tree: {}, exp: {}, fold: {}};   // fold — раскрытые свёрнутые подгруппы (MN_FOLD), помнятся до перезагрузки
+var MN_FOLD = {'Слабее всего': 2, 'Готовые шаблоны': 3};   // подгруппа: сколько пунктов видно до раскрытия   // exp — раскрытые пункты («Если сайт сломался»), независимо друг от друга
 // дерево меню из текущих данных (пересобирается при каждом открытии — новые партии и скрытие учитываются сами)
 function mnBuild() {
   var tree = {};
@@ -9674,7 +9811,9 @@ function mnRender() {
       return '<button class="mn-g' + (x.k === mn.g ? ' on' : '') + '" data-g="' + x.k + '"><i>' + x.icon + '</i><span>' + x.name + '</span><small>' + mn.tree[x.k].n + '</small></button>';
     }).join('') + '</div>' +
     '<div class="mn-body">' + (G ? G.subs.map(function(sb) {
-      return '<div class="mn-sub">' + esc(sb) + '</div>' + G.items[sb].map(function(i) {
+      var L = G.items[sb], fold = MN_FOLD[sb] && L.length > MN_FOLD[sb], all = !!mn.fold[sb];   // заголовок раскрывает весь список (сначала MN_FOLD штук)
+      return (fold ? '<button type="button" class="mn-sub mn-sub-tg" data-fold="' + esc(sb) + '">' + esc(sb) + ' <i>' + (all ? '▾' : '▸') + '</i> <small>' + (all ? 'все ' + L.length : MN_FOLD[sb] + ' из ' + L.length) + '</small></button>'
+        : '<div class="mn-sub">' + esc(sb) + '</div>') + L.filter(function(i, n) { return !fold || all || n < MN_FOLD[sb]; }).map(function(i) {
         var it = mn.items[i];
         var open = it.expand && mn.exp[it.expand];
         return '<button class="mn-it' + (it.run ? '' : ' off') + (open ? ' exp-on' : '') + '" data-i="' + i + '"><span class="gs-ic">' + it.icon + '</span>' +
@@ -9710,6 +9849,8 @@ $('mnPanel').addEventListener('click', function(e) {
   e.stopPropagation();   // клик внутри меню — не «клик мимо» для открытых панелей
   var b = e.target.closest('.mn-g');
   if (b) { mn.g = b.getAttribute('data-g'); mnRender(); return; }
+  var fb = e.target.closest('[data-fold]');
+  if (fb) { var fk = fb.getAttribute('data-fold'); mn.fold[fk] = !mn.fold[fk]; mnRerender(); return; }
   if (e.target.closest('.fx-copy')) { copyText(fixAiText()); toast('Скопировано: запрос для нейросети — вставь в чат'); return; }
   var it = e.target.closest('.mn-it');
   if (!it) return;
@@ -9789,8 +9930,8 @@ function applyHush() {
     pinnedSeries = null; markPinned();
     if (actRes) { actRes = null; document.querySelectorAll('.res-toggle').forEach(function(el) { el.classList.remove('pinned', 'dim'); }); }
   }
-  $('tableTitle').textContent = hush.table ? 'Последние партии' : 'Последние 30 партий';
   if (hush.table) closeDrops();
+  renderResultChips(); renderColorChips(); renderFilterButtons(); renderChartFilter(true);   // в скрытой части выбранные фильтры не видны, при показе — возвращаются
   var T = !hush.table && hushPrev.table && hushSnap.table;
   if (T) currentPage = T.page;
   renderGames();
@@ -9901,6 +10042,9 @@ renderScrollBtn();
   el.hidden = false;
   el.querySelector('.plan-alert-x').addEventListener('click', function() { el.hidden = true; });
 })();
+filt = filtLoad('tblFilt.v1', filt); cfilt = filtLoad('chartFilt.v1', cfilt);   // фильтры с прошлого раза
+cgAll = filterChart(games);
+renderCfInputs(); renderCfDates(); renderTableDates();
 renderSummary();
 renderPuzzleCard();
 renderOpeningCard();

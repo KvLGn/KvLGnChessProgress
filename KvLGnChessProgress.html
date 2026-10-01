@@ -7018,6 +7018,27 @@ AI_DATA.roadmap = function() {
     AL('Дебюты: изучаю — ', 'Openings: studying — ') + names(O.current) + AL('; далее — ', '; next — ') + names(O.next) + AL('; в планах — ', '; planned — ') + names(O.planned) + '.']);
 };
 
+/* ---------- условия ответа по пунктам: стоят рядом с местом ответа (слабые модели забывают условие из первой строки —
+   Алиса сложила 30 + 40 + 20 = 90 верно, но лимит 30–60 из начала не сверила) + строка самопроверки в конце (лёгкий Chain-of-Verification) ---------- */
+var AI_COND = {
+  lastgame:  [['ровно 3 момента', 'один из них — перелом, если он есть'], ['exactly 3 moments', 'one of them is the turning point, if there is one']],
+  weak:      [['одна главная проблема', '2–3 действия'], ['one main problem', '2–3 actions']],
+  typical:   [['одна главная причина', '1–2 примера ходов из данных'], ['one main cause', '1–2 examples of moves from the data']],
+  opp:       [['одна главная причина', '2–3 действия'], ['one main reason', '2–3 actions']],
+  losses:    [['одна главная причина', 'что исправить первым'], ['one main cause', 'what to fix first']],
+  phase:     [['одна главная причина', 'что тренировать'], ['one main cause', 'what to train']],
+  winloss:   [['одно главное отличие'], ['one main difference']],
+  deviate:   [['один главный отход от мастеров'], ['one main deviation from the masters']],
+  today:     [['3–4 дела', 'всего от 30 до 60 минут'], ['3–4 tasks', '30 to 60 minutes in total']],
+  week:      [['7 дней', 'от 30 до 60 минут в день'], ['7 days', '30 to 60 minutes a day']],
+  themes:    [['не больше 3 тем', 'сколько задач в день'], ['at most 3 themes', 'how many puzzles a day']],
+  checklist: [['ровно 5 пунктов'], ['exactly 5 points']],
+  review:    [['не больше 6 шагов'], ['at most 6 steps']],
+  opening:   [['не больше 5 пунктов'], ['at most 5 points']],
+  plans:     [['не больше 5 пунктов'], ['at most 5 points']],
+  goal:      [['сначала «да» или «нет»', 'не больше 3 действий'], ['first "yes" or "no"', 'at most 3 actions']]
+};
+function aiCond(dataKey) { var c = AI_COND[dataKey]; return c ? c[aiLang === 'en' ? 1 : 0] : null; }
 /* ---------- текст для нейросети: промпт → сводка → данные под вопрос → просьба ---------- */
 function aiText(ask, isPlan, dataKey) {
   // «сэндвич»: задача одной строкой сверху → промпт → блоки данных в метках → полный вопрос в самом конце (Anthropic, Google, OpenAI)
@@ -7027,6 +7048,8 @@ function aiText(ask, isPlan, dataKey) {
   out.push('', AL('<сводка>', '<summary>'), aiSummary().replace(/\s+$/, ''), AL('</сводка>', '</summary>'));
   if (data.length) out.push('', AL('<данные_под_вопрос>', '<data_for_question>'), data.join('\n'), AL('</данные_под_вопрос>', '</data_for_question>'));
   if (isPlan) out.push('', '<plan.js>', planSource(), '</plan.js>');
+  var cond = !isPlan && aiCond(dataKey);
+  if (cond) out.push('', AL('Условия ответа: ', 'Answer conditions: ') + cond.join('; ') + AL('. Последней строкой ответа проверь, что условия выполнены.', '. In the last line of your answer, check that the conditions are met.'));
   out.push('', AL('Вопрос: ', 'Question: ') + ask);
   return out.join('\n');
 }
@@ -7289,8 +7312,13 @@ function aiTextSimple(ask, dataKey) {
     AL('- Числа переписывай точно так, как они написаны, вместе с их подписью.', '- Copy numbers exactly as written, together with their labels.'),
     AL('- Если чего-то нет в данных — напиши «в данных нет».', '- If something is not in the data, write "not in the data".'),
     AL('- Пиши по-русски, коротко.', '- Write in English, briefly.')];
+  // порядок: данные → условия → шаблон с самопроверкой → вопрос: всё, что модель должна выполнить, — у самого места ответа
+  out.push('', AL('<данные>', '<data>'), [speedLine(aiLang)].concat(data).join('\n'), AL('</данные>', '</data>'));
+  var cond = aiCond(dataKey);
+  if (cond) out = out.concat(['', AL('Условия ответа:', 'Answer conditions:')], cond.map(function(c) { return '- ' + c; }));
   if (tpl) out = out.concat(['', AL('Ответь по шаблону:', 'Answer using this template:')], tpl[aiLang === 'en' ? 1 : 0]);
-  out.push('', AL('<данные>', '<data>'), [speedLine(aiLang)].concat(data).join('\n'), AL('</данные>', '</data>'), '', AL('Вопрос: ', 'Question: ') + ask);
+  if (cond) out.push(AL('Проверка условий: ', 'Conditions check: ') + cond.map(function(c) { return c + AL(' — да / нет', ' — yes / no'); }).join('; ') + AL(' (если «нет» — исправь ответ)', ' (if "no", fix the answer)'));
+  out.push('', AL('Вопрос: ', 'Question: ') + ask);
   return out.join('\n');
 }
 /* ---------- текст для человека: совет — письмо (верх годится как пост в чат), план — задание программисту по шагам ---------- */

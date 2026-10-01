@@ -906,6 +906,17 @@
   .vdx-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 6px;
     scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
   .vdx-item { padding-left: 10px; border-left: 2px solid; }
+  .vdx-item.go { cursor: pointer; border-radius: 0 6px 6px 0; padding-top: 2px; padding-bottom: 2px; transition: background 0.15s; }
+  .vdx-item.go:hover { background: rgba(255,255,255,0.035); }
+  .vdx-go { margin-left: 6px; color: var(--fg-mute); font-weight: 400; }
+  .vdx-item.go:hover .vdx-go { color: var(--fg); }
+  .vdx-g { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-dim); margin: 6px 0 -2px; }
+  .vdx-g:first-child { margin-top: 0; }
+  .vdx-sg { font-size: 10.5px; color: var(--fg-mute); margin: 0 0 -4px 2px; }
+  .vdx-mainbox { padding: 8px 10px; border-radius: 8px; background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.25); }
+  .vdx-top { border-left: none; padding-left: 0; }
+  .vdx-top .vdx-main { font-size: 14.5px; }
+  .vdx-top .vdx-main::before { content: 'Главное · '; color: #fbbf24; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
   .vdx-item.vd-bad { border-color: rgba(239,68,68,0.7); } .vdx-item.vd-good { border-color: rgba(34,197,94,0.7); } .vdx-item.vd-tip { border-color: rgba(251,191,36,0.7); }
   .vdx-main { font-size: 13px; font-weight: 600; color: var(--fg); line-height: 1.35; }
   .vdx-main a { font-weight: 400; font-size: 12px; color: #60a5fa; text-decoration: none; white-space: nowrap; }
@@ -5704,122 +5715,236 @@ $('opDetail').addEventListener('click', function(e) {
 // панель дебютов закрывается только кликом по карточке или ×, как задачи и итоги (раньше — при уходе курсора)
 
 /* ---------- итоги: автоматические выводы по всей статистике ---------- */
-// каждое правило добавляет пункт {t: good | bad | tip, w: важность, text, link?}
+// каждое правило добавляет пункт {t: good | bad | tip, w: важность, g: группа, sg: подгруппа, text, link?, more, go?}
+//   окно подбирается под правило: свежая форма — 3–5 партий, редкие события (маты, переломы, камбэки, цвет) — 10;
+//   в more всегда видно, за сколько партий посчитано; go — что открыть по клику на пункт
+var VD_GROUPS = ['Партии', 'Зевки и ошибки', 'Дебют', 'Задачи', 'Прогресс'];
+// отчёт партии в таблице с панелью «i» на нужном блоке (deb / mate / opp / turn)
+function mrOpenSection(g, key) {
+  gsOpenGame(g);
+  var row = [].filter.call($('gameRows').querySelectorAll('tr.game-row'), function(r) { return r.firstChild.textContent === String(g.n); })[0];
+  var d = row && row.nextSibling;
+  if (!d) return;
+  var ib = d.querySelector('.mr-i'), w = d.querySelector('.mr-gwrap');
+  if (ib && !w.classList.contains('info-open')) ib.click();
+  var sec = d.querySelector('.mri-sec[data-sec="' + key + '"]');
+  if (sec && !sec.classList.contains('on')) sec.querySelector('.mri-h').click();
+}
 function buildVerdicts() {
   var V = [];
-  // text — коротко (в строку панели), more — подробности во всплывающей подсказке
-  function add(t, w, text, link, more) { V.push({t: t, w: w, text: text, link: link, more: more}); }
+  function add(t, w, text, link, more, g, sg, go) { V.push({t: t, w: w, text: text, link: link, more: more, g: g || 'Прогресс', sg: sg || '', go: go || null}); }
   function r(v) { return Math.round(v); }
-  function sameKey(list, key) { return list.filter(function(g) { return typeof g[key] === 'number'; }); }
+  function gN(k) { return k + ' ' + plural(k, 'партия', 'партии', 'партий'); }
+  function last(list, k) { return list.slice(-k); }
+  function cntType(list) { var c = {}; list.forEach(function(g) { (g.bl || []).forEach(function(b) { c[b.t] = (c[b.t] || 0) + 1; }); }); return c; }
+  var BL_TIP = {   // совет под главный тип зевков: [коротко, подробно]
+    hang: ['Перед ходом: что у меня не защищено?', 'Перед каждым ходом проверь, какие твои фигуры не защищены и что соперник может взять'],
+    missedWin: ['Перед ходом: какие у меня взятия и шахи?', 'Перед каждым ходом ищи свои взятия и шахи — у бота часто висят фигуры'],
+    tactic: ['Ищи угрозы бота на 2 хода вперёд', 'После хода бота ищи вилки, связки и двойные удары — материал уходит через ход'],
+    mateAllowed: ['Перед ходом: какие шахи есть у соперника?', 'Проверь шахи соперника своему королю — особенно по открытым линиям и диагоналям'],
+    mateMissed: ['В атаке сначала посчитай все шахи', 'Когда у тебя атака — сначала переберите все шахи: там может быть мат'],
+    other: ['Сравни 2–3 хода-кандидата', 'Не спеши: перед ходом сравни 2–3 кандидата и выбери тот, после которого фигуры активнее']};
+  var MATE_SHORT = 3;   // «упущенный мат» — только короткие, до 3 ходов (длинные почти невозможно увидеть)
 
   /* --- партии (если этап требует оба цвета — отдельно белыми и чёрными) --- */
   var addOuter = add;
   function gameRules(games, pre) {
-  function add(t, w, text, link, more) { addOuter(t, w, pre + text, link, more); }
+  function add(t, w, text, link, more, g, sg, go) { addOuter(t, w, pre + text, link, more, g, sg, go); }
   var n = games.length;
-  if (n) {
-    var last = games.slice(-10), l5 = games.slice(-5), p5 = games.length >= 10 ? games.slice(-10, -5) : [];
+  if (!n) return;
+  var L3 = last(games, 3), L5 = last(games, 5), P5 = n >= 10 ? games.slice(-10, -5) : [], L10 = last(games, 10);
+  var lastG = games[n - 1];
 
-    // точность: последние 5 против предыдущих 5
-    if (p5.length === 5) {
-      var da = avg(l5, 'acc') - avg(p5, 'acc');
-      if (da >= 5) add('good', 60 + da, 'Точность растёт: +' + r(da) + '% (' + r(avg(l5, 'acc')) + '%)', null, 'Средняя точность последних 5 партий против предыдущих 5');
-      else if (da <= -5) add('bad', 60 - da, 'Точность падает: −' + r(-da) + '% (' + r(avg(l5, 'acc')) + '%)', null, 'Средняя точность последних 5 партий против предыдущих 5');
-    }
+  // Партии · Результат: серии
+  var run = 0, res = lastG.result;
+  for (var i = n - 1; i >= 0 && games[i].result === res; i--) run++;
+  if (res === 'win' && run >= 3) add('good', 75 + run, 'Серия побед: ' + run + ' подряд', null, 'Последние ' + gN(run) + ' — победы', 'Партии', 'Результат', function() { gsChart('metrics', false); });
+  if (res === 'lose' && run >= 3) {
+    add('bad', 75 + run, run + ' ' + plural(run, 'поражение', 'поражения', 'поражений') + ' подряд', null, 'Последние ' + gN(run) + ' — поражения', 'Партии', 'Результат', function() { gsChart('metrics', false); });
+    add('tip', 74, 'Сделай паузу и разбери поражения', null, 'После серии поражений разбери последние партии с движком, потом играй дальше', 'Партии', 'Результат', function() { anOpen(lastG, undefined, 'bl'); });
+  }
+  // камбэки: перевес был у бота (−3 и хуже), а партия выиграна — последние 10
+  var comeback = L10.filter(function(g) { return g.result === 'win' && g.ev && Math.min.apply(null, g.ev) <= -30; });
+  if (comeback.length) add('good', 56 + comeback.length * 3, 'Отыгрался: ' + gN(comeback.length) + ' из 10', null,
+    'Перевес был у бота (−3 и хуже), а ты победил: #' + comeback.map(function(g) { return g.n; }).join(', #') + ' · последние 10 партий', 'Партии', 'Результат', function() { mrOpenSection(comeback[comeback.length - 1], 'turn'); });
 
-    // фазы партии: самая слабая и самая сильная
-    var PH = [['debut', 'Дебют'], ['mid', 'Миттельшпиль'], ['end', 'Эндшпиль']];
-    var ph = PH.map(function(p) { return {k: p[0], name: p[1], v: avg(last, p[0])}; })
-      .filter(function(x) { return x.v !== null; }).sort(function(a, b) { return a.v - b.v; });
-    if (ph.length >= 2) {
-      var weak = ph[0], strong = ph[ph.length - 1];
-      if (strong.v - weak.v >= 10) {
-        add('bad', 70 + (strong.v - weak.v) / 2, 'Слабая фаза — ' + weak.name.toLowerCase() + ': ' + r(weak.v) + '%', null, weak.name + ' ' + r(weak.v) + '%, а ' + strong.name.toLowerCase() + ' ' + r(strong.v) + '% (последние 10 партий)');
-        var tipFor = {
-          debut: ['Повтори дебютные линии в студиях', 'Перед игрой пройди главные линии в студиях мастеров'],
-          mid: ['Ищи угрозу после каждого хода соперника', 'Миттельшпиль: после каждого хода соперника ищи его угрозу и свои незащищённые фигуры'],
-          end: ['Разбирай свои эндшпили с движком', 'Эндшпиль: разбирай свои эндшпили с движком и реши задачи на тему «Эндшпиль»']
-        };
-        add('tip', 70, tipFor[weak.k][0], null, tipFor[weak.k][1]);
-      }
-      if (strong.v >= 85) add('good', 50 + (strong.v - 85), 'Сильная фаза — ' + strong.name.toLowerCase() + ': ' + r(strong.v) + '%', null, 'Средняя точность в фазе за последние 10 партий');
-    }
+  // Партии · Точность: тренд (5 против 5), разброс (5), личный рекорд (в последних 3)
+  if (P5.length === 5) {
+    var da = avg(L5, 'acc') - avg(P5, 'acc');
+    if (da >= 5) add('good', 60 + da, 'Точность растёт: +' + r(da) + '% (' + r(avg(L5, 'acc')) + '%)', null, 'Средняя точность: последние 5 против предыдущих 5', 'Партии', 'Точность', function() { gsChart('metrics', false); });
+    else if (da <= -5) add('bad', 60 - da, 'Точность падает: −' + r(-da) + '% (' + r(avg(L5, 'acc')) + '%)', null, 'Средняя точность: последние 5 против предыдущих 5', 'Партии', 'Точность', function() { gsChart('metrics', false); });
+  }
+  if (L5.length === 5) {
+    var accs = L5.map(function(g) { return g.acc; }), lo = Math.min.apply(null, accs), hi = Math.max.apply(null, accs);
+    if (hi - lo >= 35) {
+      add('bad', 58, 'Точность скачет: от ' + lo + '% до ' + hi + '%', null, 'Разброс в последних 5 партиях — игра неровная', 'Партии', 'Точность', function() { gsChart('metrics', false); });
+      add('tip', 60, 'Играй медленнее: проверяй каждый ход', null, 'Точность в последних 5 партиях от ' + lo + '% до ' + hi + '% — провалы дают спешка и непроверенные ходы', 'Партии', 'Точность');
+    } else if (hi - lo <= 15 && lo >= 65) add('good', 54, 'Ровная игра: точность ' + lo + '–' + hi + '%', null, 'Последние 5 партий без провалов', 'Партии', 'Точность', function() { gsChart('metrics', false); });
+  }
+  var best = games.slice().sort(function(a, b) { return b.acc - a.acc; })[0];
+  if (n >= 5 && L3.indexOf(best) >= 0) add('good', 66, 'Личный рекорд точности: ' + best.acc + '% (#' + best.n + ')', null, 'Лучшая точность за все ' + gN(n) + ' — поставлена в последних 3', 'Партии', 'Точность', function() { gsOpenGame(best); });
 
-    // зевки: уровень, динамика и влияние на миттельшпиль
-    var bl = avg(last, 'blunders');
-    if (p5.length === 5) {
-      var db = avg(l5, 'blunders') - avg(p5, 'blunders');
-      if (db <= -1) add('good', 65 - db * 3, 'Зевков меньше: ' + avg(l5, 'blunders').toFixed(1) + ' (было ' + avg(p5, 'blunders').toFixed(1) + ')', null, 'Зевков за партию: последние 5 против предыдущих 5');
-      else if (db >= 1) add('bad', 65 + db * 3, 'Зевков больше: ' + avg(l5, 'blunders').toFixed(1) + ' (было ' + avg(p5, 'blunders').toFixed(1) + ')', null, 'Зевков за партию: последние 5 против предыдущих 5');
+  // Партии · Фазы (последние 5): сильная / слабая; поражения до эндшпиля, перелом, короткие поражения (последние 10)
+  var PH = [['debut', 'Дебют'], ['mid', 'Миттельшпиль'], ['end', 'Эндшпиль']];
+  var ph = PH.map(function(p) { return {k: p[0], name: p[1], v: avg(L5, p[0])}; }).filter(function(x) { return x.v !== null; }).sort(function(a, b) { return a.v - b.v; });
+  if (ph.length >= 2) {
+    var weak = ph[0], strong = ph[ph.length - 1];
+    if (strong.v - weak.v >= 10) {
+      add('bad', 70 + (strong.v - weak.v) / 2, 'Слабая фаза — ' + weak.name.toLowerCase() + ': ' + r(weak.v) + '%', null, weak.name + ' ' + r(weak.v) + '%, а ' + strong.name.toLowerCase() + ' ' + r(strong.v) + '% · последние 5 партий', 'Партии', 'Фазы', function() { gsChart('metrics', false); pinSeries(weak.k); });
+      var tipFor = {
+        debut: ['Повтори дебютные линии в студиях', 'Перед игрой пройди главные линии в студиях мастеров'],
+        mid: ['Ищи угрозу после каждого хода соперника', 'Миттельшпиль: после каждого хода соперника ищи его угрозу и свои незащищённые фигуры'],
+        end: ['Разбирай свои эндшпили с движком', 'Эндшпиль: разбирай свои эндшпили с движком и реши задачи на тему «Эндшпиль»']
+      };
+      add('tip', 70, tipFor[weak.k][0], null, tipFor[weak.k][1], 'Партии', 'Фазы');
     }
-    var clean = sameKey(last.filter(function(g) { return g.blunders <= 2; }), 'mid');
-    var dirty = sameKey(last.filter(function(g) { return g.blunders > 2; }), 'mid');
-    if (clean.length >= 2 && dirty.length >= 2) {
-      var cm = avg(clean, 'mid'), dm = avg(dirty, 'mid');
-      if (cm - dm >= 20) add('bad', 80, 'Зевки ломают миттельшпиль: ' + r(dm) + '% / ' + r(cm) + '%', null, 'Миттельшпиль ' + r(dm) + '% в партиях с 3+ зевками и ' + r(cm) + '% в партиях с 0–2 зевками');
+    if (strong.v >= 85) add('good', 50 + (strong.v - 85), 'Сильная фаза — ' + strong.name.toLowerCase() + ': ' + r(strong.v) + '%', null, 'Средняя точность в фазе · последние 5 партий', 'Партии', 'Фазы', function() { gsChart('metrics', false); pinSeries(strong.k); });
+  }
+  var losses10 = L10.filter(function(g) { return g.result === 'lose'; });
+  var early = losses10.filter(function(g) { return typeof g.end !== 'number'; });
+  if (losses10.length >= 2 && early.length / losses10.length >= 0.5)
+    add('bad', 55, early.length + ' из ' + losses10.length + ' поражений — до эндшпиля', null, 'Партия проиграна ещё в миттельшпиле · последние 10 партий', 'Партии', 'Фазы', function() { gsChart('metrics', false); });
+  // перелом в поражениях: где перевес обвалился сильнее всего
+  var turns = losses10.map(function(g) { var t = mrTurn(g); return t && t.d < 0 ? {g: g, p: t.p} : null; }).filter(Boolean);
+  if (turns.length >= 2) {
+    var mv = turns.map(function(x) { return Math.ceil(x.p / 2); }).sort(function(a, b) { return a - b; });
+    var inMid = turns.filter(function(x) { var dv = x.g.div || {}; return (!dv.mid || x.p >= dv.mid) && (!dv.end || x.p < dv.end); }).length;
+    add('bad', 57, 'Перелом в поражениях: ходы ' + mv[0] + '–' + mv[mv.length - 1], null,
+      'В ' + inMid + ' из ' + turns.length + ' поражений перевес обвалился в миттельшпиле · последние 10 партий', 'Партии', 'Фазы', function() { mrOpenSection(turns[turns.length - 1].g, 'turn'); });
+    add('tip', 63, 'На ходах ' + mv[0] + '–' + mv[mv.length - 1] + ' думай дольше', null, 'Именно там обычно ломаются твои проигранные партии — перед каждым ходом проверяй угрозы', 'Партии', 'Фазы');
+  }
+  // короткие поражения: проигрываешь заметно быстрее, чем выигрываешь
+  var wins10 = L10.filter(function(g) { return g.result === 'win'; });
+  if (losses10.length >= 2 && wins10.length >= 2) {
+    var lm = avg(losses10, 'moves'), wm = avg(wins10, 'moves');
+    if (lm <= wm * 0.75) {
+      add('bad', 50, 'Поражения короткие: ' + r(lm) + ' ходов против ' + r(wm), null, 'Средняя длина поражений и побед · последние 10 партий — проигрываешь рано', 'Партии', 'Результат');
+      add('tip', 55, 'Не сдавайся рано — бот тоже ошибается', null, 'Поражения в среднем на ' + r(wm - lm) + ' ходов короче побед: держи позицию и жди ошибки', 'Партии', 'Результат');
     }
-    if (bl !== null && bl >= 3) add('tip', 78, 'Проверяй перед ходом, что висит', null, 'В среднем ' + bl.toFixed(1) + ' зевка за партию — перед каждым ходом проверяй свои незащищённые фигуры');
-    else if (bl !== null && bl <= 1.5 && last.length >= 5) add('good', 55, 'Мало зевков: ' + bl.toFixed(1) + ' за партию', null, 'Среднее за последние 10 партий');
+  }
 
-    // поражения до эндшпиля
-    var losses = last.filter(function(g) { return g.result === 'lose'; });
-    var early = losses.filter(function(g) { return typeof g.end !== 'number'; });
-    if (losses.length >= 2 && early.length / losses.length >= 0.5) {
-      add('bad', 55, early.length + ' из ' + losses.length + ' поражений — до эндшпиля', null, 'Партия проиграна ещё в миттельшпиле (последние 10 партий)');
-    }
-
-    // серия результатов
-    var run = 0, res = games[n - 1].result;
-    for (var i = n - 1; i >= 0 && games[i].result === res; i--) run++;
-    if (res === 'win' && run >= 3) add('good', 75 + run, 'Серия побед: ' + run + ' подряд');
-    if (res === 'lose' && run >= 3) {
-      add('bad', 75 + run, run + ' ' + plural(run, 'поражение', 'поражения', 'поражений') + ' подряд');
-      add('tip', 74, 'Сделай паузу и разбери поражения', null, 'После серии поражений сделай паузу и разбери последние партии с движком');
-    }
-
-    // дебюты в партиях: семейства с 2+ партиями
-    var fam = {};
-    games.forEach(function(g) { var k = g.opening.split(':')[0]; (fam[k] = fam[k] || []).push(g); });
-    Object.keys(fam).forEach(function(k) {
-      var fl = fam[k];
-      if (fl.length < 2) return;
-      var wr = winrate(fl);
-      if (wr <= 34) add('bad', 50 + fl.length, k + ': ' + fl.filter(function(g) { return g.result === 'win'; }).length + ' из ' + fl.length + ' побед', null, 'Проблемный дебют — мало побед');
-      else if (wr >= 75) add('good', 45 + fl.length, k + ': ' + r(wr) + '% побед', null, fl.length + ' ' + plural(fl.length, 'партия', 'партии', 'партий') + ' в этом дебюте');
+  // Зевки и ошибки · Свои: тренд (5 против 5), уровень (5), частый тип (5), тип реже / чаще (5 против 5)
+  var bl5 = avg(L5, 'blunders');
+  if (P5.length === 5) {
+    var db = bl5 - avg(P5, 'blunders');
+    if (db <= -1) add('good', 65 - db * 3, 'Зевков меньше: ' + bl5.toFixed(1) + ' (было ' + avg(P5, 'blunders').toFixed(1) + ')', null, 'Зевков за партию: последние 5 против предыдущих 5', 'Зевки и ошибки', 'Свои', function() { gsChart('metrics', false); });
+    else if (db >= 1) add('bad', 65 + db * 3, 'Зевков больше: ' + bl5.toFixed(1) + ' (было ' + avg(P5, 'blunders').toFixed(1) + ')', null, 'Зевков за партию: последние 5 против предыдущих 5', 'Зевки и ошибки', 'Свои', function() { gsChart('metrics', false); });
+  }
+  if (bl5 !== null && bl5 >= 3) add('tip', 78, 'Проверяй перед ходом, что висит', null, 'В среднем ' + bl5.toFixed(1) + ' зевка за партию · последние 5', 'Зевки и ошибки', 'Свои');
+  else if (bl5 !== null && bl5 <= 1.5 && L5.length >= 5) add('good', 55, 'Мало зевков: ' + bl5.toFixed(1) + ' за партию', null, 'Последние 5 партий', 'Зевки и ошибки', 'Свои');
+  var clean = L10.filter(function(g) { return g.blunders <= 2 && typeof g.mid === 'number'; }), dirty = L10.filter(function(g) { return g.blunders > 2 && typeof g.mid === 'number'; });
+  if (clean.length >= 2 && dirty.length >= 2) {
+    var cm = avg(clean, 'mid'), dm = avg(dirty, 'mid');
+    if (cm - dm >= 20) add('bad', 80, 'Зевки ломают миттельшпиль: ' + r(dm) + '% / ' + r(cm) + '%', null, 'Миттельшпиль ' + r(dm) + '% в партиях с 3+ зевками и ' + r(cm) + '% с 0–2 · последние 10 партий', 'Зевки и ошибки', 'Свои');
+  }
+  var c5 = cntType(L5), tot5 = Object.keys(c5).reduce(function(s, k) { return s + c5[k]; }, 0);
+  var topT = Object.keys(c5).sort(function(a, b) { return c5[b] - c5[a]; })[0];
+  if (topT && tot5 >= 4 && c5[topT] / tot5 >= 0.35) {
+    var gT = L5.filter(function(g) { return (g.bl || []).some(function(b) { return b.t === topT; }); }).pop();
+    add('bad', 74, 'Чаще всего «' + BL_TYPES[topT].ru + '»: ' + c5[topT] + ' из ' + tot5, null, BL_TYPES[topT].tip + ' · зевки последних 5 партий', 'Зевки и ошибки', 'Свои', function() { anOpen(gT, undefined, 'bl'); });
+    add('tip', 80, BL_TIP[topT][0], null, BL_TIP[topT][1] + ' («' + BL_TYPES[topT].ru + '» — ' + c5[topT] + ' из ' + tot5 + ' зевков в последних 5 партиях)', 'Зевки и ошибки', 'Свои');
+  }
+  if (P5.length === 5) {
+    var cp = cntType(P5);
+    BL_ORDER.forEach(function(t) {
+      var a = (c5[t] || 0) / 5, b = (cp[t] || 0) / 5;
+      if (b - a >= 0.6) add('good', 52, '«' + BL_TYPES[t].ru + '» реже: ' + b.toFixed(1) + ' → ' + a.toFixed(1), null, 'За партию: последние 5 против предыдущих 5', 'Зевки и ошибки', 'Свои');
+      else if (a - b >= 0.6) add('bad', 54, '«' + BL_TYPES[t].ru + '» чаще: ' + b.toFixed(1) + ' → ' + a.toFixed(1), null, 'За партию: последние 5 против предыдущих 5', 'Зевки и ошибки', 'Свои');
     });
+  }
+  // Зевки и ошибки · Соперника (последние 5)
+  var opp = [];
+  L5.forEach(function(g) { if (g.mv) mrOppBlunders(g).forEach(function(o) { opp.push({g: g, o: o}); }); });
+  if (opp.length >= 3) {
+    var kept = opp.filter(function(x) { return x.o.kept; }).length, miss = opp.length - kept;
+    if (kept / opp.length >= 0.75) add('good', 60, 'Наказываешь ошибки бота: ' + kept + ' из ' + opp.length, null, 'После зевка бота перевес сохранён · последние 5 партий', 'Зевки и ошибки', 'Соперника', function() { mrOpenSection(opp[opp.length - 1].g, 'opp'); });
+    else if (miss >= 2) {
+      var lastMiss = opp.filter(function(x) { return !x.o.kept; }).pop();
+      add('bad', 62, 'Пропускаешь ошибки бота: ' + miss + ' из ' + opp.length, null, 'Бот зевнул, а после твоего ответа перевес упал · последние 5 партий', 'Зевки и ошибки', 'Соперника', function() { mrOpenSection(lastMiss.g, 'opp'); });
+      add('tip', 68, 'После хода бота спроси: что он мне подставил?', null, 'Пропущено ' + miss + ' из ' + opp.length + ' зевков бота — перед ответом ищи его незащищённые фигуры', 'Зевки и ошибки', 'Соперника');
+    }
+  }
+  // Зевки и ошибки · Маты (последние 10): доводишь / упускаешь короткие
+  var ms = [];
+  L10.forEach(function(g) { mateSeries(g).forEach(function(m) { ms.push({g: g, m: m}); }); });
+  var mDone = ms.filter(function(x) { return !x.m.lost; }), mLost = ms.filter(function(x) { return x.m.lost && x.m.N2 <= MATE_SHORT; });
+  if (mDone.length >= 2) add('good', 52 + mDone.length, 'Доводишь маты: ' + mDone.length + ' из ' + ms.length, null, 'Форсированный мат доведён · последние 10 партий', 'Зевки и ошибки', 'Маты', function() { anOpen(mDone[mDone.length - 1].g, undefined, 'mate'); });
+  if (mLost.length) {
+    add('bad', 60 + mLost.length * 3, 'Упустил мат в 1–' + MATE_SHORT + ' хода: ' + mLost.length + ' раз', null, 'Короткий форсированный мат, а сыгран другой ход · последние 10 партий', 'Зевки и ошибки', 'Маты', function() { anOpen(mLost[mLost.length - 1].g, undefined, 'mate'); });
+    add('tip', 66, '20 задач «Мат в 2»', 'https://lichess.org/training/mateIn2', 'Упущено ' + mLost.length + ' коротких матов — набей глаз на матовые картины', 'Зевки и ошибки', 'Маты');
+  }
+
+  // Дебют · Партии: семейства с 3+ партиями из последних 10
+  var fam = {};
+  L10.forEach(function(g) { var k = g.opening.split(':')[0]; (fam[k] = fam[k] || []).push(g); });
+  Object.keys(fam).forEach(function(k) {
+    var fl = fam[k];
+    if (fl.length < 3) return;
+    var wr = winrate(fl);
+    if (wr <= 34) add('bad', 50 + fl.length, k + ': ' + fl.filter(function(g) { return g.result === 'win'; }).length + ' из ' + fl.length + ' побед', null, 'Мало побед в этом дебюте · последние 10 партий', 'Дебют', 'Партии', function() { gsTableOpening(fl[0].opening); });
+    else if (wr >= 75) add('good', 45 + fl.length, k + ': ' + r(wr) + '% побед', null, gN(fl.length) + ' в этом дебюте · последние 10', 'Дебют', 'Партии', function() { gsTableOpening(fl[0].opening); });
+  });
+  // Дебют · Мастера: докуда держишься линии (последние 5 против предыдущих 5) и где чаще отходишь
+  function depth(g) { var rows = msCompare(g, anMasterPicked(g)), d = rows.filter(function(c) { return c.st !== 'top'; })[0]; return rows.length ? {to: Math.ceil(((d ? d.p : rows[rows.length - 1].p + 2) - 1) / 2), dev: d, g: g} : null; }
+  var dl = L5.filter(function(g) { return g.ms; }).map(depth).filter(Boolean), dp = P5.filter(function(g) { return g.ms; }).map(depth).filter(Boolean);
+  if (dl.length >= 3) {
+    var avgTo = dl.reduce(function(s, x) { return s + x.to; }, 0) / dl.length;
+    var prevTo = dp.length >= 3 ? dp.reduce(function(s, x) { return s + x.to; }, 0) / dp.length : null;
+    var who = masterName(anMasterPicked(dl[0].g), dl[0].g);
+    if (prevTo !== null && avgTo - prevTo >= 1) add('good', 56, 'Дольше по линии мастеров: до ' + r(avgTo) + '-го хода (было ' + r(prevTo) + ')', null, 'Как ' + who + ' или самый частый ход мастеров · последние 5 против предыдущих 5', 'Дебют', 'Мастера', function() { anOpen(dl[dl.length - 1].g, undefined, 'ms'); });
+    var devs = {};
+    dl.forEach(function(x) { if (x.dev) { var k = x.dev.p + '|' + x.dev.san + '|' + x.dev.top; devs[k] = (devs[k] || 0) + 1; } });
+    var topDev = Object.keys(devs).sort(function(a, b) { return devs[b] - devs[a]; })[0];
+    if (avgTo <= 4 && topDev) {
+      var dd = topDev.split('|'), mvN = Math.ceil(+dd[0] / 2), gDev = dl.filter(function(x) { return x.dev && x.dev.p === +dd[0] && x.dev.san === dd[1]; }).pop().g;
+      add('bad', 58, 'Рано отходишь от линии: ' + mvN + '-й ход, ' + dd[1] + ' вместо ' + dd[2], null, 'В среднем держишься до ' + r(avgTo) + '-го хода · последние 5 партий' + (devs[topDev] > 1 ? ' · этот отход ' + devs[topDev] + ' раза' : ''), 'Дебют', 'Мастера', function() { anOpen(gDev, +dd[0] - 1, 'ms'); });
+      add('tip', 62, 'Повтори позицию до ' + mvN + '-го хода: там играют ' + dd[2], null, 'Открой «Анализ» → «Мастера» на этой партии и посмотри, что играл мастер', 'Дебют', 'Мастера', function() { anOpen(gDev, +dd[0] - 1, 'ms'); });
+    }
   }
 
   }
   var twoColors = CUR.stage && CUR.stage.colors.length > 1;
   if (twoColors) ['white', 'black'].forEach(function(c) { gameRules(games.filter(function(g) { return g.color === c; }), c === 'white' ? 'Белыми: ' : 'Чёрными: '); });
   else gameRules(games, '');
+  // Партии · Цвет (последние 10 каждым цветом, оба цвета от 3 партий)
+  (function() {
+    var W = games.filter(function(g) { return g.color === 'white'; }).slice(-10), B = games.filter(function(g) { return g.color === 'black'; }).slice(-10);
+    if (W.length < 3 || B.length < 3) return;
+    var ww = winrate(W), bw = winrate(B), sw = ww >= bw;
+    if (Math.abs(ww - bw) < 25) return;
+    add('good', 50, 'Сильнее ' + (sw ? 'белыми' : 'чёрными') + ': ' + r(Math.max(ww, bw)) + '% побед', null, 'Последние партии каждым цветом: белыми ' + r(ww) + '%, чёрными ' + r(bw) + '%', 'Партии', 'Результат');
+    add('bad', 52, 'Слабее ' + (sw ? 'чёрными' : 'белыми') + ': ' + r(Math.min(ww, bw)) + '% побед', null, 'Последние партии каждым цветом: белыми ' + r(ww) + '%, чёрными ' + r(bw) + '%', 'Партии', 'Результат');
+  })();
   var n = games.length;
 
-  /* --- цель этапа (правило из plan.js) --- */
+  /* --- прогресс: цель этапа --- */
   var lastDone = CUR.hist[CUR.hist.length - 1];
   if (lastDone && daysBetween(fromIso(lastDone.day), gameToday()) <= 7)
-    add('good', 97, 'Этап ' + (lastDone.idx + 1) + ' выполнен ' + lastDone.date + '!', null, lastDone.name + ' — дальше: ' + stageTitle());
-  if (!CUR.stage && PLAN.stages.length) add('tip', 96, 'План выполнен — добавь этап', null, 'Все этапы из data/plan.js пройдены — допиши следующий (см. AI-PROMPT.md)');
+    add('good', 97, 'Этап ' + (lastDone.idx + 1) + ' выполнен ' + lastDone.date + '!', null, lastDone.name + ' — дальше: ' + stageTitle(), 'Прогресс', 'Цель');
+  if (!CUR.stage && PLAN.stages.length) add('tip', 96, 'План выполнен — добавь этап', null, 'Все этапы из data/plan.js пройдены — допиши следующий (см. AI-PROMPT.md)', 'Прогресс', 'Цель');
   else CUR.colors.forEach(function(c) {
     var who = twoColors ? (c.color === 'white' ? 'Белыми' : 'Чёрными') : 'Цель этапа';
     var cur = c.blocks.filter(function(b) { return !b.ok; })[0] || c.blocks[c.blocks.length - 1];
-    if (c.done) add('good', 90, who + ': цель выполнена ' + c.doneGame.date, null, 'Правило этапа выполнено ' + COLOR_WORD[c.color] + ' против Stockfish ' + CUR.stage.engine);
-    else add('tip', 88, who + ': ' + colorLine(c), null, 'Нужно ' + RULE.blocks + ' пятёрки подряд ' + COLOR_WORD[c.color] + ' против Stockfish ' + CUR.stage.engine + '. Сейчас: ' + blockWhy(cur));
+    if (c.done) { add('good', 90, who + ': цель выполнена ' + c.doneGame.date, null, 'Правило этапа выполнено ' + COLOR_WORD[c.color] + ' против Stockfish ' + CUR.stage.engine, 'Прогресс', 'Цель'); return; }
+    add('tip', 88, who + ': ' + colorLine(c) + ' · ещё минимум ' + gN(gamesToGoal(c)), null, 'Нужно ' + RULE.blocks + ' пятёрки подряд ' + COLOR_WORD[c.color] + ' против Stockfish ' + CUR.stage.engine + '. Сейчас: ' + blockWhy(cur), 'Прогресс', 'Цель');
+    // подряд хороших партий для цели (победа или «честное» поражение) — с конца
+    var good = 0;
+    for (var i = c.rel.length - 1; i >= 0 && (c.rel[i].result === 'win' || honestLoss(c.rel[i])); i--) good++;
+    if (good >= 3) add('good', 62 + good, who + ': ' + gN(good) + ' подряд без слабых поражений', null, 'Победа или достойное поражение (точность ≥ ' + RULE.lossMinAcc + '%, зевков ≤ ' + RULE.lossMaxBlunders + ')', 'Прогресс', 'Цель');
+    if (cur && cur.bad.length) add('bad', 64, who + ': слабые поражения мешают цели — #' + cur.bad.map(function(g) { return g.n; }).join(', #'), null,
+      'В пятёрке нужны поражения с точностью ≥ ' + RULE.lossMinAcc + '% и не больше ' + RULE.lossMaxBlunders + ' зевков', 'Прогресс', 'Цель', function() { gsOpenGame(cur.bad[cur.bad.length - 1]); });
   });
 
-  /* --- активность --- */
+  /* --- прогресс: активность --- */
   var st = streaks();
-  if (st.current >= 3) add('good', 58 + st.current, st.current + ' ' + plural(st.current, 'день', 'дня', 'дней') + ' подряд за доской', null, 'Серия дней с партиями');
+  if (st.current >= 3) add('good', 58 + st.current, st.current + ' ' + plural(st.current, 'день', 'дня', 'дней') + ' подряд за доской', null, 'Серия дней с партиями', 'Прогресс', 'Активность', function() { gsChart('activity', false); });
   if (n) {
     var idle = daysBetween(fromIso(games[n - 1].day), gameToday());
-    if (idle >= 3) add('tip', 82, 'Не играл ' + idle + ' ' + plural(idle, 'день', 'дня', 'дней'), null, 'Сыграй хотя бы одну партию, чтобы не терять форму');
+    if (idle >= 3) add('tip', 82, 'Не играл ' + idle + ' ' + plural(idle, 'день', 'дня', 'дней'), null, 'Сыграй хотя бы одну партию, чтобы не терять форму', 'Прогресс', 'Активность');
     else {
-      // регулярность: дни с партиями за последние 7 дней
       var d7 = isoDay(addDays(gameToday(), -6));
-      var act = games.filter(function(g) { return g.day >= d7; }).map(function(g) { return g.day; })
-        .filter(function(d, i, a) { return a.indexOf(d) === i; }).length;
-      add('tip', 64, 'Играй регулярно: 2–3 партии каждый день', null,
-        'Лучше несколько партий каждый день, чем много за один вечер. Сейчас дней с партиями: ' + act + ' из 7');
+      var act = games.filter(function(g) { return g.day >= d7; }).map(function(g) { return g.day; }).filter(function(d, i, a) { return a.indexOf(d) === i; }).length;
+      add('tip', 64, 'Играй регулярно: 2–3 партии каждый день', null, 'Лучше несколько партий каждый день, чем много за один вечер. Сейчас дней с партиями: ' + act + ' из 7', 'Прогресс', 'Активность', function() { gsChart('activity', false); });
     }
   }
 
@@ -5830,12 +5955,10 @@ function buildVerdicts() {
     var weekAgo = isoDay(addDays(gameToday(), -7));
     var base = hist.filter(function(h) { return h.day <= weekAgo; }).pop() || hist[0];
     if (base && hist.length > 1) {
-      var dr = P.rating - base.rating;
-      var since = base.day <= weekAgo ? 'за неделю' : 'с ' + base.date;
-      if (dr >= 20) add('good', 60 + dr / 5, 'Рейтинг задач +' + dr + ' ' + since, null, 'Сейчас ' + P.rating);
-      else if (dr <= -20) add('bad', 60 - dr / 5, 'Рейтинг задач −' + (-dr) + ' ' + since, null, 'Сейчас ' + P.rating);
+      var dr = P.rating - base.rating, since = base.day <= weekAgo ? 'за неделю' : 'с ' + base.date;
+      if (dr >= 20) add('good', 60 + dr / 5, 'Рейтинг задач +' + dr + ' ' + since, null, 'Сейчас ' + P.rating, 'Задачи', 'Рейтинг', function() { togglePuzzleDetail(true); });
+      else if (dr <= -20) add('bad', 60 - dr / 5, 'Рейтинг задач −' + (-dr) + ' ' + since, null, 'Сейчас ' + P.rating, 'Задачи', 'Рейтинг', function() { togglePuzzleDetail(true); });
     }
-    // темы: сравнение с общим перфомансом Lichess
     var gp = P.global && P.global.perf, ts = P.themeStats || {}, names = P.themeNames || {};
     if (gp) {
       var th = Object.keys(ts).filter(function(k) { return !PZ_SKIP[k] && ts[k].nb >= 5; })
@@ -5843,39 +5966,40 @@ function buildVerdicts() {
       var weakT = th.filter(function(x) { return x.p <= gp - 50; }).sort(function(a, b) { return a.p - b.p; });
       var strongT = th.filter(function(x) { return x.p >= gp + 80; }).sort(function(a, b) { return b.p - a.p; });
       weakT.slice(0, 2).forEach(function(x) {
-        add('bad', 55 + (gp - x.p) / 5, 'Слабая тема: «' + x.name + '» ' + x.p, null, 'Перфоманс в теме ' + x.p + ', твой средний ' + gp + ' (' + x.nb + ' задач)');
+        add('bad', 55 + (gp - x.p) / 5, 'Слабая тема: «' + x.name + '» ' + x.p, 'https://lichess.org/training/' + x.k, 'Перфоманс в теме ' + x.p + ', твой средний ' + gp + ' (' + x.nb + ' задач)', 'Задачи', 'Темы');
       });
-      if (weakT.length) add('tip', 72, '20 задач: «' + weakT[0].name + '»', 'https://lichess.org/training/' + weakT[0].k, 'Самая слабая тема — потренируй её на Lichess');
+      if (weakT.length) add('tip', 72, '20 задач: «' + weakT[0].name + '»', 'https://lichess.org/training/' + weakT[0].k, 'Самая слабая тема — потренируй её на Lichess', 'Задачи', 'Темы');
       strongT.slice(0, 2).forEach(function(x) {
-        add('good', 45 + (x.p - gp) / 10, 'Сильная тема: «' + x.name + '» ' + x.p, null, 'Перфоманс в теме ' + x.p + ', твой средний ' + gp);
+        add('good', 45 + (x.p - gp) / 10, 'Сильная тема: «' + x.name + '» ' + x.p, null, 'Перфоманс в теме ' + x.p + ', твой средний ' + gp, 'Задачи', 'Темы');
       });
+      // связка задач и партий: тактические зевки в партиях и слабая тактическая тема в задачах
+      var TACT = {fork: 1, pin: 1, skewer: 1, discoveredAttack: 1, doubleAttack: 1, hangingPiece: 1, trappedPiece: 1};
+      var tw = weakT.filter(function(x) { return TACT[x.k]; })[0], ct = cntType(last(games, 5));
+      if (tw && ((ct.tactic || 0) + (ct.hang || 0)) >= 3)
+        add('bad', 56, 'Тактика: «' + tw.name + '» слабая и в задачах, и в партиях', 'https://lichess.org/training/' + tw.k,
+          'Перфоманс темы ' + tw.p + ', а в последних 5 партиях ' + ((ct.tactic || 0) + (ct.hang || 0)) + ' ' + plural((ct.tactic || 0) + (ct.hang || 0), 'зевок', 'зевка', 'зевков') + ' «Под боем» / «Тактика соперника»', 'Задачи', 'Темы');
     }
-    // дебютные тренировки в задачах
     var tr = {};
     P.attempts.forEach(function(a) { if (a.mode === 'open') (tr[a.tr] = tr[a.tr] || []).push(a); });
     Object.keys(tr).forEach(function(k) {
       var l = tr[k], pct = r(l.filter(function(a) { return a.win; }).length / l.length * 100), nm = k.split(': ').pop();
       if (l.length >= 6 && pct < 50) {
-        add('bad', 58, 'Задачи «' + nm + '»: ' + pct + '% решено', null, 'Тренировка задач по дебюту: решено меньше половины');
-        add('tip', 66, 'Повтори задачи «' + nm + '»', 'https://lichess.org/training/openings', 'Это твой дебют — тактика в нём важнее всего');
-      } else if (l.length >= 6 && pct >= 70) add('good', 48, 'Задачи «' + nm + '»: ' + pct + '% решено', null, 'Тренировка задач по дебюту');
+        add('bad', 58, 'Задачи «' + nm + '»: ' + pct + '% решено', null, 'Тренировка задач по дебюту: решено меньше половины', 'Дебют', 'Задачи', function() { togglePuzzleDetail(true); });
+        add('tip', 66, 'Повтори задачи «' + nm + '»', 'https://lichess.org/training/openings', 'Это твой дебют — тактика в нём важнее всего', 'Дебют', 'Задачи');
+      } else if (l.length >= 6 && pct >= 70) add('good', 48, 'Задачи «' + nm + '»: ' + pct + '% решено', null, 'Тренировка задач по дебюту', 'Дебют', 'Задачи', function() { togglePuzzleDetail(true); });
     });
-    // объём задач: эта неделя против прошлой
     var mon = mondayOf(gameToday());
-    function cnt(m) {
-      var f = isoDay(m), t = isoDay(addDays(m, 6));
-      return P.attempts.filter(function(a) { return a.day >= f && a.day <= t; }).length;
-    }
+    function cnt(m) { var f = isoDay(m), t = isoDay(addDays(m, 6)); return P.attempts.filter(function(a) { return a.day >= f && a.day <= t; }).length; }
     var cw = cnt(mon), pw = cnt(addDays(mon, -7));
-    if (pw >= 10 && cw < pw / 2 && gameToday().getDay() >= 4) add('tip', 60, 'Задач меньше: ' + cw + ' (было ' + pw + ')', null, 'Эта неделя против прошлой');
+    if (pw >= 10 && cw < pw / 2 && gameToday().getDay() >= 4) add('tip', 60, 'Задач меньше: ' + cw + ' (было ' + pw + ')', null, 'Эта неделя против прошлой', 'Задачи', 'Рейтинг');
   }
 
   /* --- рейтинг партий --- */
   var RG = window.RATING_GAMES || [];
   if (RG.length >= 3) {
     var rl = RG.slice(-5), rs = rl.reduce(function(s, x) { return s + x.diff; }, 0);
-    if (rs >= 20) add('good', 70, 'Рейтинг партий +' + rs, null, 'За последние ' + rl.length + ' рейтинговых игр');
-    else if (rs <= -20) add('bad', 70, 'Рейтинг партий −' + (-rs), null, 'За последние ' + rl.length + ' рейтинговых игр');
+    if (rs >= 20) add('good', 70, 'Рейтинг партий +' + rs, null, 'За последние ' + rl.length + ' рейтинговых игр', 'Прогресс', 'Рейтинг');
+    else if (rs <= -20) add('bad', 70, 'Рейтинг партий −' + (-rs), null, 'За последние ' + rl.length + ' рейтинговых игр', 'Прогресс', 'Рейтинг');
   }
 
   V.sort(function(a, b) { return b.w - a.w; });
@@ -5937,6 +6061,7 @@ function startVdCarousel(n) {
 $('vdCard').addEventListener('mouseenter', function() { vdPaused = true; });
 $('vdCard').addEventListener('mouseleave', function() { vdPaused = false; });
 
+var vdItems = [];   // пункты последней отрисовки панели «Итоги» — для клика по пункту
 function renderVerdictDetail() {
   var V = buildVerdicts();
   // строка этапа: этап из plan.js и две пятёрки на каждый цвет этапа
@@ -5952,16 +6077,30 @@ function renderVerdictDetail() {
       (c.done ? '<b style="color:var(--green)">выполнено</b>' : '') + '</span>';
   });
   stage += '</span>';
-  function col(t, title, color, empty, numbered) {
-    var items = V.filter(function(v) { return v.t === t; });
+  vdItems = V;
+  function item(v, cls) {
+    var i = V.indexOf(v);
+    return '<div class="vdx-item vd-' + v.t + (cls ? ' ' + cls : '') + (v.go ? ' go" data-vi="' + i + '" title="Открыть, откуда это' : '') + '">' +
+      '<div class="vdx-main">' + esc(v.text) + (v.link ? ' <a href="' + v.link + '" target="_blank" rel="noopener">открыть ↗</a>' : '') + (v.go ? '<span class="vdx-go">›</span>' : '') + '</div>' +
+      (v.more && v.more !== v.text ? '<div class="vdx-more">' + esc(v.more) + '</div>' : '') + '</div>';
+  }
+  // колонка: группы (VD_GROUPS) → подгруппы → пункты по важности; в «Плане» самый важный совет — сверху крупно
+  function col(t, title, color, empty) {
+    var items = V.filter(function(v) { return v.t === t; }), main = t === 'tip' ? items[0] : null, html = '';
+    if (main) html += '<div class="vdx-mainbox">' + item(main, 'vdx-top') + '</div>';
+    VD_GROUPS.forEach(function(G) {
+      var gi = items.filter(function(v) { return v.g === G && v !== main; });
+      if (!gi.length) return;
+      html += '<div class="vdx-g">' + G + '</div>';
+      var subs = [];
+      gi.forEach(function(v) { if (subs.indexOf(v.sg) < 0) subs.push(v.sg); });
+      subs.forEach(function(sg) {
+        if (subs.length > 1 && sg) html += '<div class="vdx-sg">' + esc(sg) + '</div>';
+        gi.filter(function(v) { return v.sg === sg; }).forEach(function(v) { html += item(v); });
+      });
+    });
     return '<div class="vdx-col"><div class="vdx-title" style="color:' + color + '">' + title + ' <span>' + items.length + '</span></div>' +
-      '<div class="vdx-list">' + (items.length ? items.map(function(v, i) {
-        return '<div class="vdx-item vd-' + t + '">' +
-          '<div class="vdx-main">' + (numbered ? '<span class="vdx-n">' + (i + 1) + '</span>' : '') + esc(v.text) +
-            (v.link ? ' <a href="' + v.link + '" target="_blank" rel="noopener">открыть ↗</a>' : '') + '</div>' +
-          (v.more && v.more !== v.text ? '<div class="vdx-more">' + esc(v.more) + '</div>' : '') +
-        '</div>';
-      }).join('') : '<div class="pzd-empty">' + empty + '</div>') + '</div></div>';
+      '<div class="vdx-list">' + (items.length ? html : '<div class="pzd-empty">' + empty + '</div>') + '</div></div>';
   }
   $('vdDetail').innerHTML =
     '<div class="vdx-head"><span class="vdx-h">🎯 Итоги</span>' + stage +
@@ -5969,7 +6108,7 @@ function renderVerdictDetail() {
     '<div class="vdx-cols">' +
       col('bad', '▼ Что улучшить', 'var(--red)', 'Слабых мест не найдено') +
       col('good', '▲ Что идёт хорошо', 'var(--green)', 'Пока мало данных') +
-      col('tip', '💡 План', '#fbbf24', 'Пока нечего советовать', true) +
+      col('tip', '💡 План', '#fbbf24', 'Пока нечего советовать') +
     '</div>';
 }
 
@@ -6025,6 +6164,9 @@ $('vdCard').addEventListener('keydown', function(e) {
 });
 $('vdDetail').addEventListener('click', function(e) {
   if (e.target.closest('.vd-close')) { toggleVerdict(false); return; }
+  if (e.target.closest('a')) return;   // ссылка на Lichess — своя
+  var it = e.target.closest('.vdx-item.go');
+  if (it) { var v = vdItems[+it.getAttribute('data-vi')]; toggleVerdict(false); if (v && v.go) v.go(); return; }
   var t = e.target.closest('.vd-tab');
   if (t) { vdTab = t.getAttribute('data-t'); vdPage = 0; renderVerdictDetail(); return; }
   var p = e.target.closest('.vd-pager button');

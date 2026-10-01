@@ -2840,12 +2840,11 @@ function mrInfoClose(w) {
   if (pnl && w.classList.contains('info-up')) {
     pnl.style.transform = 'translate(102%, ' + (-(+pnl.getAttribute('data-dy') || 0)) + 'px)';
     w.classList.remove('info-open');
-    setTimeout(function() { if (!w.classList.contains('info-open')) { w.classList.remove('info-up'); mrInfoFit(w, 'off'); var ud = w.querySelector('.mri-ud'); if (ud) ud.textContent = '▲'; mrGraphReset(w); } }, 320);
+    setTimeout(function() { if (!w.classList.contains('info-open')) { w.classList.remove('info-up'); mrInfoFit(w, 'off'); var ud = w.querySelector('.mri-ud'); if (ud) ud.textContent = '▲'; } }, 320);
     return;
   }
   w.classList.remove('info-open', 'info-up');
   mrInfoFit(w, 'off');
-  mrGraphReset(w);
 }
 function mrCount(label, v, color, delta, extra, gv) {
   return '<div class="mr-cnt"' + (gv ? ' data-gv="' + gv + '" title="Клик — показать на графике перевеса"' : '') + '>' + (extra || '') + '<b style="color:' + color + '">' + v + '</b><span>' + label + '</span>' + (delta || '') + '</div>';
@@ -3852,13 +3851,15 @@ function renderGames() {
       var b = e.target.closest('[data-an]');
       if (b) { var a = b.getAttribute('data-an').split('|'); anOpen(g, +a[0], a[1]); return; }
       var sc = e.target.closest('.mri-sec');
-      if (sc) gvPick(sc.getAttribute('data-sec'));
+      if (sc) gvPick(sc.getAttribute('data-sec'), true);
     });
-    // показать на графике: блок панели «i», фаза или счётчик; тот же ещё раз — обычный вид. Если график закрыт панелью — она поднимается
-    function gvPick(key) {
+    // показать на графике: блок панели «i», фаза или счётчик; тот же ещё раз — обычный вид.
+    // Клик по блоку панели (fromPanel) поднимает её, если она закрывает график; фазы и счётчики панель не двигают —
+    // выбор виден на графике, когда панель закроют
+    function gvPick(key, fromPanel) {
       var w = detail.querySelector('.mr-gwrap');
       if (w.getAttribute('data-gv-key') === key) key = '';
-      if (key && w.classList.contains('info-open') && !w.classList.contains('info-up')) {
+      if (fromPanel && key && w.classList.contains('info-open') && !w.classList.contains('info-up')) {
         w.classList.add('info-up');
         var udb = w.querySelector('.mri-ud'); if (udb) { udb.textContent = '▼'; udb.title = 'Вернуть панель на график'; }
       }

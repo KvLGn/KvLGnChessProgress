@@ -7034,8 +7034,9 @@ function aiText(ask, isPlan, dataKey) {
    Алиса путала окна (75% за 5 партий / 60% за 10) и подписи соседних чисел. Здесь: только данные под вопрос,
    у каждой метрики одно окно, ключевые моменты отобраны заранее, 4 правила и шаблон ответа (Яндекс и Сбер советуют задавать формат). ---------- */
 var AI_SIMPLE_TPL = {
-  advice: [['Проблема: …', 'Почему: … (2–3 числа из данных, с подписью)', 'Что делать: 1) … 2) …', 'Как проверить: …'],
-           ['Problem: …', 'Why: … (2–3 numbers from the data, with their labels)', 'What to do: 1) … 2) …', 'How to check: …']],
+  // поля конкретные: простая модель заполняет шаблон буквально — в общем поле пишет общие слова (Алиса: без примеров ходов, «как проверить» без числа)
+  advice: [['Проблема (одна): …', 'Почему: … (2–3 числа из данных, с подписью)', 'Пример из данных: #партия, ход …, движок советовал … (1–2 примера, если в данных есть ходы)', 'Что делать: 1) … 2) … (конкретно: что и сколько)', 'Как проверить: число и срок — например, «зевков меньше 2 за партию в следующих 5 партиях»'],
+           ['Problem (one): …', 'Why: … (2–3 numbers from the data, with their labels)', 'Example from the data: #game, move …, the engine suggested … (1–2 examples, if the data has moves)', 'What to do: 1) … 2) … (concrete: what and how much)', 'How to check: a number and a time frame — e.g. "fewer than 2 blunders per game in the next 5 games"']],
   game:   [['Момент 1 (ход …): что было → что советовал движок → чему учит', 'Момент 2 (ход …): …', 'Момент 3 (ход …): …', 'Главный урок: …'],
            ['Moment 1 (move …): what happened → what the engine suggested → what it teaches', 'Moment 2 (move …): …', 'Moment 3 (move …): …', 'Main lesson: …']]
 };

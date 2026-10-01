@@ -6406,6 +6406,8 @@ var RD = {on: false, scale: 'self', keys: ['acc', 'mid', 'blunders', 'punish', '
 try { var rdSaved = JSON.parse(localStorage.getItem('vdRadar.v1') || 'null'); if (rdSaved) for (var rk in rdSaved) RD[rk] = rdSaved[rk]; } catch (e) {}
 if (!Array.isArray(RD.keys)) RD.keys = Array.isArray(RD.custom) ? RD.custom.slice() : ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles'];   // старый формат (set/custom)
 delete RD.set; delete RD.custom;
+var RD_GOAL_ON = false;   // режим «К цели этапа» пока скрыт
+if (!RD_GOAL_ON) RD.scale = 'self';
 var rdOpenG = {};   // какие группы в списке параметров раскрыты (не сохраняется)
 function rdSave() { try { localStorage.setItem('vdRadar.v1', JSON.stringify(RD)); } catch (e) {} }
 function rdAvg(list, f) { var v = list.map(f).filter(function(x) { return x !== null && x !== undefined; }); return v.length ? v.reduce(function(a, b) { return a + b; }, 0) / v.length : null; }
@@ -6552,9 +6554,10 @@ function rdData() {
 }
 function rdHtml() {
   var D = rdData(), S = 360, C = S / 2, R0 = 128;
-  var bar = '<div class="rd-bar"><span class="rd-seg">' +
+  // переключатель шкалы «Я против себя | К цели этапа» пока скрыт (решение 02.10.2026); код режима цели оставлен — вернуть: RD_GOAL_ON = true
+  var bar = RD_GOAL_ON ? '<div class="rd-bar"><span class="rd-seg">' +
       [['self', 'Я против себя'], ['goal', 'К цели этапа']].map(function(x) { return '<button type="button" data-rds="' + x[0] + '" class="' + (RD.scale === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '</span>' +
-    '</div>';
+    '</div>' : '';
   var axes = D.axes, k = axes.length, svg = '';
   if (k < 3) {
     var Sl = D.sel || {};

@@ -7116,7 +7116,7 @@ var AI_SIMPLE = {
     out.push(AL('Поражения (' + L.length + '), каждое одной строкой:', 'Losses (' + L.length + '), one per line:'));
     L.forEach(function(g) {
       var t = mrTurn(g), big = (g.bl || []).slice().sort(function(a, b) { return (b.d || 99) - (a.d || 99); })[0];
-      out.push('- ' + aiSGame(g) + (t ? AL('; перелом: ', '; turning point: ') + (anMine(g, t.p) ? AL('мой ход ', 'my move ') : AL('ход бота ', 'the bot\'s move ')) + aiMove(g, t.p) + ' (' + aiEv(g.ev[t.p - 1] || 0) + ' → ' + aiEv(g.ev[t.p] || 0) + (t.d > 0 ? AL(', в мою пользу', ', in my favour') : AL(', в пользу бота', ', in the bot's favour')) + ')' : '') +
+      out.push('- ' + aiSGame(g) + (t ? AL('; перелом: ', '; turning point: ') + (anMine(g, t.p) ? AL('мой ход ', 'my move ') : AL('ход бота ', 'the bot\'s move ')) + aiMove(g, t.p) + ' (' + aiEv(g.ev[t.p - 1] || 0) + ' → ' + aiEv(g.ev[t.p] || 0) + (t.d > 0 ? AL(', в мою пользу', ', in my favour') : AL(', в пользу бота', ', in the bot' + "'" + 's favour')) + ')' : '') +
         (big ? AL('; самый дорогой зевок: ', '; most costly blunder: ') + anMoveNo(blPly(g, big)) + big.s + ' (' + aiBlType(big.t) + ')' : ''));
     });
     out.push(AL('Общее: до эндшпиля не дошли ', 'Overall: did not reach the endgame in ') + aiEarlyLosses(last) + AL('; зевков в поражениях в среднем ', '; blunders per loss on average ') + aiR1(avg(L, 'blunders')) + AL('; миттельшпиль в поражениях ', '; middlegame in losses ') + aiPct(avg(L, 'mid')) + '.');

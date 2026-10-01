@@ -6934,6 +6934,7 @@ function plainStudy() {   // «Сейчас учу дебют: Итальянс�
   return [AL('Сейчас учу дебют: ', 'Currently learning the opening: ') + (parts.join('; ') || '—') + '.', vs].filter(Boolean);
 }
 // «обо мне» — коротко, одинаково для всех пунктов (для человека — без этапов, пятёрок и выводов сайта)
+function aiRange(list) { return list.length ? '#' + (games.indexOf(list[0]) + 1) + '–#' + (games.indexOf(list[list.length - 1]) + 1) : '—'; }
 function aiAbout() {
   var out = plainStudy(), last = games.slice(-10), P = window.PUZZLES;
   if (!PLAIN && CUR.stage) {
@@ -6943,14 +6944,15 @@ function aiAbout() {
       out.push(AL('Цель этапа', 'Stage goal') + (CUR.colors.length > 1 ? ' ' + AL(COLOR_WORD[c.color], 'as ' + COLOR_EN[c.color]) : '') + ': ' +
         (c.done ? AL('выполнена', 'done') : ok + AL(' из ', ' of ') + RULE.blocks + AL(' пятёрок; ещё минимум ', ' sets done; at least ') + gamesToGoal(c) + AL(' партий', ' more games')) + '.');
     });
-    var S = CUR.stage, inGoal = last.filter(aiInGoal).length;
-    out.push(AL('В цель этапа идут только партии ' + (S.colors.length > 1 ? 'обоими цветами' : COLOR_WORD[S.colors[0]]) + ' против Stockfish ' + S.engine + '; из последних 10 партий таких ' + inGoal + ', остальные в цель не идут.',
-                'Only games ' + (S.colors.length > 1 ? 'with both colours' : 'as ' + COLOR_EN[S.colors[0]]) + ' vs Stockfish ' + S.engine + ' count towards the goal; ' + inGoal + ' of the last 10 games are such, the rest do not count.'));
+    var S = CUR.stage, inGoal = last.filter(aiInGoal).length, outG = last.filter(function(g) { return !aiInGoal(g); });
+    var outTxt = outG.map(function(g) { return '#' + (games.indexOf(g) + 1) + ' — ' + AL(COLOR_WORD[g.color], 'as ' + COLOR_EN[g.color]) + ' vs ' + (g.engine || g.section || '?'); }).join('; ');
+    out.push(AL('В цель этапа идут только партии ' + (S.colors.length > 1 ? 'обоими цветами' : COLOR_WORD[S.colors[0]]) + ' против Stockfish ' + S.engine + ' — любым дебютом, название этапа его не ограничивает; из последних 10 партий (' + aiRange(last) + ') таких ' + inGoal + (outG.length ? ', не идут: ' + outTxt : '') + '.',
+                'Only games ' + (S.colors.length > 1 ? 'with both colours' : 'as ' + COLOR_EN[S.colors[0]]) + ' vs Stockfish ' + S.engine + ' count towards the goal — with any opening, the stage name does not restrict it; ' + inGoal + ' of the last 10 games (' + aiRange(last) + ') are such' + (outG.length ? ', not counting: ' + outTxt : '') + '.'));
   }
   out.push(speedLine(aiLang));
   if (games.length) {
     out.push(AL('Всего партий с анализом: ', 'Analysed games: ') + games.length + ' (' + aiWL(games) + ').');
-    out.push(AL('Последние ', 'Last ') + aiAvgLine(last) + '.');
+    out.push(AL('Последние ', 'Last ') + aiAvgLine(last) + (PLAIN ? AL(' (средние значения).', ' (averages).') : AL(' — партии ' + aiRange(last) + ', все цифры здесь средние.', ' — games ' + aiRange(last) + ', all numbers here are averages.')));   // номера партий — только в задании программисту (в письме-совете партии по датам)
   }
   if (P && P.rating) {
     var wt = aiWeakThemes(3);
@@ -7712,6 +7714,8 @@ function humanTextInner(ask, isPlan, dataKey, item) {
     AL('• Дебют становится «Изучаю», когда начинается этап, в openings которого стоит его id; дебют без этапа — «В планах». Ходы мастеров по новым студиям сайт подтянет сам при следующем автообновлении данных (обычно в течение часа, но не всегда сразу).',
        '• An opening becomes «Изучаю» (studying) when the stage that lists its id in openings starts; an opening without a stage is «В планах» (planned). Master moves for new studies are fetched by the next automatic data update (usually within an hour, not always right away).'),
     ruleSharedNote(),
+    AL('• Термины: «точность» — оценка Lichess по компьютерному анализу партии (0–100%); «зевок» — грубая ошибка (blunder), «ошибка» — средняя (mistake); в правиле считаются только зевки. Поражение «слабое», если нарушено хотя бы одно из двух условий: точность ниже ' + RULE.lossMinAcc + '% или зевков больше ' + RULE.lossMaxBlunders + '.',
+       '• Terms: «точность» (accuracy) is Lichess\'s score from the computer analysis (0–100%); «зевок» is a blunder, «ошибка» a mistake; the rule counts only blunders. A loss is «weak» if either condition fails: accuracy below ' + RULE.lossMinAcc + '% or more than ' + RULE.lossMaxBlunders + ' blunders.'),
     AL('• Любая правка правила или текущего этапа (rule, engine, colors) пересчитывается сразу: если по новым условиям этап уже был выполнен в прошлых партиях, сайт засчитает его задним числом, и при ближайшем автообновлении это навсегда запишется в data/progress.js — откатить нельзя. Поэтому смягчать правило — только осознанно.',
        '• Any change to the rule or the current stage (rule, engine, colors) is recalculated at once: if the stage would already have been completed under the new conditions, the site counts it retroactively, and the next automatic update records it in data/progress.js for good — it cannot be undone. So relax the rule only deliberately.'),
     AL('• data/plan.js — это код на JavaScript: одна лишняя или пропущенная запятая, скобка или кавычка ломает файл. Сайт тогда покажет красную плашку с причиной; рабочая копия плана есть только в браузере, где сайт уже открывали, — у остальных этапы и дебюты пропадут, пока файл не исправят.',

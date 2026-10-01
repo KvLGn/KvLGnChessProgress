@@ -6408,7 +6408,8 @@ if (!Array.isArray(RD.keys)) RD.keys = Array.isArray(RD.custom) ? RD.custom.slic
 delete RD.set; delete RD.custom;
 var RD_GOAL_ON = false;   // режим «К цели этапа» пока скрыт
 if (!RD_GOAL_ON) RD.scale = 'self';
-var rdOpenG = {};   // какие группы в списке параметров раскрыты (не сохраняется)
+if (!RD.openG || typeof RD.openG !== 'object') RD.openG = {};
+var rdOpenG = RD.openG;   // какие группы в списке параметров раскрыты / свёрнуты — сохраняется (vdRadar.v1); не трогал группу — раскрыта, если в ней что-то выбрано
 function rdSave() { try { localStorage.setItem('vdRadar.v1', JSON.stringify(RD)); } catch (e) {} }
 function rdAvg(list, f) { var v = list.map(f).filter(function(x) { return x !== null && x !== undefined; }); return v.length ? v.reduce(function(a, b) { return a + b; }, 0) / v.length : null; }
 function rdPerGame(cnt) { return function(list) { return list.length ? list.reduce(function(s, g) { return s + cnt(g); }, 0) / list.length : null; }; }
@@ -6714,7 +6715,7 @@ $('vdDetail').addEventListener('click', function(e) {
   rb = e.target.closest('[data-rdset]');
   if (rb) { RD.keys = RD_SETS.filter(function(x) { return x.k === rb.getAttribute('data-rdset'); })[0].keys.slice(); rdSave(); rdRerender(); return; }
   rb = e.target.closest('[data-rdg]');
-  if (rb) { var G = rb.getAttribute('data-rdg'), wasOpen = !!$('vdDetail').querySelector('[data-rdg="' + G + '"]').nextElementSibling; rdOpenG[G] = !wasOpen; rdRerender(); return; }
+  if (rb) { var G = rb.getAttribute('data-rdg'), wasOpen = !!$('vdDetail').querySelector('[data-rdg="' + G + '"]').nextElementSibling; rdOpenG[G] = !wasOpen; rdSave(); rdRerender(); return; }
   rb = e.target.closest('[data-rdck]');
   if (rb) {
     var ck = rb.getAttribute('data-rdck'), at = RD.keys.indexOf(ck);

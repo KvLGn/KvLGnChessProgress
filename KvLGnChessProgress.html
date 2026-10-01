@@ -5139,7 +5139,7 @@ function planOpening(g) {
 }
 var CK_L = '<i class="ck ck-l" title="по данным Lichess">✓</i>', CK_P = '<i class="ck ck-p" title="по твоему плану (data/plan.js)">✓</i>';
 // какие названия дебюта показывать: 'all' — Lichess и план (как было), 'plan' — только мой план, 'lichess' — только Lichess
-var OP_NAMES = [['plan', 'Мой план'], ['lichess', 'Lichess'], ['all', 'Все']];
+var OP_NAMES = [['all', 'Все'], ['plan', 'Мой план'], ['lichess', 'Lichess']];   // порядок кнопок в переключателях
 var tblOpNames = 'all', anOpNames = 'lichess';   // таблица партий / список «Партии» в «Анализе»
 try { tblOpNames = localStorage.getItem('tblOpNames') || 'all'; anOpNames = localStorage.getItem('anOpNames') || 'lichess'; } catch (e) {}
 function opSegHtml(cur, keys) {

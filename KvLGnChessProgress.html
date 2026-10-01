@@ -861,7 +861,7 @@
   .ai-menu.open { display: flex; }
   .ai-menu { box-sizing: border-box; }
   .ai-box { box-sizing: border-box; min-width: 0; }
-  .ai-head { flex-wrap: nowrap; min-width: 0; }
+  .ai-head { flex-wrap: wrap; row-gap: 8px; min-width: 0; }
   .ai-own-btns { flex-wrap: wrap; }
   @media (max-width: 700px) { .ai-menu { padding: 8px; align-items: stretch; } .ai-box { width: 100%; max-height: none; padding: 12px; } .ai-own-btns button { flex: 1 1 auto; } }
   .ai-box { width: 600px; max-width: 100%; max-height: 86vh; display: flex; flex-direction: column; background: linear-gradient(180deg, #14201a 0%, #111815 100%);
@@ -872,12 +872,35 @@
   .ai-item { line-height: 1.35; }
   .ai-list { scrollbar-width: thin; scrollbar-color: rgba(74,222,128,0.3) transparent; }
   .ai-lang { display: flex; gap: 4px; }
-  .ai-who { margin-left: auto; }
   .ai-lang button { font: 600 11px Inter, sans-serif; color: var(--fg-mute); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
   .ai-lang button.on { color: #86efac; border-color: rgba(74,222,128,0.5); }
   .ai-note { font-size: 11px; color: var(--fg-dim); margin: 6px 0 8px; }
-  .ai-model { display: flex; align-items: center; gap: 10px; margin: -2px 0 8px; }
-  .ai-model-hint { font-size: 11px; color: var(--fg-mute); }
+  .ai-ctl { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+  .ai-lang button:disabled { opacity: 0.35; cursor: default; }
+  .ai-dd { position: relative; }
+  .ai-dd-btn { font: 600 11px Inter, sans-serif; background: none; border: 1px solid; border-radius: 6px; padding: 3px 8px; cursor: pointer; white-space: nowrap; }
+  .ai-dd-btn.ai-c-who { color: #86efac; border-color: rgba(74,222,128,0.5); }
+  .ai-dd-btn.ai-c-adv { color: #86efac; border-color: rgba(74,222,128,0.5); }
+  .ai-dd-btn.ai-c-tech { color: #fcd34d; border-color: rgba(251,191,36,0.5); }
+  .ai-dd-menu { display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 5; min-width: 150px; flex-direction: column; gap: 2px; padding: 4px;
+    background: #111815; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+  .ai-dd.open .ai-dd-menu { display: flex; }
+  .ai-dd-menu button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; text-align: left; font: 600 12px Inter, sans-serif; color: var(--fg);
+    background: none; border: none; border-radius: 6px; padding: 5px 8px; cursor: pointer; white-space: nowrap; }
+  .ai-dd-menu button:hover, .ai-dd-menu button.on { background: rgba(255,255,255,0.06); }
+  .ai-dd-menu button i { font: 400 10.5px Inter, sans-serif; font-style: normal; color: var(--fg-mute); }
+  .ai-dd-menu button.ai-c-adv { color: #86efac; }
+  .ai-dd-menu button.ai-c-tech { color: #fcd34d; }
+  .ai-info { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%; border: 1px solid rgba(148,163,184,0.45);
+    font: 700 11px Georgia, serif; font-style: italic; color: var(--fg-mute); cursor: help; flex: none; }
+  .ai-info:hover, .ai-info.open { color: var(--fg); border-color: var(--fg-dim); }
+  .ai-info-tip { display: none; position: absolute; top: calc(100% + 6px); left: -8px; z-index: 6; width: 300px; max-width: calc(100vw - 48px); padding: 8px 10px; font: 400 11.5px/1.45 Inter, sans-serif; font-style: normal;
+    color: var(--fg-dim); text-align: left; background: #111815; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); cursor: default; }
+  .ai-info-tip b { color: var(--fg); font-weight: 600; font-style: normal; font-size: inherit; }   /* перебивает .ai-head b (заголовок «Справка») */
+  @media (max-width: 700px) { .ai-box { position: relative; } .ai-head .ai-close { position: absolute; top: 10px; right: 10px; } .ai-ctl { flex: 1 1 100%; justify-content: flex-start; margin-left: 0; } .ai-info-tip { left: -4px; } }
+  .ai-info:hover .ai-info-tip, .ai-info.open .ai-info-tip, .ai-info:focus .ai-info-tip { display: block; }
+  .ai-c-adv { color: #86efac; } .ai-c-tech { color: #fcd34d; }
+  .ai-box.tech { border-color: rgba(251,191,36,0.3); }
   .ai-list { overflow-y: auto; min-height: 0; padding-right: 4px; overscroll-behavior: contain; }
   .ai-box, .ai-own textarea { overscroll-behavior: contain; }
   .ai-group { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #4ade80; margin: 10px 0 4px; }
@@ -6443,8 +6466,9 @@ var AI_ASKS = [
 ];
 /* ---------- «Справка»: данные под вопрос (RU / EN) ---------- */
 var aiLang = 'ru', aiMode = 'ai';   // язык и адресат: 'ai' — нейросеть, 'human' — человек (совет — письмо, план — задание программисту)
+var aiKind = 'advice', aiDd = null;   // суть вопроса: 'advice' — совет, 'tech' — техническая (правка plan.js); aiDd — открытый список 'who' | 'kind'
 var aiModel = 'strong';   // 'strong' — DeepSeek, ChatGPT…; 'simple' — Алиса, GigaChat…: короткий пакет (aiTextSimple)
-try { if (localStorage.getItem('aiLang') === 'en') aiLang = 'en'; if (localStorage.getItem('aiMode') === 'human') aiMode = 'human'; if (localStorage.getItem('aiModel') === 'simple') aiModel = 'simple'; } catch (e) {}
+try { if (localStorage.getItem('aiLang') === 'en') aiLang = 'en'; if (localStorage.getItem('aiMode') === 'human') aiMode = 'human'; if (localStorage.getItem('aiModel') === 'simple') aiModel = 'simple'; if (localStorage.getItem('aiKind') === 'tech') aiKind = 'tech'; } catch (e) {}
 function AL(ru, en) { return aiLang === 'en' ? en : ru; }
 var PLAIN = false;   // письмо человеку с советом: без этапов, «пятёрок» и номеров партий, со ссылками на ходы Lichess
 var AI_REFS = [];    // партии, упомянутые в данных, — письмо человеку ссылается на 3 самые свежие
@@ -7106,31 +7130,49 @@ function helpText(ask, isPlan, dataKey, item) {
 
 /* ---------- окно «Справка» ---------- */
 function renderAiMenu() {
-  var c = aiCtx(), H = aiMode === 'human';
+  var c = aiCtx(), H = aiMode === 'human', T = aiKind === 'tech';
   function v(x) { return typeof x === 'function' ? x(c) : x; }
-  $('aiMenu').innerHTML = '<div class="ai-box" role="dialog" aria-label="' + AL('Справка', 'Help') + '">' +
+  function dd(key, label, cls, opts) {   // выпадающий список: кнопка с выбранным + меню
+    return '<span class="ai-dd' + (aiDd === key ? ' open' : '') + '"><button class="ai-dd-btn ' + cls + '" data-dd="' + key + '">' + label + ' ▾</button>' +
+      '<span class="ai-dd-menu">' + opts + '</span></span>';
+  }
+  var info = AL('<b>Для кого</b> — <b>ИИ</b>: копирует готовый запрос для нейросети; <b>человек</b>: письмо тренеру или в чат шахматистов (совет) либо пошаговое задание программисту (план).<br>' +
+      '<b>Сильная / Простая</b> — какой нейросети отдаёте: сильная (DeepSeek, ChatGPT, Claude, Gemini) получает полный запрос со сводкой, простая (Алиса, GigaChat, мини-версии) — короткий с готовыми выводами.<br>' +
+      '<b>Суть вопроса</b> — <span class="ai-c-adv">совет</span>: вопросы об игре и тренировках; <span class="ai-c-tech">техническая</span>: правка плана обучения (этапы, правило перехода, дебюты) в data/plan.js.<br>Нажми на пункт — запрос скопируется, вставь его в чат.',
+    '<b>For whom</b> — <b>AI</b>: copies a ready request for an AI chat; <b>person</b>: a message for a coach or a chess chat (advice) or a step-by-step task for a programmer (plan).<br>' +
+      '<b>Strong / Simple</b> — which AI: strong (DeepSeek, ChatGPT, Claude, Gemini) gets the full request with the summary, simple (Alice, GigaChat, mini versions) a short one with ready conclusions.<br>' +
+      '<b>Topic</b> — <span class="ai-c-adv">advice</span>: questions about play and training; <span class="ai-c-tech">technical</span>: changing the training plan (stages, rule, openings) in data/plan.js.<br>Click an item — the request is copied, paste it into the chat.');
+  var who = dd('who', H ? AL('Для человека', 'For a person') : AL('Для ИИ', 'For AI'), 'ai-c-who',
+    '<button data-mode="ai" class="' + (H ? '' : 'on') + '">' + AL('Для ИИ', 'For AI') + '</button><button data-mode="human" class="' + (H ? 'on' : '') + '">' + AL('Для человека', 'For a person') + '</button>');
+  var model = H || aiLang !== 'ru' ? '' : '<span class="ai-lang"><button data-model="strong" class="' + (aiModel === 'strong' || T ? 'on' : '') + '" title="DeepSeek, ChatGPT, Claude, Gemini — полный запрос со сводкой">Сильная</button>' +
+    '<button data-model="simple" class="' + (aiModel === 'simple' && !T ? 'on' : '') + '"' + (T ? ' disabled title="Правка плана — всегда полный запрос"' : ' title="Алиса, GigaChat, мини-версии — короткий запрос с готовыми выводами"') + '>Простая</button></span>';
+  var kind = dd('kind', T ? AL('Техническая', 'Technical') : AL('Совет', 'Advice'), T ? 'ai-c-tech' : 'ai-c-adv',
+    '<button data-kind="advice" class="ai-c-adv' + (T ? '' : ' on') + '">' + AL('Совет', 'Advice') + '<i>' + AL('вопросы об игре и тренировках', 'questions about play and training') + '</i></button>' +
+    '<button data-kind="tech" class="ai-c-tech' + (T ? ' on' : '') + '">' + AL('Техническая', 'Technical') + '<i>' + AL('правка плана: этапы, правило, дебюты', 'plan changes: stages, rule, openings') + '</i></button>');
+  $('aiMenu').innerHTML = '<div class="ai-box' + (T ? ' tech' : '') + '" role="dialog" aria-label="' + AL('Справка', 'Help') + '">' +
     '<div class="ai-head"><b>📋 ' + AL('Справка', 'Help') + '</b>' +
-      '<span class="ai-lang ai-who"><button data-mode="ai" class="' + (H ? '' : 'on') + '">' + AL('Для ИИ', 'For AI') + '</button><button data-mode="human" class="' + (H ? 'on' : '') + '">' + AL('Для человека', 'For a person') + '</button></span>' +
-      '<span class="ai-lang"><button data-lang="ru" class="' + (aiLang === 'ru' ? 'on' : '') + '">RU</button><button data-lang="en" class="' + (aiLang === 'en' ? 'on' : '') + '">EN</button></span>' +
+      '<span class="ai-ctl"><span class="ai-info" tabindex="0" aria-label="' + AL('Что здесь для чего', 'What is what') + '">i<span class="ai-info-tip">' + info + '</span></span>' +
+        who + model + kind +
+        '<span class="ai-lang"><button data-lang="ru" class="' + (aiLang === 'ru' ? 'on' : '') + '">RU</button><button data-lang="en" class="' + (aiLang === 'en' ? 'on' : '') + '">EN</button></span></span>' +
       '<button class="pzd-close ai-close" aria-label="' + AL('Закрыть', 'Close') + '">×</button></div>' +
     '<div class="ai-note">' + (H
-      ? AL('Нажми на пункт — скопируется готовое письмо: совет — тренеру, знакомому или в чат шахматистов (начало годится как пост), план — пошаговое задание программисту.', 'Click an item — a ready message is copied: advice — for a coach, a friend or a chess chat (the top part works as a post), plan — a step-by-step task for a programmer.')
-      : AL('Нажми на пункт — скопируется готовый запрос с моими данными. Вставь в нейросеть и отправь.', 'Click an item — a ready request with my data is copied. Paste into an AI chat and send.')) + '</div>' +
-    (H || aiLang !== 'ru' ? '' : '<div class="ai-model"><span class="ai-lang"><button data-model="strong" class="' + (aiModel === 'strong' ? 'on' : '') + '">Сильная</button><button data-model="simple" class="' + (aiModel === 'simple' ? 'on' : '') + '">Простая</button></span>' +
-      '<span class="ai-model-hint">' + (aiModel === 'simple' ? 'Алиса, GigaChat, бесплатные мини-версии — короткий запрос с готовыми выводами' : 'DeepSeek, ChatGPT, Claude, Gemini — полный запрос со сводкой') + '</span></div>') +
+      ? (T ? AL('Нажми на пункт — скопируется пошаговое задание программисту: что поменять в плане и как.', 'Click an item — a step-by-step task for a programmer is copied: what to change in the plan and how.')
+           : AL('Нажми на пункт — скопируется готовое письмо тренеру, знакомому или в чат шахматистов (начало годится как пост).', 'Click an item — a ready message is copied for a coach, a friend or a chess chat (the top part works as a post).'))
+      : (T ? AL('Нажми на пункт — скопируется запрос; нейросеть вернёт новый data/plan.js для сайта.', 'Click an item — a request is copied; the AI returns a new data/plan.js for the site.')
+           : AL('Нажми на пункт — скопируется готовый запрос с моими данными. Вставь в нейросеть и отправь.', 'Click an item — a ready request with my data is copied. Paste into an AI chat and send.'))) + '</div>' +
     '<div class="ai-list">' + AI_ASKS.map(function(G, gi) {
+      if (!!G.plan !== T) return '';   // только вопросы выбранной сути
       var gt = G.plan ? (H ? AL('План (задание программисту)', 'Plan (task for a programmer)') : AL(G.g, G.gEn)) : AL(G.g, G.gEn);
       return '<div class="ai-group' + (G.plan ? ' plan' : '') + '">' + gt + '</div>' +
         G.items.map(function(it, ii) {
           return '<button class="ai-item" data-g="' + gi + '" data-i="' + ii + '"><span class="ai-t">' + esc(v(aiLang === 'en' && it.tEn ? it.tEn : it.t)) + '</span><span class="ai-s">' + esc(v(it[aiLang])) + '</span></button>';
         }).join('');
     }).join('') + '</div>' +
-    '<div class="ai-own"><textarea id="aiOwn" rows="2" placeholder="' + AL('Свой вопрос…', 'Your own question…') + '"></textarea>' +
-      '<div class="ai-own-row"><span class="ai-own-hint">' + (H
-        ? AL('совет — письмо человеку; изменить план — пошаговое задание программисту', 'advice — a message to a person; change plan — a step-by-step task for a programmer')
-        : AL('совет — ответ словами; изменить план — ИИ вернёт новый plan.js для сайта', 'advice — answer in words; change plan — AI returns a new plan.js for the site')) + '</span>' +
-      '<div class="ai-own-btns"><button data-own="advice">' + AL('💬 Спросить совет', '💬 Ask for advice') + '</button>' +
-      '<button data-own="plan">' + AL('✏️ Изменить план', '✏️ Change plan') + '</button></div></div></div>' +
+    '<div class="ai-own"><textarea id="aiOwn" rows="2" placeholder="' + (T ? AL('Что поменять в плане…', 'What to change in the plan…') : AL('Свой вопрос…', 'Your own question…')) + '"></textarea>' +
+      '<div class="ai-own-row"><span class="ai-own-hint">' + (T
+        ? (H ? AL('пошаговое задание программисту по вашей просьбе', 'a step-by-step task for a programmer') : AL('нейросеть вернёт новый plan.js для сайта', 'the AI returns a new plan.js for the site'))
+        : (H ? AL('письмо человеку с вашим вопросом и данными', 'a message to a person with your question and data') : AL('ответ словами по вашим данным', 'an answer in words based on your data'))) + '</span>' +
+      '<div class="ai-own-btns">' + (T ? '<button data-own="plan">' + AL('✏️ Изменить план', '✏️ Change plan') + '</button>' : '<button data-own="advice">' + AL('💬 Спросить совет', '💬 Ask for advice') + '</button>') + '</div></div></div>' +
   '</div>';
 }
 function openAiMenu() { renderAiMenu(); $('aiMenu').classList.add('open'); if (AI_FEN) anNeedChess(function() {}); }   // chess.js — для FEN и PGN в пакетах
@@ -7155,10 +7197,17 @@ $('aiMenu').addEventListener('click', function(e) {
   if (e.target === $('aiMenu') || e.target.closest('.ai-close')) { closeAiMenu(); return; }
   var b = e.target.closest('[data-lang]');
   if (b) { aiLang = b.getAttribute('data-lang'); try { localStorage.setItem('aiLang', aiLang); } catch (err) {} renderAiMenu(); return; }
+  var ddb = e.target.closest('[data-dd]');
+  if (ddb) { var k = ddb.getAttribute('data-dd'); aiDd = aiDd === k ? null : k; renderAiMenu(); return; }
+  var kd = e.target.closest('[data-kind]');
+  if (kd) { aiKind = kd.getAttribute('data-kind'); aiDd = null; try { localStorage.setItem('aiKind', aiKind); } catch (err) {} renderAiMenu(); return; }
+  var inf = e.target.closest('.ai-info');
+  if (inf) { inf.classList.toggle('open'); return; }   // на телефоне подсказка открывается нажатием
+  if (aiDd && !e.target.closest('.ai-dd-menu')) { aiDd = null; renderAiMenu(); return; }
   var md = e.target.closest('[data-model]');
   if (md) { aiModel = md.getAttribute('data-model'); try { localStorage.setItem('aiModel', aiModel); } catch (err) {} renderAiMenu(); return; }
   var m = e.target.closest('[data-mode]');
-  if (m) { aiMode = m.getAttribute('data-mode'); try { localStorage.setItem('aiMode', aiMode); } catch (err) {} renderAiMenu(); return; }
+  if (m) { aiMode = m.getAttribute('data-mode'); aiDd = null; try { localStorage.setItem('aiMode', aiMode); } catch (err) {} renderAiMenu(); return; }
   var it = e.target.closest('.ai-item');
   if (it) {
     var G = AI_ASKS[+it.getAttribute('data-g')], I = G.items[+it.getAttribute('data-i')], c = aiCtx();
@@ -7181,7 +7230,11 @@ $('aiMenu').addEventListener('click', function(e) {
     helpToast('');
   }
 });
-document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && $('aiMenu').classList.contains('open')) closeAiMenu(); });
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape' || !$('aiMenu').classList.contains('open')) return;
+  if (aiDd) { aiDd = null; renderAiMenu(); return; }   // сначала закрывается выпадающий список, потом окно
+  closeAiMenu();
+});
 function copySummary() { openAiMenu(); }
 
 /* ---------- глобальный поиск: разделы, партии, дебюты, темы задач, итоги ---------- */

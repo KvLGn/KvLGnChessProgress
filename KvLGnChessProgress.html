@@ -6499,8 +6499,7 @@ function aiCtx() {
   th = th.map(function(k) { return (P.themeNames || {})[k] || PZ_NAMES[k] || k; });
   var op = ((window.OPENINGS || {}).current || [])[0];
   return {phase: ph, themes: th.join(', ') || '—', themesEn: thEn.join(', ') || '—', op: op ? op.name : 'мой дебют', opEn: op ? (op.match || [op.name])[0] : 'my opening',
-          engine: CUR.stage ? CUR.stage.engine : 5,
-          nextEngine: Math.min(8, (PLAN.stages || []).reduce(function(m, S) { return Math.max(m, S.engine || 0); }, 0) + 1)};   // для «Добавить следующий этап»
+          engine: CUR.stage ? CUR.stage.engine : 5};
 }
 // пункты: t — заголовок, ru/en — просьба к нейросети (в советах — «одна главная проблема»), h/hEn — тот же вопрос человеку, d — данные (AI_DATA)
 var AI_ASKS = [
@@ -6589,7 +6588,7 @@ var AI_ASKS = [
   ]},
   {g: 'План (вернёт новый plan.js)', gEn: 'Plan (returns a new plan.js)', plan: true, items: [
     {t: 'Пора ли менять правило перехода', tEn: 'Should the transition rule change', d: 'goal', ru: 'Не слишком ли жёсткое или мягкое правило перехода для моих цифр? Если нужно — поправь rule.', en: 'Is the stage transition rule too strict or too easy for my numbers? Adjust rule if needed.'},
-    {t: 'Добавить следующий этап', tEn: 'Add the next stage', d: 'nextstage', ru: function(c) { return 'Добавь следующий этап после последнего: например, оба цвета против Stockfish ' + c.nextEngine + ', без новых дебютов (если нужны дебюты — допишу какие).'; }, en: function(c) { return 'Add the next stage after the last one: e.g. both colours vs Stockfish ' + c.nextEngine + ', with no new openings (if openings are needed, I will add which).'; }},
+    {t: 'Добавить следующий этап', tEn: 'Add the next stage', d: 'nextstage', ru: 'Добавь следующий этап после последнего. Соперник и цвета: [впиши перед отправкой]. Дебюты: [впиши или оставь «без новых»].', en: 'Add the next stage after the last one. Opponent and colours: [fill in before sending]. Openings: [fill in or leave «no new ones»].'},
     {t: 'Сменить или добавить дебют', tEn: 'Change or add an opening', d: 'openings', ru: 'Помоги сменить или добавить дебют в план. Какой дебют, каким цветом и вместо какого (если меняю): [впиши перед отправкой]', en: 'Help me change or add an opening in the plan. Which opening, which colour and instead of which (if replacing): [fill in before sending]'},
     {t: 'Пересобрать дорожную карту', tEn: 'Rebuild the roadmap', d: 'roadmap', ru: 'Предложи этапы после текущей дорожной карты с учётом моего темпа.', en: 'Propose stages after the current roadmap, considering my pace.'}
   ]}

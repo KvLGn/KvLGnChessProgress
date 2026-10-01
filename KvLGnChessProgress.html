@@ -7255,7 +7255,8 @@ var AI_COND = {
   today:     function() { return [[aiTasks('ru'), 'всего ' + aiMin() + ' минут, включая перерывы'].concat(aiBreak('ru') || []), [aiTasks('en'), aiMin() + ' minutes in total, including breaks'].concat(aiBreak('en') || [])]; },
   week:      function() { return [['7 дней', aiMin() + ' минут в день, включая перерывы'].concat(aiBreak('ru') || []), ['7 days', aiMin() + ' minutes a day, including breaks'].concat(aiBreak('en') || [])]; },
   themes:    [['не больше 3 тем', 'сколько задач в день'], ['at most 3 themes', 'how many puzzles a day']],
-  checklist: [['ровно 5 пунктов'], ['exactly 5 points']],
+  checklist: [['ровно 5 пунктов', 'каждый пункт — короткий вопрос себе перед ходом, за доской: без движка и подсказок', 'к каждому — одно число из данных, почему он нужен'],
+              ['exactly 5 points', 'each point is a short question to ask myself before a move, at the board: no engine, no hints', 'for each, one number from the data showing why it matters']],
   review:    [['не больше 6 шагов'], ['at most 6 steps']],
   opening:   [['не больше 5 пунктов'], ['at most 5 points']],
   plans:     function() {
@@ -7308,10 +7309,12 @@ AI_SIMPLE_TPL.plans = function() {   // идеи — из знаний моде�
 };
 AI_SIMPLE_TPL.deviate = [['Отход: #партия, ходы до отхода → мой ход …, у мастеров … (число из данных)', 'Почему ход мастеров лучше (обычно …): …', 'Когда так играть: после какого хода бота …', 'Как запомнить: …'],
   ['Deviation: #game, moves up to it → my move …, the masters play … (number from the data)', 'Why the masters\' move is better (usually …): …', 'When to play it: after which bot move …', 'How to remember: …']];
+AI_SIMPLE_TPL.checklist = [['1) Вопрос себе перед ходом: «…?» — почему: … (число из данных)', '2) …', '3) …', '4) …', '5) …'],
+  ['1) Question to ask myself before a move: "…?" — why: … (number from the data)', '2) …', '3) …', '4) …', '5) …']];
 AI_SIMPLE_TPL.steps = [['Шаг 1: …', 'Шаг 2: …', '… не больше 6 шагов'], ['Step 1: …', 'Step 2: …', '… at most 6 steps']];
 AI_SIMPLE_TPL.progress = [['Стало лучше: … (было → стало)', 'Не изменилось или хуже: … (было → стало)', 'Дальше смотреть на: …'], ['Improved: … (before → now)', 'Unchanged or worse: … (before → now)', 'Watch next: …']];
 var AI_SIMPLE_KIND = {opLines: 'list5', opAway: 'advice', lastgame: 'game', weak: 'advice', typical: 'advice', opp: 'advice', losses: 'advice', phase: 'advice', winloss: 'advice', deviate: 'deviate', themes: 'advice',
-  goal: 'goal', checklist: 'list5', opening: 'list5', plans: 'plans', week: 'days', today: 'today', review: 'steps', weekcmp: 'progress', progress: 'progress'};
+  goal: 'goal', checklist: 'checklist', opening: 'list5', plans: 'plans', week: 'days', today: 'today', review: 'steps', weekcmp: 'progress', progress: 'progress'};
 // помощники лёгкого пакета: одна строка — одна партия / один зевок, с подписью
 function aiSGame(g) {   // «#2 28.09 — ПОРАЖЕНИЕ: точность 71%, миттельшпиль 68%, зевков 6, до эндшпиля НЕ дошли»
   return aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + AL(': точность ', ': accuracy ') + g.acc + AL('%, миттельшпиль ', '%, middlegame ') + aiPct(g.mid) +

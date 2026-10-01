@@ -930,6 +930,10 @@
   .ai-group.plan { color: #fbbf24; }
   .ai-item { display: flex; flex-direction: column; gap: 1px; width: 100%; text-align: left; background: none; border: none; border-radius: 8px; padding: 6px 8px; cursor: pointer; color: var(--fg); }
   .ai-item:hover { background: rgba(255,255,255,0.05); }
+  .ai-chev { display: inline-block; margin-left: 6px; color: var(--fg-mute); transition: transform 0.15s; }
+  .ai-parent.open .ai-chev { transform: rotate(90deg); }
+  .ai-subs { margin: 0 0 4px 14px; border-left: 1px solid rgba(74,222,128,0.25); padding-left: 6px; }
+  .ai-subitem .ai-t { font-size: 12.5px; }
   .ai-item.done { background: rgba(74,222,128,0.12); }
   .ai-t { font: 600 13px Inter, sans-serif; }
   .ai-s { font: 11px Inter, sans-serif; color: var(--fg-dim); }
@@ -5750,7 +5754,8 @@ function studyLinks(o) {
   }).join('<span class="sep">·</span>');
 }
 
-var opdDir = 0;   // направление последнего листания в панели — для анимации въезда сбоку
+var opdDir = 0;
+var aiSubOpen = null;   // какой пункт «Справки» раскрыт ('группа:пункт')   // направление последнего листания в панели — для анимации въезда сбоку
 function renderOpeningDetail() {
   var O = window.OPENINGS || {};
   if (hush.head) {
@@ -6514,17 +6519,29 @@ var AI_ASKS = [
      ru: 'Пошагово: как мне самому разбирать партию после игры, чтобы был толк (у меня есть движок Lichess и режим «Анализ» на сайте).', en: 'Step by step: how should I review my own game afterwards (I have the Lichess engine and the «Анализ» mode on my site)?',
      h: 'Как правильно разбирать свои партии после игры, чтобы был толк?', hEn: 'How should I review my own games afterwards so that it actually helps?'}
   ]},
-  {g: 'Дебюты', gEn: 'Openings', items: [
-    {t: function(c) { return 'Что учить в дебюте «' + c.op + '»'; }, tEn: function(c) { return 'What to learn in the ' + c.opEn; }, d: 'opening',
-     ru: function(c) { return 'Какие линии дебюта «' + c.op + '» мне важнее всего понять на моём уровне и в каком порядке?'; }, en: function(c) { return 'Which lines of the ' + c.opEn + ' matter most at my level, and in what order?'; },
-     h: function(c) { return 'Я учу дебют «' + c.op + '». Что в нём важнее всего понять на моём уровне?'; }, hEn: function(c) { return 'I am learning the ' + c.opEn + '. What matters most at my level?'; }},
-    {t: 'Где я ухожу от теории', tEn: 'Where I leave the theory', d: 'deviate',
-     ru: 'Где я отхожу от ходов мастеров в дебюте? Выбери самый важный отход, объясни, почему ход мастеров лучше, и как это запомнить.', en: 'Where do I leave the masters\' moves in the opening? Pick the most important deviation, explain why their move is better and how to remember it.',
-     h: 'В дебюте я рано ухожу от теории — вот где. Почему ходы мастеров лучше и как их запомнить?', hEn: 'I leave the theory early in the opening — here is where. Why are the masters\' moves better and how do I remember them?'},
-    {t: 'Типичные планы после дебюта', tEn: 'Typical plans after the opening', d: 'plans',
-     ru: function(c) { return 'Главные идеи и планы в миттельшпиле после дебюта «' + c.op + '» — простыми словами.'; }, en: function(c) { return 'Main middlegame ideas and plans after the ' + c.opEn + ' — in simple words.'; },
-     h: function(c) { return 'Какие планы в середине партии типичны после дебюта «' + c.op + '»?'; }, hEn: function(c) { return 'What middlegame plans are typical after the ' + c.opEn + '?'; }}
-  ]},
+  {g: 'Дебюты', gEn: 'Openings', dyn: function() {
+    // пункты по изучаемым дебютам плана (OPENINGS.current): на этапе 2 сами появятся Сицилианская и Славянская
+    var out = [];
+    ((window.OPENINGS || {}).current || []).forEach(function(o) {
+      var n = o.name, e = opEn(o);
+      out.push({op: o, t: 'Что учить в дебюте «' + n + '»', tEn: 'What to learn in the ' + e, ru: 'Два вопроса: линии дебюта по моим партиям и где ломается моя схема, когда бот уходит в другой дебют', en: 'Two questions: the opening lines from my games and where my setup breaks when the bot steers into another opening',
+        sub: [
+          {t: 'Линии «' + n + '» по моим партиям', tEn: 'Lines of the ' + e + ' from my games', d: 'opLines',
+           ru: 'Какие линии дебюта «' + n + '» мне важнее всего понять на моём уровне и в каком порядке? Опирайся на партии, где «' + n + '» был на доске.', en: 'Which lines of the ' + e + ' matter most at my level, and in what order? Use the games where the ' + e + ' was on the board.',
+           h: 'Я учу дебют «' + n + '». Какие линии в нём важнее всего понять на моём уровне? Вот партии, где он получился.', hEn: 'I am learning the ' + e + '. Which lines matter most at my level? Here are the games where it appeared.'},
+          {t: 'Когда бот уходит от «' + n + '»', tEn: 'When the bot avoids the ' + e, d: 'opAway',
+           ru: 'Бот часто отвечает не по дебюту «' + n + '». Где моя схема ломается в таких партиях, что играют мастера вместо моих ходов и что выучить в первую очередь?', en: 'The bot often avoids the ' + e + '. Where does my setup break in those games, what do the masters play instead of my moves, and what should I learn first?',
+           h: 'Я играю схему «' + n + '», но бот часто отвечает иначе. Где моя схема ломается и что выучить в первую очередь?', hEn: 'I play the ' + e + ' setup, but the bot often replies differently. Where does my setup break and what should I learn first?'}
+        ]});
+      out.push({op: o, t: 'Типичные планы после дебюта «' + n + '»', tEn: 'Typical plans after the ' + e, d: 'plans',
+        ru: 'Главные идеи и планы в миттельшпиле после дебюта «' + n + '» — простыми словами.', en: 'Main middlegame ideas and plans after the ' + e + ' — in simple words.',
+        h: 'Какие планы в середине партии типичны после дебюта «' + n + '»?', hEn: 'What middlegame plans are typical after the ' + e + '?'});
+    });
+    out.push({t: 'Где я ухожу от теории', tEn: 'Where I leave the theory', d: 'deviate',
+      ru: 'Где я отхожу от ходов мастеров в дебюте? Выбери самый важный отход, объясни, почему ход мастеров лучше, и как это запомнить.', en: 'Where do I leave the masters\' moves in the opening? Pick the most important deviation, explain why their move is better and how to remember it.',
+      h: 'В дебюте я рано ухожу от теории — вот где. Почему ходы мастеров лучше и как их запомнить?', hEn: 'I leave the theory early in the opening — here is where. Why are the masters\' moves better and how do I remember them?'});
+    return out;
+  }},
   {g: 'Прогресс', gEn: 'Progress', items: [
     {t: 'Что изменилось за неделю', tEn: 'What changed this week', d: 'weekcmp',
      ru: 'Сравни эту неделю с прошлой: что стало лучше, что хуже и на что смотреть дальше.', en: 'Compare this week with last week: what improved, what got worse and what to watch next.',
@@ -6758,7 +6775,9 @@ function aiMateStat(list) {   // по партиям: в скольких был
                   'a forced mate appeared in ' + had + ' games, delivered in ' + done + '; missed ' + lost + ' times (often found again later)') : '';
 }
 function aiInGoal(g) { var S = CUR.stage; return !!S && g.engine === 'Stockfish ' + S.engine && S.colors.indexOf(g.color) >= 0; }
-function aiOp() { return ((window.OPENINGS || {}).current || [])[0]; }
+var AI_CUR_OP = null;   // дебют пункта, для которого собирается пакет (пункты «Дебюты» — по каждому изучаемому дебюту)
+function aiOp() { return AI_CUR_OP || ((window.OPENINGS || {}).current || [])[0]; }
+function aiItems(G) { return G.dyn ? G.dyn() : G.items; }   // пункты группы: заданные или построенные из плана
 function aiOpGames() { var o = aiOp(); return o ? opStats(o).games : []; }   // по плану — как карточка «Дебюты» и подбор мастера в «Анализе»
 // «Итальянская на доске получилась в 4 из 11 партий по плану (…); в остальных бот ответил иначе: Sicilian Defense 2, …»
 function aiBoardLine(o) {
@@ -7063,6 +7082,51 @@ var AI_DATA = {
     return out;
   }
 };
+// «Линии дебюта по моим партиям»: только партии, где дебют был на доске; последние 8, от самой долгой игры как у мастеров
+AI_DATA.opLines = function() {
+  var o = aiOp(); if (!o) return [AL('Изучаемый дебют не задан', 'No opening being studied')];
+  var st = opStats(o), b = st.board, out = [];
+  out.push(AL('Дебют «' + o.name + '» был на доске в ' + b.length + ' из ' + st.games.length + ' партий по плану.', 'The ' + opEn(o) + ' was on the board in ' + b.length + ' of ' + st.games.length + ' planned games.'));
+  if (!b.length) out.push(AL('Своих партий с этим дебютом пока нет — линии по ним разобрать нельзя, смотри студии мастеров.', 'No games with this opening yet — the lines cannot be taken from my games; see the master studies.'));
+  else {
+    if (b.length < 3) out.push(AL('Таких партий мало — выводы предварительные.', 'Few such games — conclusions are preliminary.'));
+    out.push(AL('Партии с дебютом на доске (последние ' + Math.min(8, b.length) + '), от самой долгой игры как у мастеров:', 'Games with the opening on the board (last ' + Math.min(8, b.length) + '), longest game as the masters first:'));
+    aiSortBy(b.slice(-8), aiMsDepth, true).forEach(function(g) { out.push(aiGame(g)); var ms = aiMs(g); if (ms) out.push('  ' + ms); });
+  }
+  if ((o.studies || []).length) out.push(AL('Студии мастеров: ', 'Master studies: ') + o.studies.map(function(x) { return x.master + ' (lichess.org/study/' + x.id + ')'; }).join(', '));
+  return out;
+};
+// «Когда бот уходит от дебюта»: партии по плану, где дебюта не было на доске; сводка по ответу бота — мой первый отход и что играют мастера
+function aiAwayGroups(o, n) {
+  var st = opStats(o), away = st.games.filter(function(g) { return st.board.indexOf(g) < 0; }).slice(-(n || 20)), grp = {};
+  away.forEach(function(g) { var k = g.opening.split(':')[0]; (grp[k] = grp[k] || []).push(g); });
+  return {away: away, keys: Object.keys(grp).sort(function(a, b) { return grp[b].length - grp[a].length; }), grp: grp};
+}
+function aiAwayDev(gl) {   // мои отходы от мастеров в группе: «2. Bc4 — мастера чаще Nf3 (83%, мастера); 3. Bc4 — …»
+  var c = {};
+  var MS_EN = {m: 'masters', l: 'Lichess 2000+', a: 'Lichess 1800+'};
+  gl.forEach(function(g) {
+    var key = anMasters(g)[0] || 'all', off = msCompare(g, key).filter(function(x) { return x.st !== 'top'; })[0];
+    if (!off) return;
+    var src = off.own ? AL(off.src, String(key).split('/').pop()) : AL(MS_TIER[off.tier].short, MS_EN[off.tier]);
+    var k = anMoveNo(off.p) + off.san + AL(' — мастера чаще ', ' — masters mostly play ') + off.top + ' (' + off.cnt(off.list[0]) + ', ' + src + ')'; c[k] = (c[k] || 0) + 1;
+  });
+  // до двух разных отходов в группе, частые первыми — у одного ответа бота ты мог ошибаться по-разному
+  return Object.keys(c).sort(function(a, b) { return c[b] - c[a]; }).slice(0, 2).map(function(k) { return k + (c[k] > 1 ? AL(', ' + c[k] + ' раза', ', ' + c[k] + ' times') : ''); }).join('; ');
+}
+AI_DATA.opAway = function() {
+  var o = aiOp(); if (!o) return [AL('Изучаемый дебют не задан', 'No opening being studied')];
+  var A = aiAwayGroups(o, 20), out = [];
+  if (!A.away.length) return [AL('Бот всегда отвечал по дебюту «' + o.name + '» — уходов не было.', 'The bot always followed the ' + opEn(o) + ' — no deviations.')];
+  out.push(AL('Последние ' + A.away.length + ' партий по плану «' + o.name + '», где бот ответил иначе и дебюта на доске не было. По ответам бота, от частого к редкому:',
+              'The last ' + A.away.length + ' planned ' + opEn(o) + ' games where the bot replied differently and the opening never appeared. By the bot\'s reply, most frequent first:'));
+  A.keys.forEach(function(k) {
+    var gl = A.grp[k], dev = aiAwayDev(gl);
+    out.push('– ' + k + ': ' + gl.length + ' (' + aiWL(gl) + AL('), миттельшпиль ', '), middlegame ') + aiPct(avg(gl, 'mid')) + AL('; партии ', '; games ') + gl.map(aiGid).join(', ') + (dev ? AL('; мой отход: ', '; my deviation: ') + dev : ''));
+  });
+  out.push(AL('Для сравнения, когда дебют был на доске: ', 'For comparison, with the opening on the board: ') + (opStats(o).board.length ? aiWL(opStats(o).board) + AL(', миттельшпиль ', ', middlegame ') + aiPct(avg(opStats(o).board, 'mid')) : AL('таких партий нет', 'no such games')) + '.');
+  return out;
+};
 // 15. планы после дебюта: что происходит в миттельшпиле моих партий этого дебюта
 AI_DATA.plans = function() {
   var o = aiOp(), all = aiOpGames(), gl = all.slice(-8), out = [];
@@ -7071,8 +7135,9 @@ AI_DATA.plans = function() {
   var st = opStats(o), on = st.board, off = all.filter(function(g) { return on.indexOf(g) < 0; });
   out.push(AL('Миттельшпиль в партиях по плану дебюта «' + o.name + '»: когда дебют получился на доске (' + on.length + ') — ', 'Middlegame in planned ' + opEn(o) + ' games: when it appeared on the board (' + on.length + ') — ') + aiPct(avg(on, 'mid')) +
     (off.length ? AL('; когда бот увёл в другой дебют (' + off.length + ') — ', '; when the bot steered into another opening (' + off.length + ') — ') + aiPct(avg(off, 'mid')) : '') + '.');
-  out.push(AL('Партии ниже — от худшего миттельшпиля к лучшему:', 'Games below — from the worst middlegame to the best:'));
-  aiSortBy(gl, function(g) { return g.mid; }).forEach(function(g) {
+  out.push(AL('Партии с дебютом на доске — от худшего миттельшпиля к лучшему:', 'Games with the opening on the board — from the worst middlegame to the best:'));
+  if (!on.length) out.push(AL('таких партий пока нет', 'no such games yet'));
+  aiSortBy(on.slice(-8), function(g) { return g.mid; }).forEach(function(g) {
     var dv = g.div || {}, mb = (g.bl || []).filter(function(b) { return b.p === 'mid'; });
     out.push(aiGame(g));
     out.push('  ' + AL('миттельшпиль с хода ', 'middlegame from move ') + (dv.mid ? Math.ceil(dv.mid / 2) : '—') + AL(', зевков в нём ', ', blunders in it ') + mb.length + (mb.length && !PLAIN ? ': ' + mb.slice(0, 3).map(function(b) { return aiBl(g, b); }).join('; ') : ''));
@@ -7134,6 +7199,8 @@ var AI_COND = {
   review:    [['не больше 6 шагов'], ['at most 6 steps']],
   opening:   [['не больше 5 пунктов'], ['at most 5 points']],
   plans:     [['не больше 5 пунктов'], ['at most 5 points']],
+  opLines:   [['не больше 5 пунктов', 'по порядку: что учить первым'], ['at most 5 points', 'in order: what to learn first']],
+  opAway:    [['одна главная проблема схемы', '2–3 действия'], ['one main problem of the setup', '2–3 actions']],
   goal:      [['сначала «да» или «нет»', 'не больше 3 действий'], ['first "yes" or "no"', 'at most 3 actions']]
 };
 function aiCond(dataKey) { var c = AI_COND[dataKey]; return c ? c[aiLang === 'en' ? 1 : 0] : null; }
@@ -7167,7 +7234,7 @@ AI_SIMPLE_TPL.days = [['День 1: что делать — сколько ми�
 AI_SIMPLE_TPL.today = [['1) что делать — сколько минут — зачем', '2) …', '3) …', 'Всего минут: …'], ['1) what to do — how many minutes — why', '2) …', '3) …', 'Total minutes: …']];
 AI_SIMPLE_TPL.steps = [['Шаг 1: …', 'Шаг 2: …', '… не больше 6 шагов'], ['Step 1: …', 'Step 2: …', '… at most 6 steps']];
 AI_SIMPLE_TPL.progress = [['Стало лучше: … (было → стало)', 'Не изменилось или хуже: … (было → стало)', 'Дальше смотреть на: …'], ['Improved: … (before → now)', 'Unchanged or worse: … (before → now)', 'Watch next: …']];
-var AI_SIMPLE_KIND = {lastgame: 'game', weak: 'advice', typical: 'advice', opp: 'advice', losses: 'advice', phase: 'advice', winloss: 'advice', deviate: 'advice', themes: 'advice',
+var AI_SIMPLE_KIND = {opLines: 'list5', opAway: 'advice', lastgame: 'game', weak: 'advice', typical: 'advice', opp: 'advice', losses: 'advice', phase: 'advice', winloss: 'advice', deviate: 'advice', themes: 'advice',
   goal: 'goal', checklist: 'list5', opening: 'list5', plans: 'list5', week: 'days', today: 'today', review: 'steps', weekcmp: 'progress', progress: 'progress'};
 // помощники лёгкого пакета: одна строка — одна партия / один зевок, с подписью
 function aiSGame(g) {   // «#2 28.09 — ПОРАЖЕНИЕ: точность 71%, миттельшпиль 68%, зевков 6, до эндшпиля НЕ дошли»
@@ -7338,6 +7405,22 @@ var AI_SIMPLE = {
     out.push(AL('Повторяющиеся отходы: ', 'Repeated deviations: ') + (rep.length ? rep.map(function(k) { return k + ' — ' + cnt[k] + AL(' раза', ' times'); }).join('; ') : AL('нет', 'none')) + '.');
     return out;
   },
+  opLines: function() {
+    var o = aiOp(); if (!o) return [AL('Изучаемый дебют не задан.', 'No opening being studied.')];
+    var st = opStats(o), b = st.board, out = [AL('Дебют «' + o.name + '» был на доске в ' + b.length + ' из ' + st.games.length + ' партий по плану.', 'The ' + opEn(o) + ' was on the board in ' + b.length + ' of ' + st.games.length + ' planned games.')];
+    if (!b.length) return out.concat([AL('Своих партий с ним нет — линии смотри по студиям мастеров.', 'No such games — see the master studies for the lines.')]);
+    out.push(AL('Партии, от самой долгой игры как у мастеров:', 'Games, longest game as the masters first:'));
+    aiSortBy(b.slice(-5), aiMsDepth, true).forEach(function(g) { var ms = aiMs(g); out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + ', ' + g.opening + (ms ? '; ' + ms.replace(/^[^:]+: /, '') : '')); });
+    return out;
+  },
+  opAway: function() {
+    var o = aiOp(); if (!o) return [AL('Изучаемый дебют не задан.', 'No opening being studied.')];
+    var A = aiAwayGroups(o, 20), out = [];
+    if (!A.away.length) return [AL('Бот всегда отвечал по дебюту — уходов не было.', 'The bot always followed the opening — no deviations.')];
+    out.push(AL('Партии по плану «' + o.name + '», где бот ответил иначе (' + A.away.length + '), по ответу бота:', 'Planned ' + opEn(o) + ' games where the bot replied differently (' + A.away.length + '), by the bot\'s reply:'));
+    A.keys.forEach(function(k) { var gl = A.grp[k], dev = aiAwayDev(gl); out.push('– ' + k + ': ' + gl.length + ' (' + aiWL(gl) + ')' + (dev ? AL('; мой отход: ', '; my deviation: ') + dev : '')); });
+    return out;
+  },
   plans: function() {
     var o = aiOp(), all = aiOpGames(), gl = all.slice(-5), out = [];
     if (!o) return [AL('Изучаемый дебют не задан.', 'No opening being studied.')];
@@ -7345,8 +7428,8 @@ var AI_SIMPLE = {
     var st = opStats(o), on = st.board, off = all.filter(function(g) { return on.indexOf(g) < 0; });
     out.push(AL('Миттельшпиль: когда «' + o.name + '» получилась на доске (' + on.length + ' партий) — ', 'Middlegame: when the ' + opEn(o) + ' appeared on the board (' + on.length + ' games) — ') + aiPct(avg(on, 'mid')) +
       (off.length ? AL('; когда бот увёл в другой дебют (' + off.length + ') — ', '; when the bot steered into another opening (' + off.length + ') — ') + aiPct(avg(off, 'mid')) : '') + '.');
-    out.push(AL('Партии — от худшего миттельшпиля к лучшему:', 'Games — from the worst middlegame to the best:'));
-    aiSortBy(gl, function(g) { return g.mid; }).forEach(function(g) { out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + ', ' + g.opening + AL(': миттельшпиль ', ': middlegame ') + aiPct(g.mid) + AL(', зевков в нём ', ', blunders in it ') + (g.bl || []).filter(function(b) { return b.p === 'mid'; }).length); });
+    out.push(AL('Партии с дебютом на доске — от худшего миттельшпиля к лучшему:', 'Games with the opening on the board — from the worst middlegame to the best:'));
+    aiSortBy(on.slice(-5), function(g) { return g.mid; }).forEach(function(g) { out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + ', ' + g.opening + AL(': миттельшпиль ', ': middlegame ') + aiPct(g.mid) + AL(', зевков в нём ', ', blunders in it ') + (g.bl || []).filter(function(b) { return b.p === 'mid'; }).length); });
     return out;
   },
   weekcmp: function() {
@@ -7519,8 +7602,12 @@ function renderAiMenu() {
       if (!!G.plan !== T) return '';   // только вопросы выбранной сути
       var gt = G.plan ? (H ? AL('План (задание программисту)', 'Plan (task for a programmer)') : AL(G.g, G.gEn)) : AL(G.g, G.gEn);
       return '<div class="ai-group' + (G.plan ? ' plan' : '') + '">' + gt + '</div>' +
-        G.items.map(function(it, ii) {
-          return '<button class="ai-item" data-g="' + gi + '" data-i="' + ii + '"><span class="ai-t">' + esc(v(aiLang === 'en' && it.tEn ? it.tEn : it.t)) + '</span><span class="ai-s">' + esc(v(it[aiLang])) + '</span></button>';
+        aiItems(G).map(function(it, ii) {
+          var key = gi + ':' + ii, open = aiSubOpen === key;
+          var btn = '<button class="ai-item' + (it.sub ? ' ai-parent' + (open ? ' open' : '') : '') + '" data-g="' + gi + '" data-i="' + ii + '"><span class="ai-t">' + esc(v(aiLang === 'en' && it.tEn ? it.tEn : it.t)) + (it.sub ? '<span class="ai-chev">▸</span>' : '') + '</span><span class="ai-s">' + esc(v(it[aiLang])) + '</span></button>';
+          return btn + (it.sub && open ? '<div class="ai-subs">' + it.sub.map(function(sb, si) {
+            return '<button class="ai-item ai-subitem" data-g="' + gi + '" data-i="' + ii + '" data-s="' + si + '"><span class="ai-t">' + esc(aiLang === 'en' ? sb.tEn : sb.t) + '</span><span class="ai-s">' + esc(sb[aiLang]) + '</span></button>';
+          }).join('') + '</div>' : '');
         }).join('');
     }).join('') + '</div>' +
     '<div class="ai-own"><textarea id="aiOwn" rows="2" placeholder="' + (T ? AL('Что поменять в плане…', 'What to change in the plan…') : AL('Свой вопрос…', 'Your own question…')) + '"></textarea>' +
@@ -7565,9 +7652,15 @@ $('aiMenu').addEventListener('click', function(e) {
   if (m) { aiMode = m.getAttribute('data-mode'); aiDd = null; try { localStorage.setItem('aiMode', aiMode); } catch (err) {} renderAiMenu(); return; }
   var it = e.target.closest('.ai-item');
   if (it) {
-    var G = AI_ASKS[+it.getAttribute('data-g')], I = G.items[+it.getAttribute('data-i')], c = aiCtx();
+    var G = AI_ASKS[+it.getAttribute('data-g')], P = aiItems(G)[+it.getAttribute('data-i')], si = it.getAttribute('data-s'), c = aiCtx();
+    if (P.sub && si === null) {   // пункт с подпунктами — раскрыть / свернуть, без копирования
+      var key = it.getAttribute('data-g') + ':' + it.getAttribute('data-i');
+      aiSubOpen = aiSubOpen === key ? null : key; renderAiMenu(); return;
+    }
+    var I = si !== null ? P.sub[+si] : P;
     var ask = typeof I[aiLang] === 'function' ? I[aiLang](c) : I[aiLang];
-    copyText(helpText(ask, !!G.plan, I.d, I));
+    AI_CUR_OP = P.op || null;   // пакет — про дебют этого пункта
+    try { copyText(helpText(ask, !!G.plan, I.d, I)); } finally { AI_CUR_OP = null; }
     it.classList.add('done'); setTimeout(function() { it.classList.remove('done'); }, 1500);
     var tt = aiLang === 'en' && I.tEn ? I.tEn : I.t;
     helpToast(typeof tt === 'function' ? tt(c) : tt);

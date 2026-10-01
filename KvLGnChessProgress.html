@@ -8568,6 +8568,7 @@ function applyHush() {
   else if ($('mn').classList.contains('open')) { mnBuild(); mnRender(); }   // меню без скрытых частей
   if (hush.head) gsCloseSide();
   if (hush.chart) {
+    hideTooltip();   // подсказка могла открыться за 0,25 с анимации глаза — колонки уже нет, сама она бы не закрылась
     if (showRecords) setRecords(false);
     $('cf').classList.remove('open');
     selCols = {}; cmpMode = null; cmpSet = {};

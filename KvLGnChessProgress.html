@@ -7061,9 +7061,9 @@ function aiSPhases(list) {   // «дебют 73%, миттельшпиль 60%, 
   var w = ph.slice().sort(function(a, b) { return a[1] - b[1]; })[0];
   return ph.map(function(x) { return x[0] + ' ' + aiPct(x[1]); }).join(', ') + (w ? AL('. Самая слабая фаза — ', '. The weakest phase is the ') + w[0] + ' (' + aiPct(w[1]) + ')' : '');
 }
-function aiSTypes(list, n) {   // типы зевков от частых к редким, с пояснением
+function aiSTypes(list, n, inline) {   // типы зевков от частых к редким, с пояснением; inline — для строки через «; » (без тире)
   var c = {}; list.forEach(function(g) { (g.bl || []).forEach(function(b) { c[b.t] = (c[b.t] || 0) + 1; }); });
-  return Object.keys(c).sort(function(a, b) { return c[b] - c[a]; }).slice(0, n || 9).map(function(t) { return '– ' + aiBlType(t) + ' — ' + c[t] + ' (' + AL(BL_MEAN[t][0], BL_MEAN[t][1]) + ')'; });
+  return Object.keys(c).sort(function(a, b) { return c[b] - c[a]; }).slice(0, n || 9).map(function(t) { return (inline ? '' : '– ') + aiBlType(t) + ' — ' + c[t] + ' (' + AL(BL_MEAN[t][0], BL_MEAN[t][1]) + ')'; });
 }
 function aiSTheme() { var wt = aiWeakThemes(1), P = window.PUZZLES || {}; return wt.length ? AL('Самая слабая тема задач: ', 'The weakest puzzle theme: ') + wt[0].replace(/^1\) /, '').replace(AL(' — самая слабая', ' — the weakest'), '') + AL(' (общий перфоманс ', ' (overall performance ') + (P.global ? P.global.perf : '—') + ').' : ''; }
 function aiSWindow(n, list) { return AL('Все числа ниже — за последние ' + n + ' ' + plural(n, 'партию', 'партии', 'партий') + ' (' + aiWL(list) + ').', 'All numbers below are for the last ' + n + ' games (' + aiWL(list) + ').'); }
@@ -7121,7 +7121,7 @@ var AI_SIMPLE = {
         (big ? AL('; самый дорогой зевок: ', '; most costly blunder: ') + anMoveNo(blPly(g, big)) + big.s + ' (' + aiBlType(big.t) + ')' : ''));
     });
     out.push(AL('Общее: до эндшпиля не дошли ', 'Overall: did not reach the endgame in ') + aiEarlyLosses(last) + AL('; зевков в поражениях в среднем ', '; blunders per loss on average ') + aiR1(avg(L, 'blunders')) + AL('; миттельшпиль в поражениях ', '; middlegame in losses ') + aiPct(avg(L, 'mid')) + '.');
-    out.push(AL('Самые частые зевки в поражениях: ', 'Most frequent blunders in losses: ') + aiSTypes(L, 3).join('; ') + '.');
+    out.push(AL('Самые частые зевки в поражениях: ', 'Most frequent blunders in losses: ') + aiSTypes(L, 3, true).join('; ') + '.');
     return out;
   },
   phase: function(c) {
@@ -7144,8 +7144,12 @@ var AI_SIMPLE = {
     out.push(line(AL('Победы', 'Wins'), W), line(AL('Поражения', 'Losses'), L));
     if (W.length && L.length) out.push(AL('Разница (победы минус поражения): точность ', 'Difference (wins minus losses): accuracy ') + aiR1(avg(W, 'acc') - avg(L, 'acc')) + AL(' п.п., миттельшпиль ', ' pts, middlegame ') + aiR1(avg(W, 'mid') - avg(L, 'mid')) + AL(' п.п., зевков ', ' pts, blunders ') + aiR1(avg(W, 'blunders') - avg(L, 'blunders')) + AL(' за партию.', ' per game.'));
     out.push(AL('Поражения, где до эндшпиля не дошли: ', 'Losses that never reached the endgame: ') + aiEarlyLosses(last) + '.');
-    out.push(AL('Самые частые зевки в победах: ', 'Most frequent blunders in wins: ') + (aiSTypes(W, 2).join('; ') || '—') + '.');
-    out.push(AL('Самые частые зевки в поражениях: ', 'Most frequent blunders in losses: ') + (aiSTypes(L, 2).join('; ') || '—') + '.');
+    var cw = {}, cl = {};
+    W.forEach(function(g) { (g.bl || []).forEach(function(b) { cw[b.t] = (cw[b.t] || 0) + 1; }); });
+    L.forEach(function(g) { (g.bl || []).forEach(function(b) { cl[b.t] = (cl[b.t] || 0) + 1; }); });
+    out.push(AL('Зевки по типам (в победах / в поражениях):', 'Blunders by type (in wins / in losses):'));
+    BL_ORDER.filter(function(t) { return cw[t] || cl[t]; }).sort(function(a, b) { return ((cw[b] || 0) + (cl[b] || 0)) - ((cw[a] || 0) + (cl[a] || 0)); })
+      .forEach(function(t) { out.push('– ' + aiBlType(t) + ': ' + (cw[t] || 0) + ' / ' + (cl[t] || 0) + ' (' + AL(BL_MEAN[t][0], BL_MEAN[t][1]) + ')'); });
     return out;
   },
   today: function() {
@@ -7153,7 +7157,7 @@ var AI_SIMPLE = {
     out.push(AL('Сегодня уже: партий ', 'Already today: games ') + tg.length + AL(', задач ', ', puzzles ') + att.length + '.');
     out.push(AL('Последние 5 партий: ', 'Last 5 games: ') + aiWL(last) + AL('; точность ', '; accuracy ') + aiPct(avg(last, 'acc')) + AL('; зевков за партию ', '; blunders per game ') + aiR1(avg(last, 'blunders')) + '.');
     out.push(AL('Фазы в последних 5 партиях: ', 'Phases in the last 5 games: ') + aiSPhases(last) + '.');
-    out.push(AL('Самые частые зевки в последних 5 партиях: ', 'Most frequent blunders in the last 5 games: ') + aiSTypes(last, 2).join('; ') + '.');
+    out.push(AL('Самые частые зевки в последних 5 партиях: ', 'Most frequent blunders in the last 5 games: ') + aiSTypes(last, 2, true).join('; ') + '.');
     var th = aiSTheme(); if (th) out.push(th);
     if (CUR.stage) out.push(AL('Цель этапа: играть против Stockfish ' + CUR.stage.engine + ', нужно ещё минимум ', 'Stage goal: play vs Stockfish ' + CUR.stage.engine + ', at least ') + gamesToGoal(CUR.colors[0]) + AL(' хороших партий.', ' more good games needed.'));
     return out;
@@ -7163,7 +7167,7 @@ var AI_SIMPLE = {
     gl.forEach(function(g) { days[g.day] = 1; });
     out.push(AL('За последние 7 дней: партий ', 'Last 7 days: games ') + gl.length + AL(', задач ', ', puzzles ') + att.length + AL(', дней с партиями ', ', days with games ') + Object.keys(days).length + AL(' из 7.', ' of 7.'));
     out.push(AL('Последние 10 партий — фазы: ', 'Last 10 games — phases: ') + aiSPhases(last) + '.');
-    out.push(AL('Самые частые зевки (последние 10): ', 'Most frequent blunders (last 10): ') + aiSTypes(last, 3).join('; ') + '.');
+    out.push(AL('Самые частые зевки (последние 10): ', 'Most frequent blunders (last 10): ') + aiSTypes(last, 3, true).join('; ') + '.');
     var wt = aiWeakThemes(3); if (wt.length) out.push(AL('Слабые темы задач (от самой слабой): ', 'Weak puzzle themes (weakest first): ') + wt.slice(0, 3).join(', ') + '.');
     if (CUR.stage) out.push(AL('Цель этапа: партии белыми против Stockfish ' + CUR.stage.engine + ', нужно ещё минимум ', 'Stage goal: games as white vs Stockfish ' + CUR.stage.engine + ', at least ') + gamesToGoal(CUR.colors[0]) + AL(' хороших партий.', ' more good games needed.'));
     return out;
@@ -7174,7 +7178,7 @@ var AI_SIMPLE = {
     var ks = Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k] && P.themeStats[k].nb >= PZ_MIN_THEME; }).sort(function(a, b) { return P.themeStats[a].perf - P.themeStats[b].perf; });
     out.push(AL('Темы задач Lichess за 90 дней, общий перфоманс ', 'Lichess puzzle themes, 90 days, overall performance ') + (P.global ? P.global.perf : '—') + AL('. 5 самых слабых (от самой слабой):', '. The 5 weakest (weakest first):'));
     ks.slice(0, 5).forEach(function(k, i) { var t = P.themeStats[k]; out.push((i + 1) + ') ' + themeName(k) + AL(' — перфоманс ', ' — performance ') + t.perf + AL(', задач ', ', puzzles ') + t.nb + AL(', с первой попытки ', ', first try ') + Math.round(t.first / t.nb * 100) + '%'); });
-    out.push(AL('Самые частые зевки в партиях (последние 10): ', 'Most frequent blunders in games (last 10): ') + aiSTypes(games.slice(-10), 3).join('; ') + '.');
+    out.push(AL('Самые частые зевки в партиях (последние 10): ', 'Most frequent blunders in games (last 10): ') + aiSTypes(games.slice(-10), 3, true).join('; ') + '.');
     return out;
   },
   checklist: function() {
@@ -7251,7 +7255,7 @@ var AI_SIMPLE = {
   own: function() {
     var last = games.slice(-10), out = [aiSWindow(10, last), AL('Фазы: ', 'Phases: ') + aiSPhases(last) + '.', AL('Партии:', 'Games:')];
     last.forEach(function(g) { out.push('- ' + aiSGame(g)); });
-    out.push(AL('Самые частые зевки: ', 'Most frequent blunders: ') + aiSTypes(last, 3).join('; ') + '.');
+    out.push(AL('Самые частые зевки: ', 'Most frequent blunders: ') + aiSTypes(last, 3, true).join('; ') + '.');
     return out;
   },
   // «Разбор последней партии»: 3 момента уже отобраны (перелом, упущенный мат, самый дорогой зевок), каждый — одной строкой

@@ -6437,7 +6437,9 @@ var AI_PROMPT = {
       'Лимиты: stages[].name ≤ 50 символов, openings[].name ≤ 22, studies[].master ≤ 12. match — точная часть английского названия у Lichess.',
       'Не выдумывай id студий Lichess — если не знаешь, оставь studies: [] и скажи, что студию нужно найти.',
       'Если у студии есть ids (id всех частей, первая = id) — сохрани список как есть: по нему сайт сверяет ходы с мастером.',
-      'Правило rule меняй только по просьбе или если цифры явно показывают, что оно недостижимо/слишком лёгкое, — объясни на цифрах.'
+      'Правило rule меняй только по просьбе или если цифры явно показывают, что оно недостижимо/слишком лёгкое, — объясни на цифрах.',
+      'Проверка сайта: в rule все шесть полей — числа и wins ≤ games; у дебюта обязательны id, name, color (\'white\' | \'black\'); число ids студии = parts; engine 1–8.',
+      'Это JavaScript: проверь запятые, скобки и кавычки — сломанный файл сайт не примет. Дебют станет «Изучаю», только если его id стоит в openings этапа.'
     ]
   },
   en: {
@@ -6465,7 +6467,9 @@ var AI_PROMPT = {
       'Answer: return the WHOLE new data/plan.js in one code block (keep comments), then 2–4 lines: what changed and why.',
       'Never delete or reorder completed stages (add new ones after the current). Opening ids: unique, Latin. Names stay in Russian.',
       'Limits: stages[].name ≤ 50 chars, openings[].name ≤ 22, studies[].master ≤ 12. match = exact part of the Lichess English name.',
-      'Never invent Lichess study ids — if unknown, use studies: [] and say a study is needed. Keep ids (all study parts, first = id) as they are. Change rule only on request or when numbers clearly demand it.'
+      'Never invent Lichess study ids — if unknown, use studies: [] and say a study is needed. Keep ids (all study parts, first = id) as they are. Change rule only on request or when numbers clearly demand it.',
+      'Site checks: all six rule fields are numbers and wins ≤ games; every opening needs id, name, color (\'white\' | \'black\'); a study\'s ids count = parts; engine 1–8.',
+      'It is JavaScript: check commas, brackets and quotes — the site rejects a broken file. An opening becomes «Изучаю» only if its id is in a stage\'s openings.'
     ]
   }
 };
@@ -6480,7 +6484,8 @@ function aiCtx() {
   th = th.map(function(k) { return (P.themeNames || {})[k] || PZ_NAMES[k] || k; });
   var op = ((window.OPENINGS || {}).current || [])[0];
   return {phase: ph, themes: th.join(', ') || '—', themesEn: thEn.join(', ') || '—', op: op ? op.name : 'мой дебют', opEn: op ? (op.match || [op.name])[0] : 'my opening',
-          engine: CUR.stage ? CUR.stage.engine : 5};
+          engine: CUR.stage ? CUR.stage.engine : 5,
+          nextEngine: Math.min(8, (PLAN.stages || []).reduce(function(m, S) { return Math.max(m, S.engine || 0); }, 0) + 1)};   // для «Добавить следующий этап»
 }
 // пункты: t — заголовок, ru/en — просьба к нейросети (в советах — «одна главная проблема»), h/hEn — тот же вопрос человеку, d — данные (AI_DATA)
 var AI_ASKS = [
@@ -6569,8 +6574,8 @@ var AI_ASKS = [
   ]},
   {g: 'План (вернёт новый plan.js)', gEn: 'Plan (returns a new plan.js)', plan: true, items: [
     {t: 'Пора ли менять правило перехода', tEn: 'Should the transition rule change', d: 'goal', ru: 'Не слишком ли жёсткое или мягкое правило перехода для моих цифр? Если нужно — поправь rule.', en: 'Is the stage transition rule too strict or too easy for my numbers? Adjust rule if needed.'},
-    {t: 'Добавить следующий этап', tEn: 'Add the next stage', d: 'nextstage', ru: function(c) { return 'Добавь следующий этап после последнего (например, оба цвета против Stockfish ' + (c.engine + 1) + ').'; }, en: function(c) { return 'Add the next stage after the last one (e.g. both colours vs Stockfish ' + (c.engine + 1) + ').'; }},
-    {t: 'Сменить или добавить дебют', tEn: 'Change or add an opening', d: 'openings', ru: 'Помоги сменить или добавить дебют в план (я допишу какой): ', en: 'Help me change or add an opening in the plan (I will specify which): '},
+    {t: 'Добавить следующий этап', tEn: 'Add the next stage', d: 'nextstage', ru: function(c) { return 'Добавь следующий этап после последнего (например, оба цвета против Stockfish ' + c.nextEngine + ').'; }, en: function(c) { return 'Add the next stage after the last one (e.g. both colours vs Stockfish ' + c.nextEngine + ').'; }},
+    {t: 'Сменить или добавить дебют', tEn: 'Change or add an opening', d: 'openings', ru: 'Помоги сменить или добавить дебют в план. Какой дебют, каким цветом и вместо какого (если меняю): [впиши перед отправкой]', en: 'Help me change or add an opening in the plan. Which opening, which colour and instead of which (if replacing): [fill in before sending]'},
     {t: 'Пересобрать дорожную карту', tEn: 'Rebuild the roadmap', d: 'roadmap', ru: 'Предложи этапы после текущей дорожной карты с учётом моего темпа.', en: 'Propose stages after the current roadmap, considering my pace.'}
   ]}
 ];
@@ -7646,7 +7651,8 @@ function humanTextInner(ask, isPlan, dataKey, item) {
   }
   var repo = 'https://github.com/KvLGn/KvLGnChessProgress', site = 'https://kvlgn.github.io/KvLGnChessProgress/';
   var done = ((window.PROGRESS || {}).stages || []);
-  out.push(AL('Задача: поменять план обучения на моём шахматном сайте.', 'Task: change the training plan on my chess dashboard.'), '');
+  out.push(AL('Привет! Нужна помощь с моим шахматным сайтом: поменять план обучения. Ниже — что именно, мои цифры, как устроен сайт и пошаговая инструкция.',
+              'Hi! I need help with my chess dashboard: changing the training plan. Below — what exactly, my numbers, how the site works and step-by-step instructions.'), '');
   out.push(AL('Что нужно сделать: ', 'What is needed: ') + ask, '');
   out.push(AL('Контекст:', 'Context:'));
   out = out.concat(aiAbout().map(function(t) { return '• ' + t; }));
@@ -7656,14 +7662,22 @@ function humanTextInner(ask, isPlan, dataKey, item) {
     AL('• Партии и задачи сайт забирает с Lichess сам. Руками правится только один файл — data/plan.js (этапы, правило перехода, дебюты).', '• Games and puzzles are pulled from Lichess automatically. Only one file is edited by hand — data/plan.js (stages, transition rule, openings).'),
     AL('• Текущий этап сайт находит сам по правилу rule. ' + ruleDesc(), '• The site finds the current stage itself using rule. ' + ruleDesc()),
     AL('• Выполненные этапы записываются автоматически в data/progress.js — их не трогать.', '• Completed stages are recorded automatically in data/progress.js — do not touch it.'),
+    AL('• Дебют становится «Изучаю», когда начинается этап, в openings которого стоит его id; дебют без этапа — «В планах». Ходы мастеров по новым студиям сайт подтянет сам при следующем автообновлении данных (обычно в течение часа, но не всегда сразу).',
+       '• An opening becomes «Изучаю» (studying) when the stage that lists its id in openings starts; an opening without a stage is «В планах» (planned). Master moves for new studies are fetched by the next automatic data update (usually within an hour, not always right away).'),
+    AL('• data/plan.js — это код на JavaScript: одна лишняя или пропущенная запятая, скобка или кавычка ломает файл. Сайт тогда покажет красную плашку с причиной; рабочая копия плана есть только в браузере, где сайт уже открывали, — у остальных этапы и дебюты пропадут, пока файл не исправят.',
+       '• data/plan.js is JavaScript code: one extra or missing comma, bracket or quote breaks the file. The site then shows a red banner with the reason; a working copy of the plan exists only in a browser that opened the site before — for everyone else stages and openings disappear until the file is fixed.'),
+    '', AL('Если у тебя нет доступа на запись в мой репозиторий — не страшно: пришли мне целиком новый текст data/plan.js, я вставлю его сам (шаги 1–3 тогда сделаю я).',
+           'If you have no write access to my repository — no problem: send me the whole new text of data/plan.js and I will paste it myself (then I do steps 1–3).'),
     '', AL('Шаги:', 'Steps:'),
     AL('1. Открыть ' + repo + '/blob/main/data/plan.js и нажать ✏️ (Edit this file).', '1. Open ' + repo + '/blob/main/data/plan.js and click ✏️ (Edit this file).'),
     AL('2. Внести изменение. Правила формата:', '2. Make the change. Format rules:'),
     AL('   – выполненные этапы не удалять и не переставлять' + (done.length ? ' (уже выполнены: ' + done.map(function(d) { return 'этап ' + (d.idx + 1); }).join(', ') + ')' : '') + '; новые этапы — только после текущего;',
        '   – do not delete or reorder completed stages' + (done.length ? ' (done: ' + done.map(function(d) { return 'stage ' + (d.idx + 1); }).join(', ') + ')' : '') + '; add new stages only after the current one;'),
     AL('   – engine — число 1–8 (уровень Stockfish), colors — [\'white\'], [\'black\'] или оба, openings — id дебютов из списка openings;', '   – engine is a number 1–8 (Stockfish level), colors is [\'white\'], [\'black\'] or both, openings are ids from the openings list;'),
+    AL('   – rule: все шесть полей (games, blocks, wins, medianAcc, lossMinAcc, lossMaxBlunders) — числа, wins не больше games;', '   – rule: all six fields (games, blocks, wins, medianAcc, lossMinAcc, lossMaxBlunders) are numbers, wins not greater than games;'),
+    AL('   – у каждого дебюта обязательны id, name и color (\'white\' или \'black\'); без match партии в нём не будут узнаваться;', '   – every opening needs id, name and color (\'white\' or \'black\'); without match its games will not be recognised;'),
     AL('   – id дебюта — латиница без пробелов, уникальный; match — английское название дебюта как на Lichess (например \'Italian Game\');', '   – opening id: Latin, no spaces, unique; match: English opening name as on Lichess (e.g. \'Italian Game\');'),
-    AL('   – для чёрных vs — первый ход бота, на который играется дебют (\'e4\' или \'d4\'); студии — id из адреса lichess.org/study/<id> (8 символов), ids — id всех частей (первая = id), студия открыта хотя бы по ссылке;', '   – for black, vs is the bot\'s first move the opening answers (\'e4\' or \'d4\'); studies: id from lichess.org/study/<id> (8 chars), ids — all parts (first = id), study must be at least unlisted;'),
+    AL('   – для чёрных vs — первый ход бота, на который играется дебют (\'e4\' или \'d4\'); студии — id из адреса lichess.org/study/<id> (8 символов), ids — id всех частей (первая = id, их число = parts), студия открыта хотя бы по ссылке;', '   – for black, vs is the bot\'s first move the opening answers (\'e4\' or \'d4\'); studies: id from lichess.org/study/<id> (8 chars), ids — all parts (first = id, count = parts), study must be at least unlisted;'),
     AL('   – длина: название этапа ≤ ' + STAGES.LIMITS.stageName + ' символов, дебюта ≤ ' + STAGES.LIMITS.openingName + ', имя мастера ≤ ' + STAGES.LIMITS.master + '. Названия пишутся по-русски.', '   – length: stage name ≤ ' + STAGES.LIMITS.stageName + ' chars, opening ≤ ' + STAGES.LIMITS.openingName + ', master ≤ ' + STAGES.LIMITS.master + '. Names are written in Russian.'),
     AL('3. Внизу нажать «Commit changes» (в ветку main).', '3. Click "Commit changes" at the bottom (to the main branch).'),
     AL('4. Через ~1 минуту открыть ' + site + ' и проверить: «Итоги» → название этапа, карточка «Дебюты».', '4. After ~1 minute open ' + site + ' and check: «Итоги» → stage name, «Дебюты» card.'),

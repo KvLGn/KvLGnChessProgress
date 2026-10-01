@@ -1048,6 +1048,21 @@
   .mn-it .gs-tx { min-width: 0; display: flex; flex-direction: column; }
   .mn-it .gs-title { font: 13px Inter, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mn-it .gs-sub { font: 11px Inter, sans-serif; color: var(--fg-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* «Если сайт сломался»: пункт раскрывается вниз прямо в меню */
+  .mn-it.exp-on { background: var(--bg-card-hover); }
+  .mn-it .mn-caret { margin-left: auto; color: var(--fg-mute); font-size: 14px; flex-shrink: 0; }
+  .mn-exp { margin: 2px 4px 10px 36px; padding: 10px 12px; border-left: 2px solid var(--border); font: 12px/1.55 Inter, sans-serif; color: var(--fg-dim); }
+  .mn-exp b { color: var(--fg); font-weight: 600; }
+  .mn-exp a { color: #818cf8; }
+  .mn-exp h4 { font: 600 12px Inter, sans-serif; color: var(--fg); margin: 12px 0 4px; }
+  .mn-exp h4:first-child { margin-top: 0; }
+  .mn-exp ol { margin: 0 0 0 18px; }
+  .mn-exp li { margin: 2px 0; }
+  .fx-st { display: grid; grid-template-columns: 16px 1fr; gap: 3px 6px; margin-bottom: 4px; }
+  .fx-st .ok { color: var(--green); } .fx-st .warn { color: var(--yellow); } .fx-st .bad { color: var(--red); } .fx-st .wait { color: var(--fg-mute); }
+  .fx-copy { margin-top: 8px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg-card-hover); color: var(--fg);
+    font: 500 12px Inter, sans-serif; cursor: pointer; }
+  .fx-copy:hover { border-color: #818cf8; }
   /* подсветка найденного */
   .gs-flash { animation: gsFlash 1.4s ease; }
   @keyframes gsFlash { 0%, 40% { box-shadow: inset 0 0 0 1px rgba(129,140,248,0.7); } 100% { box-shadow: inset 0 0 0 1px transparent; } }
@@ -8351,6 +8366,9 @@ function gsIndex() {
   ext('Мой профиль на Lichess', 'lichess.org/@/KvLGn', 'профиль аккаунт', 'https://lichess.org/@/KvLGn');
 
   /* --- сервисные --- */
+  // «Если сайт сломался»: пункты раскрываются в меню (expand), а не выполняют действие
+  items.push({group: 'Сервис', icon: '🛠', title: 'Инструкция', sub: 'что проверить и сделать — по шагам', keys: gsNorm('сломался не работает инструкция помощь'), run: true, expand: 'guide'});
+  items.push({group: 'Сервис', icon: '🤖', title: 'Помощь ИИ', sub: 'запрос для нейросети: найти причину и починить', keys: gsNorm('сломался не работает ии нейросеть помощь'), run: true, expand: 'ai'});
   add('Сервис', '⟳', 'Как обновить данные', 'запусти progress/update.bat · обновлено: ' + (window.GAMES_UPDATED || '—'), 'обновить данные update bat', function() { gsFlash($('footer')); });
   add('Сервис', '↓', 'К графику', 'показатели, активность, анализ — блок как есть', 'график показатели активность анализ', function() {
     window.scrollTo({top: $('chartBox').closest('.section').getBoundingClientRect().top + window.scrollY - 12, behavior: 'smooth'}); });
@@ -8427,6 +8445,140 @@ function gsSections(it) {
   return [];
 }
 
+/* ---------- «Если сайт сломался» (меню → Сервис): живая проверка состояния, инструкция по шагам, запрос для нейросети ---------- */
+// То же для случая, когда сайт не открывается совсем, — README.md, раздел 0а (на GitHub). Ссылки — на публичный репозиторий.
+var FIX_REPO = 'https://github.com/KvLGn/KvLGnChessProgress';
+var FIX_LINKS = {
+  actions: FIX_REPO + '/actions', update: FIX_REPO + '/actions/workflows/update.yml', readme: FIX_REPO + '#0а-если-что-то-сломалось',
+  planHist: FIX_REPO + '/commits/main/data/plan.js', planEdit: FIX_REPO + '/edit/main/data/plan.js', htmlHist: FIX_REPO + '/commits/main/KvLGnChessProgress.html',
+  token: 'https://lichess.org/account/oauth/token', secrets: FIX_REPO + '/settings/secrets/actions'
+};
+// последние запуски на GitHub (публичный API, без входа; лимит — 60 запросов в час с одного адреса): грузятся при раскрытии пункта
+var fixGh = {state: 'none', runs: []};
+function fixFetchGh() {
+  if (fixGh.state === 'load' || (fixGh.state === 'ok' && Date.now() - fixGh.at < 60000)) return;
+  fixGh.state = 'load';
+  try {
+    fetch('https://api.github.com/repos/KvLGn/KvLGnChessProgress/actions/runs?per_page=30', {cache: 'no-store'})
+      .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(j) { fixGh = {state: 'ok', at: Date.now(), runs: j.workflow_runs || []}; mnRerender(); })
+      .catch(function(e) { fixGh = {state: 'err', err: String(e && e.message || e), runs: []}; mnRerender(); });
+  } catch (e) { fixGh = {state: 'err', err: String(e.message), runs: []}; }
+}
+function fixMsk(iso) { return new Date(iso).toLocaleString('ru-RU', {timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}).replace(',', ''); }
+// сколько часов назад обновлены данные («дд.мм.гггг чч:мм» по Москве)
+function fixAgeH() {
+  var m = /^(\d\d)\.(\d\d)\.(\d{4}) (\d\d):(\d\d)/.exec(window.GAMES_UPDATED || '');
+  return m ? (Date.now() - Date.UTC(+m[3], m[2] - 1, +m[1], m[4] - 3, +m[5])) / 3600e3 : null;
+}
+function fixAgeText(h) { return h < 1 ? 'меньше часа назад' : h < 48 ? Math.round(h) + ' ' + plural(Math.round(h), 'час', 'часа', 'часов') + ' назад' : Math.round(h / 24) + ' ' + plural(Math.round(h / 24), 'день', 'дня', 'дней') + ' назад'; }
+// состояние: [уровень ok|warn|bad|wait, текст] — одно и то же для инструкции и для запроса ИИ
+function fixStatus() {
+  var out = [], C = PLAN_CHECK, h = fixAgeH(), P = window.PUZZLES;
+  if (!C.ok) out.push(['bad', 'План (data/plan.js) с ошибкой: ' + C.errors[0] + (C.errors.length > 1 ? ' (и ещё ' + (C.errors.length - 1) + ')' : '') +
+    (PLAN_FALLBACK ? '. Сайт работает на запасной копии от ' + PLAN_FALLBACK.at : '. Запасной копии нет — этапы и дебюты не показаны')]);
+  else if (C.warnings.length) out.push(['warn', 'План работает, есть предупреждения: ' + C.warnings.join('; ')]);
+  else out.push(['ok', 'План (data/plan.js) в порядке']);
+  if (h === null) out.push(['bad', 'Не видно, когда обновлялись данные: файл data/games.js не загрузился']);
+  else out.push([h <= 3 ? 'ok' : h <= 12 ? 'warn' : 'bad', 'Данные обновлены ' + window.GAMES_UPDATED + ' — ' + fixAgeText(h)]);
+  out.push([games.length ? 'ok' : 'bad', games.length ? 'Партий загружено: ' + games.length : 'Партии не загрузились (data/games.js пустой или сломан)']);
+  out.push([P && P.attempts ? 'ok' : 'bad', P && P.attempts ? 'Задач загружено: ' + P.total : 'Задачи не загрузились (data/puzzles.js)']);
+  if (fixGh.state === 'ok') {
+    var last = function(name) { return fixGh.runs.filter(function(r) { return r.name === name; })[0]; };
+    var upd = last('Обновление данных с Lichess'), pages = last('pages build and deployment'), chk = last('Проверка plan.js');
+    if (upd) {
+      var fails = 0; fixGh.runs.filter(function(r) { return r.name === upd.name; }).some(function(r) { if (r.conclusion === 'failure') { fails++; return false; } return r.conclusion === 'success'; });
+      out.push(upd.status !== 'completed' ? ['wait', 'Обновление на GitHub идёт прямо сейчас (запущено ' + fixMsk(upd.created_at) + ')']
+        : upd.conclusion === 'success' ? [(Date.now() - new Date(upd.created_at)) / 3600e3 > 12 ? 'warn' : 'ok', 'Последний запуск обновления на GitHub — успешно, ' + fixMsk(upd.created_at)]
+        : ['bad', 'Последний запуск обновления на GitHub — ошибка, ' + fixMsk(upd.created_at) + (fails > 1 ? ' (подряд: ' + fails + ')' : '')]);
+    }
+    if (pages) out.push(pages.status !== 'completed' ? ['wait', 'Публикация сайта идёт прямо сейчас'] : pages.conclusion === 'success' ? ['ok', 'Публикация сайта — успешно, ' + fixMsk(pages.created_at)]
+      : pages.conclusion === 'cancelled' ? ['ok', 'Публикация сайта — заменена более новой, ' + fixMsk(pages.created_at)] : ['bad', 'Публикация сайта — ошибка, ' + fixMsk(pages.created_at)]);
+    if (chk && chk.conclusion === 'failure') out.push(['bad', 'Проверка plan.js на GitHub — ошибка, ' + fixMsk(chk.created_at)]);
+  } else out.push(fixGh.state === 'err' ? ['warn', 'GitHub не ответил (' + fixGh.err + ') — запуски можно посмотреть вручную: Actions'] : ['wait', 'Проверяю запуски на GitHub…']);
+  return out;
+}
+function fixStatusHtml() {
+  var IC = {ok: '✓', warn: '⚠', bad: '✗', wait: '…'};
+  return '<div class="fx-st">' + fixStatus().map(function(x) { return '<span class="' + x[0] + '">' + IC[x[0]] + '</span><span>' + esc(x[1]) + '</span>'; }).join('') + '</div>';
+}
+function fixA(k, t) { return '<a href="' + FIX_LINKS[k] + '" target="_blank" rel="noopener">' + t + '</a>'; }
+function fixGuideHtml() {
+  return '<h4>Сейчас</h4>' + fixStatusHtml() +
+    '<h4>1. Сначала — обнови страницу как следует</h4>Браузер мог показать старую копию. Компьютер: <b>Ctrl+F5</b>. Телефон: закрой вкладку и открой сайт заново.' +
+    '<h4>2. Сверху красная плашка</h4>В ней написано, что не так в плане (data/plan.js). Сайт при этом работает на последней рабочей копии плана — ничего не пропало. Починить:' +
+    '<ol><li>Проще всего — пункт <b>«Помощь ИИ»</b> ниже: нейросеть пришлёт исправленный файл.</li>' +
+    '<li>Или вернуть прошлую версию файла (шаг 7).</li></ol>' +
+    '<h4>3. Данные давно не обновлялись</h4>GitHub иногда пропускает запуски по расписанию — это нормально. Запусти сам:' +
+    '<ol><li>Открой ' + fixA('update', 'обновление на GitHub') + '.</li><li>Справа кнопка <b>Run workflow</b> → ещё раз <b>Run workflow</b>.</li>' +
+    '<li>Через 2–3 минуты обнови страницу (шаг 1).</li></ol>С компьютера можно проще: двойной клик по <b>update.bat</b>.' +
+    '<h4>4. Запуск на GitHub с красным крестиком</h4><ol><li>Открой ' + fixA('actions', 'список запусков') + ' → верхний с ✗ → строка с ✗ внутри — там причина.</li>' +
+    '<li><b>«Lichess не принял токен (401)»</b> — создай ' + fixA('token', 'новый токен на Lichess') + ' (нужна одна галочка — puzzle:read, чтение задач), скопируй его, затем ' +
+    fixA('secrets', 'секреты репозитория') + ' → LICHESS_TOKEN → карандаш → вставь → Update secret.</li>' +
+    '<li><b>«похоже на сбой»</b> или ошибка сети — ничего не делай, следующий запуск пройдёт сам.</li>' +
+    '<li>Другое — скопируй текст ошибки и дай нейросети вместе с запросом из <b>«Помощь ИИ»</b>.</li></ol>' +
+    '<h4>5. Новой партии нет на сайте</h4>На Lichess открой партию и нажми <b>«Запросить компьютерный анализ»</b> — без анализа партия на сайт не попадает. Потом шаг 3.' +
+    '<h4>6. Правку отправили, а сайт не изменился</h4>Сайт обновляется примерно через минуту после правки. Если дольше — в ' + fixA('actions', 'списке запусков') +
+    ' найди <b>«pages build and deployment»</b>: идёт — подожди; ✗ — открой его → <b>Re-run all jobs</b>. Потом шаг 1.' +
+    '<h4>7. Вернуть прошлую версию файла</h4><ol><li>Открой историю: ' + fixA('planHist', 'data/plan.js') + ' (или ' + fixA('htmlHist', 'самого сайта') + ').</li>' +
+    '<li>Найди версию до поломки (по дате) → справа кнопка <b>&lt;&gt;</b> → <b>Raw</b> → выдели весь текст и скопируй.</li>' +
+    '<li>Открой ' + fixA('planEdit', 'файл на правку') + ' (для сайта — тот же файл, карандаш), выдели всё, вставь скопированное → <b>Commit changes</b>.</li>' +
+    '<li>Через минуту — шаг 1.</li></ol>' +
+    '<h4>Если сайт не открывается совсем</h4>Меню тогда не откроется — эта же инструкция лежит на GitHub: ' + fixA('readme', 'README, раздел «Если что-то сломалось»') +
+    '. Сохрани ссылку в закладки заранее.';
+}
+function fixAiHtml() {
+  return 'Для починки лучше сильная нейросеть: <b>DeepSeek (с DeepThink)</b>, <b>ChatGPT</b> или <b>Claude</b> — Алиса и другие простые с этим не справятся.<br>' +
+    'В запросе — что сейчас со страницей (проверено автоматически), файл плана и правила. В начале допиши своими словами, что не так.' +
+    (fixGh.state === 'load' ? '<br><span style="color:var(--fg-mute)">Подожди секунду — проверяю запуски на GitHub, чтобы добавить их в запрос.</span>' : '') +
+    '<br><button class="fx-copy" type="button">📋 Скопировать запрос для ИИ</button>';
+}
+// запрос нейросети: жалоба → как устроен сайт → состояние → что можно и нельзя → plan.js
+function fixAiText() {
+  var L = [], IC = {ok: 'OK', warn: 'ВНИМАНИЕ', bad: 'ОШИБКА', wait: '…'};
+  L.push('Задача: мой сайт-дашборд шахматного прогресса работает неправильно. Найди причину и объясни, как починить, — по шагам и простыми словами:');
+  L.push('я не программист и правлю файлы только через сайт github.com (с компьютера или телефона).');
+  L.push('');
+  L.push('Что не так (своими словами): [впиши, что видишь — если не вписано, начни с того, что видно в разделе «Состояние»]');
+  L.push('');
+  L.push('Как устроен сайт:');
+  L.push('- Статичная страница на GitHub Pages: https://kvlgn.github.io/KvLGnChessProgress/ , репозиторий (публичный): ' + FIX_REPO);
+  L.push('- Полное описание проекта и раздел «Если что-то сломалось»: https://raw.githubusercontent.com/KvLGn/KvLGnChessProgress/main/README.md (если можешь открывать ссылки — прочитай).');
+  L.push('- KvLGnChessProgress.html — весь сайт одним файлом (~8700 строк). Данные: data/games.js, data/puzzles.js, data/progress.js — их создаёт скрипт');
+  L.push('  scripts/update.mjs; запускает его GitHub Actions (.github/workflows/update.yml) по расписанию, вручную — кнопка Run workflow или update.bat на ПК.');
+  L.push('- data/plan.js — единственный файл, который правят руками (этапы, правило перехода, дебюты). Его проверяет lib/stages.js (validatePlan) —');
+  L.push('  на сайте и в .github/workflows/check-plan.yml. Если plan.js сломан, сайт работает на копии data/plan-good.js и показывает красную плашку.');
+  L.push('');
+  L.push('Состояние (собрано сайтом автоматически ' + new Date().toLocaleString('ru-RU', {timeZone: 'Europe/Moscow'}) + ' МСК):');
+  fixStatus().forEach(function(x) { L.push('- ' + IC[x[0]] + ': ' + x[1]); });
+  L.push('- Браузер: ' + navigator.userAgent);
+  if (fixGh.state === 'ok') {
+    L.push('Последние запуски на GitHub, по 3 каждого вида (время МСК):');
+    var per = {};
+    fixGh.runs.forEach(function(r) {
+      per[r.name] = (per[r.name] || 0) + 1;
+      if (per[r.name] <= 3) L.push('- ' + fixMsk(r.created_at) + ' · ' + r.name + ' · ' + (r.status === 'completed' ? r.conclusion : r.status) + ' · ' + r.html_url);
+    });
+  }
+  L.push('');
+  L.push('Правила для тебя:');
+  L.push('0. Сайт показывает только первую ошибку в plan.js — проверь весь файл, там могут быть и другие.');
+  L.push('1. Причина в data/plan.js — пришли исправленный файл ЦЕЛИКОМ одним блоком кода (начинается с комментариев и «window.PLAN = {»), комментарии');
+  L.push('   сохрани, меняй только то, что сломано, и в 1–3 строках скажи, что исправил. Как вставить: ' + FIX_LINKS.planEdit + ' → выделить всё → вставить → Commit changes.');
+  L.push('2. KvLGnChessProgress.html целиком не присылай и не переписывай (он слишком большой для чата). Если сломан он — объясни, как вернуть прошлую');
+  L.push('   версию через историю файла: ' + FIX_LINKS.htmlHist + ' → версия до поломки → <> → Raw → скопировать → карандаш → вставить → Commit changes.');
+  L.push('3. Причина в GitHub (обновление не запускается или падает) — скажи, куда нажать. Если нужен текст ошибки, попроси меня открыть запуск с ✗');
+  L.push('   и скопировать строки из шага с ✗ (ссылки на запуски — выше).');
+  L.push('4. Не выдумывай: если данных не хватает — спроси, что посмотреть, и скажи, где это найти.');
+  L.push('5. Токен Lichess (секрет LICHESS_TOKEN) никогда не проси прислать тебе — только где его заменить.');
+  L.push('');
+  L.push('Файл data/plan.js сейчас:');
+  L.push('```js');
+  L.push(planSource().replace(/\s+$/, ''));
+  L.push('```');
+  return L.join('\n');
+}
+
 /* ---------- меню (☰): все действия сайта по группам и подгруппам (пункты — из gsIndex; скрытые части страницы туда не попадают) ---------- */
 var MN_GROUPS = [
   {k: 'an', icon: '♞', name: 'Анализ партий'}, {k: 'ch', icon: '📈', name: 'Графики'}, {k: 'fl', icon: GS_FUNNEL, name: 'Фильтры'},
@@ -8463,21 +8615,21 @@ function mnPlace(it) {
   if (g === 'Дебюты') return ['op', /в таблице/.test(sub) ? 'Сыгранные' : /^изучаю/.test(sub) ? 'Изучаю' : /^следующий/.test(sub) ? 'Следующие' : /^изучен/.test(sub) ? 'Изучено' : 'В планах'];   // как в панели «Дебюты»
   if (g === 'Итоги') return ['vd', sub === 'проседает' ? 'Проседает' : sub === 'хорошо' ? 'Хорошо' : 'Что делать'];
   if (g === 'Lichess') return ['li', /^Слабая (тема|фаза)/.test(t) ? 'Слабые места' : 'Lichess'];
-  if (g === 'Сервис') return ['sv', /^(К графику|К последним партиям)$/.test(t) ? 'Навигация' : 'Сервис'];
+  if (g === 'Сервис') return ['sv', it.expand ? 'Если сайт сломался' : /^(К графику|К последним партиям)$/.test(t) ? 'Навигация' : 'Сервис'];
   return ['sv', 'Другое'];
 }
 // порядок подгрупп внутри групп (не названные — в конце, как пришли)
 var MN_SUB_ORDER = ['Быстро', 'Вкладки', 'Мастера', 'Показатели', 'Сравнения', 'Линии', 'Активность', 'Дни',
   'Слабые темы', 'Открыть', 'Результат и цвет', 'Даты', 'Мой дебют', 'Режим партии', 'Зевки и маты', 'Сброс',
   'Таблица', 'Все партии', 'Цифры', 'Партии', 'Тренировки', 'Темы', 'Изучаю', 'Следующие', 'В планах', 'Изучено', 'Студии мастеров', 'Сыгранные',
-  'Проседает', 'Хорошо', 'Что делать', 'Слабые места', 'Lichess', 'Сервис', 'Навигация'];
-var mn = {g: null, items: [], tree: {}};
+  'Проседает', 'Хорошо', 'Что делать', 'Слабые места', 'Lichess', 'Если сайт сломался', 'Сервис', 'Навигация'];
+var mn = {g: null, items: [], tree: {}, exp: null};
 // дерево меню из текущих данных (пересобирается при каждом открытии — новые партии и скрытие учитываются сами)
 function mnBuild() {
   var tree = {};
   mn.items = [];
   gsIndex().forEach(function(it) {
-    var list = it.children ? it.children.map(function(c) { return {group: it.group, icon: c.icon, title: c.title, sub: c.sub, run: c.run}; }) : [it];
+    var list = it.children ? it.children.map(function(c) { return {group: it.group, icon: c.icon, title: c.title, sub: c.sub, run: c.run}; }) : [it];   // expand — у самих пунктов
     list.forEach(function(x) {
       var pl = mnPlace(it), G = tree[pl[0]] = tree[pl[0]] || {subs: [], items: {}, n: 0};
       if (!G.items[pl[1]]) { G.items[pl[1]] = []; G.subs.push(pl[1]); }
@@ -8500,13 +8652,24 @@ function mnRender() {
     '<div class="mn-body">' + (G ? G.subs.map(function(sb) {
       return '<div class="mn-sub">' + esc(sb) + '</div>' + G.items[sb].map(function(i) {
         var it = mn.items[i];
-        return '<button class="mn-it' + (it.run ? '' : ' off') + '" data-i="' + i + '"><span class="gs-ic">' + it.icon + '</span>' +
-          '<span class="gs-tx"><span class="gs-title">' + esc(it.title) + '</span><span class="gs-sub">' + esc(it.sub || '') + '</span></span></button>';
+        var open = it.expand && mn.exp === it.expand;
+        return '<button class="mn-it' + (it.run ? '' : ' off') + (open ? ' exp-on' : '') + '" data-i="' + i + '"><span class="gs-ic">' + it.icon + '</span>' +
+          '<span class="gs-tx"><span class="gs-title">' + esc(it.title) + '</span><span class="gs-sub">' + esc(it.sub || '') + '</span></span>' +
+          (it.expand ? '<span class="mn-caret">' + (open ? '▴' : '▾') + '</span>' : '') + '</button>' +
+          (open ? '<div class="mn-exp">' + (it.expand === 'guide' ? fixGuideHtml() : fixAiHtml()) + '</div>' : '');
       }).join('');
     }).join('') : '<div class="mn-sub">Пусто</div>') + '</div>';
 }
+// перерисовать открытое меню, не теряя прокрутку списка справа
+function mnRerender() {
+  if (!$('mn').classList.contains('open')) return;
+  var b = $('mnPanel').querySelector('.mn-body'), top = b ? b.scrollTop : 0;
+  mnRender();
+  b = $('mnPanel').querySelector('.mn-body'); if (b) b.scrollTop = top;
+}
 function mnOpen() {
   if (hushAll()) return;
+  mn.exp = null;
   mnBuild(); mnRender();
   $('mn').classList.add('open'); $('menuBtn').classList.add('open'); $('menuBtn').setAttribute('aria-expanded', 'true');
 }
@@ -8523,10 +8686,12 @@ $('mnPanel').addEventListener('click', function(e) {
   e.stopPropagation();   // клик внутри меню — не «клик мимо» для открытых панелей
   var b = e.target.closest('.mn-g');
   if (b) { mn.g = b.getAttribute('data-g'); mnRender(); return; }
+  if (e.target.closest('.fx-copy')) { copyText(fixAiText()); toast('Скопировано: запрос для нейросети — вставь в чат'); return; }
   var it = e.target.closest('.mn-it');
   if (!it) return;
   var x = mn.items[+it.getAttribute('data-i')];
   if (!x || !x.run) return;
+  if (x.expand) { mn.exp = mn.exp === x.expand ? null : x.expand; if (mn.exp) fixFetchGh(); mnRerender(); return; }   // раскрыть / свернуть, меню не закрывать
   mnClose();
   x.run();
 });

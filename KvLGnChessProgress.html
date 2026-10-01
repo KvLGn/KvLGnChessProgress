@@ -2045,9 +2045,9 @@ function toGoalText(c, lang) {
   var k = gamesToGoal(c), w = winsToGoal(c, k), N = RULE.blocks * RULE.games;
   return lang === 'en'
     ? 'To reach the goal: at least ' + k + ' more game' + (k === 1 ? '' : 's') + ' vs this engine; of them at least ' + w + ' win' + (w === 1 ? '' : 's') + (w < k ? ', the rest only honest losses (accuracy ≥ ' + RULE.lossMinAcc + '% and at most ' + RULE.lossMaxBlunders + ' blunders), with at most ' + (RULE.games - RULE.wins) + ' non-win' + (RULE.games - RULE.wins === 1 ? '' : 's') + ' in each set' : '') +
-      '; median accuracy in each set of ' + RULE.games + ' ≥ ' + RULE.medianAcc + '%. The blunder and accuracy limits apply only to losses — a win counts with any number of blunders. A weak loss blocks the goal while it is among the last ' + N + ' games counting towards it.'
+      '; median accuracy in each set of ' + RULE.games + ' ≥ ' + RULE.medianAcc + '%. The blunder and accuracy limits apply only to losses (a draw counts as a loss) — a win counts with any number of blunders. A weak loss blocks the goal while it is among the last ' + N + ' games counting towards it.'
     : 'Чтобы выполнить цель: минимум ещё ' + k + ' ' + plural(k, 'партия', 'партии', 'партий') + ' против этого бота; из них не меньше ' + w + ' ' + plural(w, 'победы', 'побед', 'побед') + (w < k ? ', остальные — только честные поражения (точность ≥ ' + RULE.lossMinAcc + '% и не больше ' + RULE.lossMaxBlunders + ' зевков), и в каждой пятёрке не больше ' + (RULE.games - RULE.wins) + ' ' + plural(RULE.games - RULE.wins, 'поражения', 'поражений', 'поражений') : '') +
-      '; медиана точности в каждой пятёрке ≥ ' + RULE.medianAcc + '%. Лимиты по зевкам и точности — только для поражений: победа засчитывается при любом числе зевков. Слабое поражение не даёт выполнить цель, пока оно среди последних ' + N + ' партий, идущих в цель.';
+      '; медиана точности в каждой пятёрке ≥ ' + RULE.medianAcc + '%. Лимиты по зевкам и точности — только для поражений (ничья считается так же, как поражение): победа засчитывается при любом числе зевков. Слабое поражение не даёт выполнить цель, пока оно среди последних ' + N + ' партий, идущих в цель.';
 }
 var SPEED_RU = {correspondence: 'без часов (переписка)', classical: 'классика', rapid: 'рапид', blitz: 'блиц', bullet: 'пуля', ultraBullet: 'ультрапуля'};
 var SPEED_EN = {correspondence: 'no clock (correspondence)', classical: 'classical', rapid: 'rapid', blitz: 'blitz', bullet: 'bullet', ultraBullet: 'ultrabullet'};
@@ -6451,6 +6451,7 @@ var AI_PROMPT = {
       'Правило rule меняй только по просьбе или если цифры явно показывают, что оно недостижимо/слишком лёгкое, — объясни на цифрах.',
       'Проверка сайта: в rule все шесть полей — числа и wins ≤ games; у дебюта обязательны id, name, color (\'white\' | \'black\'); число ids студии = parts; engine 1–8.',
       'Это JavaScript: проверь запятые, скобки и кавычки — сломанный файл сайт не примет. Дебют станет «Изучаю», только если его id стоит в openings этапа.',
+      'rule — одно на все этапы: оценивая его, учитывай и следующие этапы (их уровни бота и цвета — в plan.js).',
       'Правка rule, engine или colors текущего этапа пересчитывается сразу: если по новым условиям этап уже выполнен в прошлых партиях, сайт засчитает его задним числом и запишет в progress.js навсегда. Если твоя правка так сработает — прямо предупреди об этом.'
     ]
   },
@@ -6482,6 +6483,7 @@ var AI_PROMPT = {
       'Never invent Lichess study ids — if unknown, use studies: [] and say a study is needed. Keep ids (all study parts, first = id) as they are. Change rule only on request or when numbers clearly demand it.',
       'Site checks: all six rule fields are numbers and wins ≤ games; every opening needs id, name, color (\'white\' | \'black\'); a study\'s ids count = parts; engine 1–8.',
       'It is JavaScript: check commas, brackets and quotes — the site rejects a broken file. An opening becomes «Изучаю» only if its id is in a stage\'s openings.',
+      'rule is shared by all stages: when judging it, consider the next stages too (their bot levels and colours are in plan.js).',
       'A change to rule, engine or colors of the current stage is recalculated at once: if the stage would already be complete under the new conditions, the site counts it retroactively and records it in progress.js for good. If your change does that, warn about it explicitly.'
     ]
   }
@@ -7702,6 +7704,8 @@ function humanTextInner(ask, isPlan, dataKey, item) {
     AL('• Выполненные этапы записываются автоматически в data/progress.js — их не трогать.', '• Completed stages are recorded automatically in data/progress.js — do not touch it.'),
     AL('• Дебют становится «Изучаю», когда начинается этап, в openings которого стоит его id; дебют без этапа — «В планах». Ходы мастеров по новым студиям сайт подтянет сам при следующем автообновлении данных (обычно в течение часа, но не всегда сразу).',
        '• An opening becomes «Изучаю» (studying) when the stage that lists its id in openings starts; an opening without a stage is «В планах» (planned). Master moves for new studies are fetched by the next automatic data update (usually within an hour, not always right away).'),
+    AL('• Правило rule одно на все этапы: если его поменять, оно будет действовать и дальше — на этапе 2 его нужно выполнить отдельно белыми и отдельно чёрными (этапы и цвета — в plan.js ниже).',
+       '• The rule is shared by all stages: a change also applies later — at stage 2 it must be met separately as White and as Black (stages and colours — in plan.js below).'),
     AL('• Любая правка правила или текущего этапа (rule, engine, colors) пересчитывается сразу: если по новым условиям этап уже был выполнен в прошлых партиях, сайт засчитает его задним числом, и при ближайшем автообновлении это навсегда запишется в data/progress.js — откатить нельзя. Поэтому смягчать правило — только осознанно.',
        '• Any change to the rule or the current stage (rule, engine, colors) is recalculated at once: if the stage would already have been completed under the new conditions, the site counts it retroactively, and the next automatic update records it in data/progress.js for good — it cannot be undone. So relax the rule only deliberately.'),
     AL('• data/plan.js — это код на JavaScript: одна лишняя или пропущенная запятая, скобка или кавычка ломает файл. Сайт тогда покажет красную плашку с причиной; рабочая копия плана есть только в браузере, где сайт уже открывали, — у остальных этапы и дебюты пропадут, пока файл не исправят.',

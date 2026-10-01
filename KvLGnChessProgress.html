@@ -8623,7 +8623,7 @@ var MN_SUB_ORDER = ['Быстро', 'Вкладки', 'Мастера', 'Пок�
   'Слабые темы', 'Открыть', 'Результат и цвет', 'Даты', 'Мой дебют', 'Режим партии', 'Зевки и маты', 'Сброс',
   'Таблица', 'Все партии', 'Цифры', 'Партии', 'Тренировки', 'Темы', 'Изучаю', 'Следующие', 'В планах', 'Изучено', 'Студии мастеров', 'Сыгранные',
   'Проседает', 'Хорошо', 'Что делать', 'Слабые места', 'Lichess', 'Если сайт сломался', 'Сервис', 'Навигация'];
-var mn = {g: null, items: [], tree: {}, exp: null};
+var mn = {g: null, items: [], tree: {}, exp: {}};   // exp — раскрытые пункты («Если сайт сломался»), независимо друг от друга
 // дерево меню из текущих данных (пересобирается при каждом открытии — новые партии и скрытие учитываются сами)
 function mnBuild() {
   var tree = {};
@@ -8652,7 +8652,7 @@ function mnRender() {
     '<div class="mn-body">' + (G ? G.subs.map(function(sb) {
       return '<div class="mn-sub">' + esc(sb) + '</div>' + G.items[sb].map(function(i) {
         var it = mn.items[i];
-        var open = it.expand && mn.exp === it.expand;
+        var open = it.expand && mn.exp[it.expand];
         return '<button class="mn-it' + (it.run ? '' : ' off') + (open ? ' exp-on' : '') + '" data-i="' + i + '"><span class="gs-ic">' + it.icon + '</span>' +
           '<span class="gs-tx"><span class="gs-title">' + esc(it.title) + '</span><span class="gs-sub">' + esc(it.sub || '') + '</span></span>' +
           (it.expand ? '<span class="mn-caret">' + (open ? '▴' : '▾') + '</span>' : '') + '</button>' +
@@ -8669,7 +8669,7 @@ function mnRerender() {
 }
 function mnOpen() {
   if (hushAll()) return;
-  mn.exp = null;
+  mn.exp = {};
   mnBuild(); mnRender();
   $('mn').classList.add('open'); $('menuBtn').classList.add('open'); $('menuBtn').setAttribute('aria-expanded', 'true');
 }
@@ -8691,7 +8691,7 @@ $('mnPanel').addEventListener('click', function(e) {
   if (!it) return;
   var x = mn.items[+it.getAttribute('data-i')];
   if (!x || !x.run) return;
-  if (x.expand) { mn.exp = mn.exp === x.expand ? null : x.expand; if (mn.exp) fixFetchGh(); mnRerender(); return; }   // раскрыть / свернуть, меню не закрывать
+  if (x.expand) { mn.exp[x.expand] = !mn.exp[x.expand]; if (mn.exp[x.expand]) fixFetchGh(); mnRerender(); return; }   // раскрыть / свернуть, меню не закрывать; другие раскрытые остаются
   mnClose();
   x.run();
 });

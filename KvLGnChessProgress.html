@@ -1162,7 +1162,7 @@
     width: 100%;
     position: relative;
   }
-  .legend-wr { position: absolute; left: 20px; display: flex; align-items: center; gap: 6px; }
+  .legend-wr { position: absolute; left: 20px; display: flex; align-items: center; gap: 6px; transform: translateY(-6px); }   /* чуть выше — ближе к черте над ним */
   /* подпись «Винрейт» — в стиле заголовков блока: капс, разрядка, зелёная точка-акцент */
   .legend-wr { gap: 10px; }
   .legend-wr-label { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #4ade80; }
@@ -1681,7 +1681,7 @@
     .stats-list .stat { padding-top: 6px; }
     .chart-area { flex-basis: 100%; padding: 12px 2px 4px; }
     .legend { padding: 8px 12px; flex-wrap: wrap; gap: 8px 16px; }
-    .legend-wr { position: static; width: 100%; justify-content: center; }
+    .legend-wr { position: static; width: 100%; justify-content: center; transform: none; }
     .records-btn { left: auto; right: 132px; }
     .rec-scope { top: auto; bottom: 48px; left: 50%; }
     .rec-view { padding: 36px 8px 8px; }

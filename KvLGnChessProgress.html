@@ -6274,6 +6274,8 @@ var AI_DICT = [
   {re: /оценк|перелом|eval|turning/i, ru: 'Оценка — в пешках с моей стороны: +2 — я лучше на 2 пешки, −3 — соперник лучше на 3. Перелом — ход, на котором оценка изменилась сильнее всего.', en: 'Evaluation — in pawns from my side: +2 — I am 2 pawns better, −3 — the opponent is 3 better. Turning point — the move where the evaluation changed the most.'},
   {re: /мастер|master/i, ru: 'Мастера — какие ходы в той же позиции чаще всего играли сильные шахматисты: «80%» — доля партий в базе Lichess, «×12» — сколько раз так сыграл мастер в партиях из студий моего дебюта.', en: 'Masters — which moves strong players most often played in the same position: "80%" — share of games in the Lichess database, "×12" — how many times the master played it in the games from my opening studies.'},
   {re: /перфоманс|performance/i, ru: 'Перфоманс темы задач — на каком уровне я решаю задачи этой темы. Сравнивай с общим перфомансом; это не рейтинг.', en: 'Puzzle theme performance — the level at which I solve that theme. Compare it with the overall performance; it is not a rating.'},
+  {re: /FEN|PGN/, ru: 'PGN — стандартная запись партии. FEN — позиция на доске одной строкой: горизонтали с 8-й по 1-ю через «/», заглавные буквы — белые фигуры, строчные — чёрные, цифра — сколько пустых полей подряд; дальше чей ход (w — белых, b — чёрных). Где стоят фигуры, бери из FEN, а не восстанавливай по ходам.',
+    en: 'PGN — standard game notation. FEN — the board position in one line: ranks 8 to 1 separated by "/", uppercase — white pieces, lowercase — black, a digit — that many empty squares; then whose move (w — white, b — black). Take piece placement from the FEN, do not reconstruct it from the moves.'},
   {re: /Stockfish/, ru: 'Stockfish N — компьютер Lichess уровня N из 8 (1 — самый слабый).', en: 'Stockfish N — the Lichess computer at level N of 8 (1 is the weakest).'}
 ];
 // формат ответа: стоит второй строкой пакета, чтобы модель сразу знала, что вернуть
@@ -6439,7 +6441,7 @@ function aiTurn(g) {
   var t = mrTurn(g);
   if (!t || !g.ev) return '';
   return AL('Перелом: ', 'Turning point: ') + aiMove(g, t.p) + ' (' + (anMine(g, t.p) ? AL('мой ход', 'my move') : AL('ход соперника', 'opponent\'s move')) + ')' +
-    AL(', оценка ', ', evaluation ') + aiEv(g.ev[t.p - 1] || 0) + ' → ' + aiEv(g.ev[t.p] || 0) + (PLAIN ? ' (' + aiLink(g, t.p) + ')' : '');
+    AL(', оценка ', ', evaluation ') + aiEv(g.ev[t.p - 1] || 0) + ' → ' + aiEv(g.ev[t.p] || 0) + (PLAIN ? ' (' + aiLink(g, t.p) + ')' : aiFen(g, t.p));
 }
 // ошибки бота в партии: наказал / пропустил, при пропуске — мой ответ и что было лучше
 function aiOpp(g) {
@@ -6448,7 +6450,7 @@ function aiOpp(g) {
     var mine = (g.jd || []).filter(function(j) { return j[0] === o.q + 1; })[0], better = mine ? (mine[2] || '').split(' ')[0] : '';
     var mineBest = mine && mine[1] !== 'B' && (mine[2] || '') ? mine[2].split(' ')[0] : '';
     return {kept: o.kept, line: AL('бот: ', 'bot: ') + aiMove(g, o.q) + ' — ' + (o.kept ? AL('наказал', 'punished') + ' (' + aiMove(g, o.q + 1) + (mineBest ? AL(' — перевес сохранился, хотя лучше было ', ' — the advantage was kept, though better was ') + mineBest : '') + ')' :
-      AL('пропустил: ответил ', 'missed: replied ') + (sans[o.q] ? aiMove(g, o.q + 1) : '—') + (better ? AL(', лучше ', ', better ') + better : '') + (PLAIN ? ' (' + aiLink(g, o.q) + ')' : ''))};
+      AL('пропустил: ответил ', 'missed: replied ') + (sans[o.q] ? aiMove(g, o.q + 1) : '—') + (better ? AL(', лучше ', ', better ') + better : '') + (PLAIN ? ' (' + aiLink(g, o.q) + ')' : aiFen(g, o.q + 1)))};
   });
 }
 function aiMates(g) {
@@ -6456,7 +6458,7 @@ function aiMates(g) {
     if (!m.lost) return AL('мат в ' + m.N + ' доведён до конца', 'mate in ' + m.N + ' delivered');
     var j = (g.jd || []).filter(function(x) { return x[0] === m.lost; })[0], best = j ? (j[2] || '').split(' ')[0] : '';
     return AL('на ходу ' + Math.ceil(m.lost / 2) + ' у меня был мат в ' + m.N2 + ', а сыграно ' + aiMove(g, m.lost) + ' — мат упущен (ошибка)', 'at move ' + Math.ceil(m.lost / 2) + ' I had mate in ' + m.N2 + ', but played ' + aiMove(g, m.lost) + ' — mate missed (a mistake)') +
-      (best ? AL(', лучше ', ', better ') + best : '') + (PLAIN ? ' (' + aiLink(g, m.lost) + ')' : '');
+      (best ? AL(', лучше ', ', better ') + best : '') + (PLAIN ? ' (' + aiLink(g, m.lost) + ')' : aiFen(g, m.lost));
   });
 }
 // дебют против мастеров: до какого хода как у мастеров и первый отход
@@ -6468,6 +6470,44 @@ function aiMs(g) {
   var src = off ? (off.own ? AL(off.src, String(keys[0]).split('/').pop()) : AL(MS_TIER[off.tier].short, MS_EN[off.tier])) : '';
   return AL('Дебют против мастеров: ', 'Opening vs masters: ') + (ok.length ? AL('как у мастеров до хода ', 'same as masters up to move ') + Math.ceil(ok[ok.length - 1].p / 2) : AL('отход сразу', 'left at once')) +
     (off ? AL('; ход ', '; move ') + anMoveNo(off.p) + off.san + ' — ' + (off.st === 'alt' ? AL('встречался реже', 'played less often') : AL('мастера так не играли', 'masters never played it')) + AL(', чаще всего ', ', most often ') + off.top + ' (' + off.cnt(off.list[0]) + ', ' + src + ')' : AL('; отходов нет', '; no deviations'));
+}
+// позиции партии для пакета ИИ: свой кэш, чтобы не трогать anPos «Анализа»; без chess.js — пусто (FEN просто не попадёт в пакет)
+var aiFenCache = {};
+function aiFens(g) {
+  if (!window.Chess) return null;
+  if (aiFenCache[g.id]) return aiFenCache[g.id];
+  var c = new Chess(), fens = [c.fen()];
+  aiSans(g).some(function(san) { try { c.move(san); } catch (e) { return true; } fens.push(c.fen()); return false; });
+  return (aiFenCache[g.id] = fens);
+}
+// « | FEN перед ходом: …» — позиция, в которой делался полуход p (только для нейросети)
+function aiFen(g, p) {
+  if (PLAIN) return '';
+  var f = aiFens(g);
+  return f && f[p - 1] ? AL(' | FEN перед ходом: ', ' | FEN before the move: ') + f[p - 1] : '';
+}
+// PGN партии с пометками: ?? — мой зевок, ? — моя ошибка, ?! — неточность, у ошибок бота тоже ??/?; в {} — лучший ход и оценка после хода (пешки, с моей стороны)
+function aiPgn(g) {
+  var s = aiSans(g), mark = {}, out = [], afterNote = false;
+  (g.jd || []).forEach(function(j) { mark[j[0]] = {nag: j[1] === 'B' ? '??' : j[1] === 'M' ? '?' : '?!', best: (j[2] || '').split(' ')[0]}; });
+  (g.bl || []).forEach(function(b) { var q = blPly(g, b); mark[q] = {nag: '??', best: b.b || (mark[q] || {}).best, t: b.t}; });
+  mateSeries(g).forEach(function(m) { if (m.lost) { var q = m.lost; mark[q] = mark[q] || {nag: '?'}; mark[q].mate = m.N2; } });
+  var t = mrTurn(g);
+  for (var i = 0; i < s.length; i++) {
+    var q = i + 1, white = q % 2 === 1, m = mark[q], note = [];
+    if (white) out.push(Math.ceil(q / 2) + '.'); else if (afterNote) out.push(Math.ceil(q / 2) + '...');
+    out.push(s[i] + (m ? m.nag : ''));
+    if (m && m.best) note.push(AL('лучше ', 'better ') + m.best);
+    if (m && m.t) note.push(aiBlType(m.t));
+    if (m && m.mate) note.push(AL('упущен мат в ', 'missed mate in ') + m.mate);
+    if (t && t.p === q) note.push(AL('перелом', 'turning point'));
+    var mq = (g.mt || {})[q];
+    if ((m || (t && t.p === q)) && g.ev && typeof g.ev[q] === 'number') note.push(typeof mq === 'number' && mq > 0 ? AL('у меня мат в ', 'I have mate in ') + mq : AL('оценка ', 'eval ') + aiEv(g.ev[q]));   // при мате оценка упирается в потолок — пишем «мат в N»
+    afterNote = note.length > 0;
+    if (afterNote) out.push('{' + note.join('; ') + '}');
+  }
+  out.push(g.result === 'win' ? (g.color === 'white' ? '1-0' : '0-1') : g.result === 'lose' ? (g.color === 'white' ? '0-1' : '1-0') : '1/2-1/2');
+  return out.join(' ');
 }
 function aiMovesText(g) {
   var s = aiSans(g), out = [];
@@ -6600,12 +6640,13 @@ var AI_DATA = {
     AI_BL_MAX = 99;
     var o = aiOp(), isPlanOp = o && g.color === o.color && opMatch(o, g.opening);
     var out = [AL('Последняя партия: ', 'Last game: ') + aiGame(g),
-      AL('Дебют этой партии — ', 'The opening of this game is ') + g.opening + (o ? (isPlanOp ? AL(' (это мой изучаемый дебют «' + o.name + '»)', ' (this is the opening I am studying)') : (PLAIN ? AL(' (это не тот дебют, который я учу, — учу дебют «' + o.name + '»)', ' (not the opening I am learning — I am learning the ' + opEn(o) + ')') : AL(' — это НЕ мой изучаемый дебют («' + o.name + '»); советы про дебют давай по дебюту этой партии.', ' — NOT the opening I am studying (' + opEn(o) + '); give opening advice for this game\'s opening.'))) : '')].concat(PLAIN ? [] : [AL('Ходы: ', 'Moves: ') + aiMovesText(g)]), dv = g.div || {};
+      AL('Дебют этой партии — ', 'The opening of this game is ') + g.opening + (o ? (isPlanOp ? AL(' (это мой изучаемый дебют «' + o.name + '»)', ' (this is the opening I am studying)') : (PLAIN ? AL(' (это не тот дебют, который я учу, — учу дебют «' + o.name + '»)', ' (not the opening I am learning — I am learning the ' + opEn(o) + ')') : AL(' — это НЕ мой изучаемый дебют («' + o.name + '»); советы про дебют давай по дебюту этой партии.', ' — NOT the opening I am studying (' + opEn(o) + '); give opening advice for this game\'s opening.'))) : '')].concat(PLAIN ? [] : [AL('Партия в PGN (?? — зевок, ? — ошибка, ?! — неточность, у ходов бота тоже; в {} — лучший ход, тип зевка и оценка после хода в пешках с моей стороны):',
+      'The game in PGN (?? — blunder, ? — mistake, ?! — inaccuracy, also for the bot\'s moves; in {} — the better move, blunder type and the evaluation after the move in pawns from my side):'), window.Chess ? aiPgn(g) : aiMovesText(g)]), dv = g.div || {};
     out.push(AL('Фазы: дебют с 1-го хода', 'Phases: opening from move 1') + (dv.mid ? AL(', миттельшпиль с хода ', ', middlegame from move ') + Math.ceil(dv.mid / 2) : AL(', миттельшпиля не было', ', no middlegame')) +
       (dv.end ? AL(', эндшпиль с хода ', ', endgame from move ') + Math.ceil(dv.end / 2) : AL(', эндшпиля не было', ', no endgame')) + '.');
     if (!PLAIN) {
       out.push(AL('Мои зевки:', 'My blunders:') + ((g.bl || []).length ? '' : AL(' нет', ' none')));
-      (g.bl || []).forEach(function(b) { out.push('- ' + aiBl(g, b)); });
+      (g.bl || []).forEach(function(b) { out.push('- ' + aiBl(g, b) + aiFen(g, blPly(g, b))); });
     }
     var sans = aiSans(g), M = (g.jd || []).filter(function(j) { return j[1] === 'M' && anMine(g, j[0]); }).slice(0, 5);
     if (M.length) out.push(AL('Мои ошибки (слабее зевка): ', 'My mistakes (less than a blunder): ') + M.map(function(j) { return aiMove(g, j[0]) + ((j[2] || '') ? AL(', лучше ', ', better ') + j[2].split(' ')[0] : '') + (PLAIN ? ' (' + aiLink(g, j[0]) + ')' : ''); }).join('; '));
@@ -6641,7 +6682,7 @@ var AI_DATA = {
                 'Blunders in the last 10 games (' + last.length + ' games), by type, with the latest examples:'));
     ks.forEach(function(t) {
       out.push(aiBlType(t) + ' — ' + by[t].length + ' (' + aiTip(t) + '):');
-      by[t].slice(-4).reverse().forEach(function(x) { aiRef(x.g); out.push('- ' + aiGid(x.g) + ', ' + x.g.opening + ': ' + aiBl(x.g, x.b)); });
+      by[t].slice(-4).reverse().forEach(function(x, i) { aiRef(x.g); out.push('- ' + aiGid(x.g) + ', ' + x.g.opening + ': ' + aiBl(x.g, x.b) + (i < 2 ? aiFen(x.g, blPly(x.g, x.b)) : '')); });
     });
     var ph = {};
     last.forEach(function(g) { (g.bl || []).forEach(function(b) { if (b.p) ph[b.p] = (ph[b.p] || 0) + 1; }); });
@@ -6668,7 +6709,8 @@ var AI_DATA = {
     AI_BL_MAX = 99;
     older.concat(recent).forEach(function(g) {
       out.push(aiGame(g) + (older.indexOf(g) >= 0 ? AL(' (раньше)', ' (earlier)') : ''));
-      if (!PLAIN) (g.bl || []).forEach(function(b) { out.push('  - ' + aiBl(g, b)); });
+      var cost = function(b) { return typeof b.d === 'number' ? b.d : 99; }, top = (g.bl || []).slice().sort(function(a, b) { return cost(b) - cost(a); }).slice(0, 2);
+      if (!PLAIN) (g.bl || []).forEach(function(b) { out.push('  - ' + aiBl(g, b) + (top.indexOf(b) >= 0 ? aiFen(g, blPly(g, b)) : '')); });
       var t = aiTurn(g); if (t) out.push('  ' + t);
     });
     AI_BL_MAX = 3;
@@ -6964,7 +7006,7 @@ function renderAiMenu() {
       '<button data-own="plan">' + AL('✏️ Изменить план', '✏️ Change plan') + '</button></div></div></div>' +
   '</div>';
 }
-function openAiMenu() { renderAiMenu(); $('aiMenu').classList.add('open'); }
+function openAiMenu() { renderAiMenu(); $('aiMenu').classList.add('open'); anNeedChess(function() {}); }   // chess.js — для FEN и PGN в пакетах
 function closeAiMenu() { $('aiMenu').classList.remove('open'); }
 // курсор над окном — страница не прокручивается (список внутри крутится сам и не передаёт прокрутку странице); вне окна — страница крутится
 $('aiMenu').addEventListener('wheel', function(e) {

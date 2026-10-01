@@ -184,7 +184,7 @@
   .hush-q { color: var(--fg-mute) !important; letter-spacing: 2px; }
   body.hush-head .vd-card { cursor: default; }
   body.hush-head .vd-card:hover { background: linear-gradient(90deg, rgba(99,102,241,0.14) 0%, rgba(99,102,241,0.04) 100%); }
-  body.hush-head .vd-go { visibility: hidden; }
+  body.hush-head .vd-go { opacity: 0.5; }   /* «i» на месте, но карточка в скрытой шапке не открывается */
   body.hush-chart .records-btn, body.hush-chart #cf .f-btn { opacity: 0.45; cursor: not-allowed; }
   body.hush-chart .records-btn:hover { background: none; }
   body.hush-chart .legend-item, body.hush-chart .stat.toggle { pointer-events: none; }
@@ -8560,7 +8560,7 @@ function applyHush() {
   document.querySelectorAll('.sect-eye').forEach(function(b) {
     var on = hush[b.getAttribute('data-sec')];
     b.classList.toggle('shut', on);
-    b.style.display = hush.mode ? 'none' : '';   // только в скрытом режиме (глаз у аватарки) глаз частей нет; скрыть все части по очереди — не скрытый режим
+    b.style.visibility = hush.mode ? 'hidden' : '';   // в скрытом режиме глаз частей невидим, но место держит — кнопки рядом не съезжают   // только в скрытом режиме (глаз у аватарки) глаз частей нет; скрыть все части по очереди — не скрытый режим
     b.title = (on ? 'Показать ' : 'Скрыть ') + SECT_NAME[b.getAttribute('data-sec')];
     b.setAttribute('aria-label', b.title);
   });

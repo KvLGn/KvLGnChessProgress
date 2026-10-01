@@ -4994,7 +4994,7 @@ function anCaptureMoments(g, P) {
   }
   return out;
 }
-// «Мастера»: мои ходы против ходов мастеров в тех же позициях (первые 15 своих ходов, поле ms из scripts/masters.mjs):
+// «Мастера»: мои ходы против ходов мастеров в тех же позициях (первые 20 своих ходов — MAX_MOVES в scripts/masters.mjs, поле ms):
 //   мастера — из студий дебюта партии ПО ПЛАНУ (planOpening: название Lichess, иначе изучаемый дебют белыми / первый ход бота чёрными),
 //   по умолчанию первый из них; нет его в позиции или «Все мастера» — база мастеров Lichess
 //   (или сильные игроки Lichess 2000+, если у мастеров позиции почти нет). ✓ мой ход самый частый, ~ встречался, ✗ так не играли.
@@ -5069,7 +5069,7 @@ var AN_LENSES = [
   {k: 'bl',   label: 'Зевки',    hint: 'твои зевки: красная стрелка — сыграно, зелёная — лучше', moments: anBlunderMoments},
   {k: 'mate', label: 'Мат в N',  hint: 'где у тебя был форсированный мат: довёл ✓ или упустил ✗',  moments: anMateMoments},
   {k: 'cap',  label: 'Взятия',   hint: 'твои взятия: выигрыш, размен, отыгрыш или невыгодно',      moments: anCaptureMoments},
-  {k: 'ms',   label: 'Мастера',  hint: 'твои ходы против ходов мастеров, первые 15: ✓ как чаще всего, ~ встречалось, ✗ так не играли', moments: anMasterMoments, wide: true},
+  {k: 'ms',   label: 'Мастера',  hint: 'твои ходы против ходов мастеров, первые 20: ✓ как чаще всего, ~ встречалось, ✗ так не играли', moments: anMasterMoments, wide: true},
   {k: 'all',  label: 'Все ходы', hint: 'без выделения — просто листай ходы',                        moments: function() { return []; }}
 ];
 function anLens() { return AN_LENSES.filter(function(L) { return L.k === an.lens; })[0] || AN_LENSES[0]; }
@@ -6457,7 +6457,7 @@ var AI_PROMPT = {
       'Если в просьбе остались поля в квадратных скобках ([впиши …]) — значения не выдумывай и plan.js не присылай: сначала спроси, что вписать.',
       'Правила ответа: верни ЦЕЛИКОМ новый data/plan.js одним блоком кода (комментарии сохрани), затем 2–4 строки: что изменил и почему.',
       'Не удаляй и не переставляй прошедшие этапы (новые — только после текущего). id дебютов — латиница, уникальные.',
-      'Лимиты: stages[].name ≤ 50 символов, openings[].name ≤ 22, studies[].master ≤ 12. match — точная часть английского названия у Lichess.',
+      'Лимиты: stages[].name ≤ ' + STAGES.LIMITS.stageName + ' символов, openings[].name ≤ ' + STAGES.LIMITS.openingName + ', studies[].master ≤ ' + STAGES.LIMITS.master + '. match — точная часть английского названия у Lichess.',
       'Не выдумывай id студий Lichess — если не знаешь, оставь studies: [] и скажи, что студию нужно найти.',
       'Этап на сайте — только «Stockfish уровня 1–8» (engine); другого соперника (например, ботов Lichess с рейтингом людей) в plan.js не вписать — если он нужен, опиши словами.',
       'Смена дебюта: заменяемый дебют перенеси в закомментированный список в конце файла (не удаляй); если название этапа упоминает дебют — поменяй и его; match — точно как у Lichess, с буквами вроде ü; за чёрных — один дебют на каждый первый ход бота (vs) среди всех, что будут «Изучаю» одновременно: это дебюты текущего и всех пройденных этапов (иначе партии, где не получился ни один, не привяжутся к плану); если просьба это нарушает — plan.js с конфликтом не присылай, предложи варианты (заменить один дебют другим или оставить второй «В планах»). Замену дебюта текущего или пройденного этапа сначала согласуй: вся статистика «по плану» сразу переедет на новый дебют (за белых при одном изучаемом дебюте все партии считаются по плану). Правка будущих этапов задним числом ничего не засчитывает.',
@@ -6494,7 +6494,7 @@ var AI_PROMPT = {
       'If the request still has fields in square brackets ([fill in …]), do not invent values and do not send plan.js: ask first what to fill in.',
       'Answer: return the WHOLE new data/plan.js in one code block (keep comments), then 2–4 lines: what changed and why.',
       'Never delete or reorder completed stages (add new ones after the current). Opening ids: unique, Latin. Names stay in Russian.',
-      'Limits: stages[].name ≤ 50 chars, openings[].name ≤ 22, studies[].master ≤ 12. match = exact part of the Lichess English name.',
+      'Limits: stages[].name ≤ ' + STAGES.LIMITS.stageName + ' chars, openings[].name ≤ ' + STAGES.LIMITS.openingName + ', studies[].master ≤ ' + STAGES.LIMITS.master + '. match = exact part of the Lichess English name.',
       'A stage can only be «Stockfish level 1–8» (engine); another opponent (e.g. Lichess bots with human ratings) cannot go into plan.js — if needed, describe it in words.',
       'Changing an opening: move the replaced one to the commented list at the end of the file (do not delete); if a stage name mentions it, rename the stage; match exactly as Lichess writes it, with letters like ü; as black — one opening per bot first move (vs) among all that will be «Изучаю» at the same time: openings of the current and all completed stages (otherwise games where none appeared are not linked to the plan); if the request breaks this, do not send a plan.js with the conflict — offer options (replace one opening or leave the other «В планах»). Agree first before replacing an opening of the current or a completed stage: all «by plan» stats move to the new opening at once (as White with one studied opening every game counts by plan). Editing future stages counts nothing retroactively.',
       'Never invent Lichess study ids — if unknown, use studies: [] and say a study is needed. Keep ids (all study parts, first = id) and aka (other spellings of the master’s surname) as they are. Change rule only on request or when numbers clearly demand it.',

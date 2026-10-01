@@ -6439,7 +6439,8 @@ var AI_PROMPT = {
       'Если у студии есть ids (id всех частей, первая = id) — сохрани список как есть: по нему сайт сверяет ходы с мастером.',
       'Правило rule меняй только по просьбе или если цифры явно показывают, что оно недостижимо/слишком лёгкое, — объясни на цифрах.',
       'Проверка сайта: в rule все шесть полей — числа и wins ≤ games; у дебюта обязательны id, name, color (\'white\' | \'black\'); число ids студии = parts; engine 1–8.',
-      'Это JavaScript: проверь запятые, скобки и кавычки — сломанный файл сайт не примет. Дебют станет «Изучаю», только если его id стоит в openings этапа.'
+      'Это JavaScript: проверь запятые, скобки и кавычки — сломанный файл сайт не примет. Дебют станет «Изучаю», только если его id стоит в openings этапа.',
+      'Правка rule, engine или colors текущего этапа пересчитывается сразу: если по новым условиям этап уже выполнен в прошлых партиях, сайт засчитает его задним числом и запишет в progress.js навсегда. Если твоя правка так сработает — прямо предупреди об этом.'
     ]
   },
   en: {
@@ -6469,7 +6470,8 @@ var AI_PROMPT = {
       'Limits: stages[].name ≤ 50 chars, openings[].name ≤ 22, studies[].master ≤ 12. match = exact part of the Lichess English name.',
       'Never invent Lichess study ids — if unknown, use studies: [] and say a study is needed. Keep ids (all study parts, first = id) as they are. Change rule only on request or when numbers clearly demand it.',
       'Site checks: all six rule fields are numbers and wins ≤ games; every opening needs id, name, color (\'white\' | \'black\'); a study\'s ids count = parts; engine 1–8.',
-      'It is JavaScript: check commas, brackets and quotes — the site rejects a broken file. An opening becomes «Изучаю» only if its id is in a stage\'s openings.'
+      'It is JavaScript: check commas, brackets and quotes — the site rejects a broken file. An opening becomes «Изучаю» only if its id is in a stage\'s openings.',
+      'A change to rule, engine or colors of the current stage is recalculated at once: if the stage would already be complete under the new conditions, the site counts it retroactively and records it in progress.js for good. If your change does that, warn about it explicitly.'
     ]
   }
 };
@@ -6839,6 +6841,24 @@ function aiWeekHead(W) {   // что и как сравнивается — пе
   if (W.n < 3) out.push(AL('Мало партий для сравнения (' + W.n + ') — выводы ненадёжны, так и скажи.', 'Too few games to compare (' + W.n + ') — conclusions are unreliable, say so.'));
   return out;
 }
+function aiGoalCond(c) {   // «Условия (белыми): медиана точности — выполнена (71%, 86%); победы — 5 из 10 … — не выполнено; поражения — …»
+  var B = c.blocks.filter(function(b) { return b.games.length; });
+  if (!B.length) return null;
+  var gl = [].concat.apply([], B.map(function(b) { return b.games; })), wins = gl.filter(function(g) { return g.result === 'win'; }).length;
+  var losses = gl.filter(function(g) { return g.result !== 'win'; }), weak = [].concat.apply([], B.map(function(b) { return b.bad; }));
+  var honest = losses.filter(function(g) { return weak.indexOf(g) < 0; }), medOk = B.every(function(b) { return b.med >= RULE.medianAcc; }), winOk = B.every(function(b) { return b.wins >= RULE.wins; });
+  function ids(list) { return list.map(function(g) { return '#' + (games.indexOf(g) + 1); }).join(', '); }
+  var done = AL(' — выполнено', ' — met'), not = AL(' — не выполнено', ' — not met');
+  return AL('Какие условия мешают', 'Which conditions block') + (CUR.colors.length > 1 ? ' (' + AL(COLOR_WORD[c.color], COLOR_EN[c.color]) + ')' : '') + ': ' +
+    AL('медиана точности ', 'median accuracy ') + B.map(function(b) { return aiPct(b.med); }).join(AL(' и ', ' and ')) + AL(' (нужно ≥ ', ' (need ≥ ') + RULE.medianAcc + '%)' + (medOk ? done : not) + '; ' +
+    AL('победы ', 'wins ') + B.map(function(b) { return b.wins + AL(' из ', ' of ') + b.games.length; }).join(AL(' и ', ' and ')) + AL(' (нужно ' + RULE.wins + ' из ' + RULE.games + ' в каждой пятёрке)', ' (need ' + RULE.wins + ' of ' + RULE.games + ' in each set)') + (winOk ? done : not) + '; ' +
+    AL('поражения: ', 'losses: ') + losses.length + AL(', из них слабых ', ', weak ') + weak.length + (weak.length ? ' (' + ids(weak) + ')' : '') + AL(', честных ', ', honest ') + honest.length + (honest.length ? ' (' + ids(honest) + ')' : '') + (weak.length ? not : done) + '.';
+}
+function aiGoalPace() {   // темп: все партии и только те, что идут в цель этапа
+  var from = isoDay(addDays(gameToday(), -6)), all = games.filter(function(g) { return g.day >= from; });
+  var inGoal = CUR.stage ? all.filter(function(g) { return g.opp === 'ai' && g.lvl === CUR.stage.engine && CUR.stage.colors.indexOf(g.color) >= 0; }).length : 0;
+  return AL('Темп: партий за последние 7 дней — ' + all.length + (CUR.stage ? ' (в цель этапа — ' + inGoal + ')' : ''), 'Pace: games in the last 7 days — ' + all.length + (CUR.stage ? ' (counting towards the stage goal — ' + inGoal + ')' : ''));
+}
 function aiCurOps() { var cs = (window.OPENINGS || {}).current || []; return cs.length ? AL('Изучаю дебют: ', 'Studying the opening: ') + cs.map(function(o) { return AL(o.name, opEn(o)); }).join(', ') + '.' : null; }
 var AI_CUR_OP = null;   // дебют пункта, для которого собирается пакет (пункты «Дебюты» — по каждому изучаемому дебюту)
 function aiOp() { return AI_CUR_OP || ((window.OPENINGS || {}).current || [])[0]; }
@@ -7134,8 +7154,8 @@ var AI_DATA = {
         b.games.forEach(function(g) { out.push('    ' + aiGame(g)); });
       });
     });
-    CUR.colors.forEach(function(c) { if (!c.done) out.push((CUR.colors.length > 1 ? AL(COLOR_WORD[c.color] + ': ', 'as ' + COLOR_EN[c.color] + ': ') : '') + toGoalText(c, aiLang)); });
-    out.push(AL('Темп: партий за последние 7 дней — ', 'Pace: games in the last 7 days — ') + games.filter(function(g) { return g.day >= isoDay(addDays(gameToday(), -6)); }).length);
+    CUR.colors.forEach(function(c) { if (!c.done) { var gc = aiGoalCond(c); if (gc) out.push(gc); out.push((CUR.colors.length > 1 ? AL(COLOR_WORD[c.color] + ': ', 'as ' + COLOR_EN[c.color] + ': ') : '') + toGoalText(c, aiLang)); } });
+    out.push(aiGoalPace());
     return out;
   },
   progress: function() {
@@ -7566,9 +7586,9 @@ var AI_SIMPLE = {
       'Stage goal: 2 sets of 5 in a row vs Stockfish ' + CUR.stage.engine + '; each needs 4+ wins of 5, median overall accuracy of at least ' + RULE.medianAcc + '%, losses with accuracy of at least ' + RULE.lossMinAcc + '% and at most ' + RULE.lossMaxBlunders + ' blunders.')];
     CUR.colors.forEach(function(c) {
       c.blocks.forEach(function(b, i) { out.push(AL('Пятёрка ', 'Set ') + (i + 1) + ': ' + blockDesc(b)); });
-      if (!c.done) out.push(AL('Нужно ещё минимум ', 'At least ') + gamesToGoal(c) + AL(' партий, и все хорошие.', ' more games needed, all of them good.'));
+      if (!c.done) { var gc = aiGoalCond(c); if (gc) out.push(gc); out.push(AL('Нужно ещё минимум ', 'At least ') + gamesToGoal(c) + AL(' партий, и все хорошие.', ' more games needed, all of them good.')); }
     });
-    out.push(AL('Темп: партий за последние 7 дней — ', 'Pace: games in the last 7 days — ') + games.filter(function(g) { return g.day >= isoDay(addDays(gameToday(), -6)); }).length + '.');
+    out.push(aiGoalPace() + '.');
     return out;
   },
   progress: function() {
@@ -7664,6 +7684,8 @@ function humanTextInner(ask, isPlan, dataKey, item) {
     AL('• Выполненные этапы записываются автоматически в data/progress.js — их не трогать.', '• Completed stages are recorded automatically in data/progress.js — do not touch it.'),
     AL('• Дебют становится «Изучаю», когда начинается этап, в openings которого стоит его id; дебют без этапа — «В планах». Ходы мастеров по новым студиям сайт подтянет сам при следующем автообновлении данных (обычно в течение часа, но не всегда сразу).',
        '• An opening becomes «Изучаю» (studying) when the stage that lists its id in openings starts; an opening without a stage is «В планах» (planned). Master moves for new studies are fetched by the next automatic data update (usually within an hour, not always right away).'),
+    AL('• Любая правка правила или текущего этапа (rule, engine, colors) пересчитывается сразу: если по новым условиям этап уже был выполнен в прошлых партиях, сайт засчитает его задним числом, и при ближайшем автообновлении это навсегда запишется в data/progress.js — откатить нельзя. Поэтому смягчать правило — только осознанно.',
+       '• Any change to the rule or the current stage (rule, engine, colors) is recalculated at once: if the stage would already have been completed under the new conditions, the site counts it retroactively, and the next automatic update records it in data/progress.js for good — it cannot be undone. So relax the rule only deliberately.'),
     AL('• data/plan.js — это код на JavaScript: одна лишняя или пропущенная запятая, скобка или кавычка ломает файл. Сайт тогда покажет красную плашку с причиной; рабочая копия плана есть только в браузере, где сайт уже открывали, — у остальных этапы и дебюты пропадут, пока файл не исправят.',
        '• data/plan.js is JavaScript code: one extra or missing comma, bracket or quote breaks the file. The site then shows a red banner with the reason; a working copy of the plan exists only in a browser that opened the site before — for everyone else stages and openings disappear until the file is fixed.'),
     '', AL('Если у тебя нет доступа на запись в мой репозиторий — не страшно: пришли мне целиком новый текст data/plan.js, я вставлю его сам (шаги 1–3 тогда сделаю я).',

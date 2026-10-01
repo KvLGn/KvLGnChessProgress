@@ -1248,6 +1248,7 @@
   .mn-exp a { color: #818cf8; }
   .mn-exp h4 { font: 600 12px Inter, sans-serif; color: var(--fg); margin: 12px 0 4px; }
   .mn-exp h4:first-child { margin-top: 0; }
+  .mn-exp code { font: 11.5px/1.4 Consolas, monospace; color: var(--fg); background: rgba(255,255,255,0.06); border-radius: 4px; padding: 1px 4px; overflow-wrap: anywhere; }   /* значения для вставки (будильник): длинная ссылка переносится */
   .mn-exp ol { margin: 0 0 0 18px; }
   .mn-exp li { margin: 2px 0; }
   .fx-st { display: grid; grid-template-columns: 16px 1fr; gap: 3px 6px; margin-bottom: 4px; }
@@ -9607,7 +9608,15 @@ var FIX_REPO = 'https://github.com/KvLGn/KvLGnChessProgress';
 var FIX_LINKS = {
   actions: FIX_REPO + '/actions', update: FIX_REPO + '/actions/workflows/update.yml', readme: FIX_REPO + '#0а-если-что-то-сломалось',
   planHist: FIX_REPO + '/commits/main/data/plan.js', planEdit: FIX_REPO + '/edit/main/data/plan.js', htmlHist: FIX_REPO + '/commits/main/KvLGnChessProgress.html',
-  token: 'https://lichess.org/account/oauth/token', secrets: FIX_REPO + '/settings/secrets/actions'
+  token: 'https://lichess.org/account/oauth/token', secrets: FIX_REPO + '/settings/secrets/actions',
+  cronJobs: 'https://console.cron-job.org/jobs', cronSignup: 'https://console.cron-job.org/signup',
+  patNew: 'https://github.com/settings/personal-access-tokens/new', patList: 'https://github.com/settings/personal-access-tokens'
+};
+// будильник: cron-job.org каждые 30 мин запускает обновление через API GitHub (расписание GitHub — запасное, доходит редко).
+// Ключ (fine-grained токен GitHub) создан 02.10.2026 на 90 дней — до FIX_CRON.until; сам ключ нигде не хранится, только у пользователя
+var FIX_CRON = {
+  url: 'https://api.github.com/repos/KvLGn/KvLGnChessProgress/actions/workflows/update.yml/dispatches',
+  until: '2026-12-31', untilRu: '31.12.2026', every: 30
 };
 // последние запуски на GitHub (публичный API, без входа; лимит — 60 запросов в час с одного адреса): грузятся при раскрытии пункта
 var fixGh = {state: 'none', runs: []};
@@ -9639,6 +9648,10 @@ function fixStatus() {
   else out.push([h <= 3 ? 'ok' : h <= 12 ? 'warn' : 'bad', 'Данные обновлены ' + window.GAMES_UPDATED + ' — ' + fixAgeText(h)]);
   out.push([games.length ? 'ok' : 'bad', games.length ? 'Партий загружено: ' + games.length : 'Партии не загрузились (data/games.js пустой или сломан)']);
   out.push([P && P.attempts ? 'ok' : 'bad', P && P.attempts ? 'Задач загружено: ' + P.total : 'Задачи не загрузились (data/puzzles.js)']);
+  var kd = (new Date(FIX_CRON.until + 'T23:59:59+03:00') - Date.now()) / 864e5;   // дней до конца ключа будильника
+  out.push(kd < 0 ? ['bad', 'Ключ будильника (cron-job.org) истёк ' + FIX_CRON.untilRu + ' — обновления сами не запускаются: шаг 8']
+    : kd <= 14 ? ['warn', 'Ключ будильника (cron-job.org) истекает ' + FIX_CRON.untilRu + ' — через ' + Math.ceil(kd) + ' ' + plural(Math.ceil(kd), 'день', 'дня', 'дней') + ': заменить заранее, шаг 8']
+    : ['ok', 'Будильник cron-job.org: запуск каждые ' + FIX_CRON.every + ' мин, ключ действует до ' + FIX_CRON.untilRu]);
   if (fixGh.state === 'ok') {
     var last = function(name) { return fixGh.runs.filter(function(r) { return r.name === name; })[0]; };
     var upd = last('Обновление данных с Lichess'), pages = last('pages build and deployment'), chk = last('Проверка plan.js');
@@ -9667,9 +9680,12 @@ function fixGuideHtml() {
     '<h4>2. Сверху красная плашка</h4>В ней написано, что не так в плане (data/plan.js). Сайт при этом работает на последней рабочей копии плана — ничего не пропало. Починить:' +
     '<ol><li>Проще всего — пункт <b>«Помощь ИИ»</b> ниже: нейросеть пришлёт исправленный файл.</li>' +
     '<li>Или вернуть прошлую версию файла (шаг 7).</li></ol>' +
-    '<h4>3. Данные давно не обновлялись</h4>GitHub иногда пропускает запуски по расписанию — это нормально. Запусти сам:' +
-    '<ol><li>Открой ' + fixA('update', 'обновление на GitHub') + '.</li><li>Справа кнопка <b>Run workflow</b> → ещё раз <b>Run workflow</b>.</li>' +
-    '<li>Через 2–3 минуты обнови страницу (шаг 1).</li></ol>С компьютера можно проще: двойной клик по <b>update.bat</b>.' +
+    '<h4>3. Данные давно не обновлялись</h4>Обновление каждые ' + FIX_CRON.every + ' минут запускает <b>будильник на cron-job.org</b> (расписание самого GitHub — запасное, срабатывает редко).' +
+    '<ol><li>Открой ' + fixA('cronJobs', 'задания на cron-job.org') + ' → у задания «KvLGnChessProgress обновление» кнопка <b>History</b>.</li>' +
+    '<li>Последние запуски с кодом <b>204</b> — будильник в порядке, причина дальше (шаг 4). Код <b>401</b> — истёк или неверен ключ: шаг 8. ' +
+    'Код <b>404</b> или <b>403</b> — у ключа нет доступа к репозиторию или неверная ссылка: шаг 8 целиком. Задание выключено (серый значок) — включи его в <b>Изменить</b>.</li>' +
+    '<li>Пока чинишь — запусти обновление сам: ' + fixA('update', 'обновление на GitHub') + ' → справа <b>Run workflow</b> → ещё раз <b>Run workflow</b>. ' +
+    'С компьютера проще: двойной клик по <b>update.bat</b>. Через 2–3 минуты обнови страницу (шаг 1).</li></ol>' +
     '<h4>4. Запуск на GitHub с красным крестиком</h4><ol><li>Открой ' + fixA('actions', 'список запусков') + ' → верхний с ✗ → строка с ✗ внутри — там причина.</li>' +
     '<li><b>«Lichess не принял токен (401)»</b> — создай ' + fixA('token', 'новый токен на Lichess') + ' (нужна одна галочка — puzzle:read, чтение задач), скопируй его, затем ' +
     fixA('secrets', 'секреты репозитория') + ' → LICHESS_TOKEN → карандаш → вставь → Update secret.</li>' +
@@ -9681,7 +9697,30 @@ function fixGuideHtml() {
     '<h4>7. Вернуть прошлую версию файла</h4><ol><li>Открой историю: ' + fixA('planHist', 'data/plan.js') + ' (или ' + fixA('htmlHist', 'самого сайта') + ').</li>' +
     '<li>Найди версию до поломки (по дате) → справа кнопка <b>&lt;&gt;</b> → <b>Raw</b> → выдели весь текст и скопируй.</li>' +
     '<li>Открой ' + fixA('planEdit', 'файл на правку') + ' (для сайта — тот же файл, карандаш), выдели всё, вставь скопированное → <b>Commit changes</b>.</li>' +
-    '<li>Через минуту — шаг 1.</li></ol>';
+    '<li>Через минуту — шаг 1.</li></ol>' +
+    '<h4>8. Будильник: новый ключ или сделать заново</h4>Ключ будильника действует до <b>' + FIX_CRON.untilRu + '</b>. Заранее (или если в History код 401) сделай новый:' +
+    '<p style="margin:6px 0 2px"><b>А. Новый ключ на GitHub</b></p><ol>' +
+    '<li>Открой ' + fixA('patNew', 'создание ключа') + ' (войти в аккаунт KvLGn).</li>' +
+    '<li><b>Token name:</b> <code>cron-job-update</code> (если имя занято — удали старый ключ в ' + fixA('patList', 'списке ключей') + ' или назови <code>cron-job-update-2</code>). ' +
+    '<b>Resource owner:</b> KvLGn. <b>Expiration:</b> 90 дней или больше.</li>' +
+    '<li><b>Repository access:</b> «Only select repositories» → выбрать <b>KvLGn/KvLGnChessProgress</b>.</li>' +
+    '<li><b>Permissions</b> → «Add permissions» → <b>Actions</b> → доступ <b>Read and write</b>. Metadata (Read-only) добавится сам. Если «Read and write» будто не выбирается — ' +
+    'выбери и всё равно жми <b>Generate token</b>: в окне подтверждения проверь, что у Actions написано «Read and write» (в Яндекс Браузере надпись на кнопке может не обновиться).</li>' +
+    '<li><b>Generate token</b> → скопируй ключ (начинается с <code>github_pat_</code>) — его покажут один раз. Никому не присылай, нейросети тоже.</li></ol>' +
+    '<p style="margin:6px 0 2px"><b>Б. Вставить ключ в будильник</b> (задание уже есть)</p><ol>' +
+    '<li>' + fixA('cronJobs', 'Задания на cron-job.org') + ' → у «KvLGnChessProgress обновление» <b>Изменить</b> → вкладка <b>Расширенное</b>.</li>' +
+    '<li>В заголовке <b>Authorization</b> замени значение на <code>Bearer </code> + новый ключ (слово Bearer, один пробел, ключ; пробела в начале нет).</li>' +
+    '<li><b>Тестовый запуск</b> → должен быть <b>204</b> → <b>Сохранить</b>. Через минуту в ' + fixA('actions', 'списке запусков') + ' появится запуск «workflow_dispatch».</li></ol>' +
+    '<p style="margin:6px 0 2px"><b>В. Будильника нет — сделать с нуля</b></p><ol>' +
+    '<li>Зарегистрируйся на ' + fixA('cronSignup', 'cron-job.org') + ' (почта, подтверждение по письму) → <b>Создать cron задание</b>.</li>' +
+    '<li><b>Общее:</b> заголовок <code>KvLGnChessProgress обновление</code>; URL <code>' + FIX_CRON.url + '</code>; «Включить задание» — вкл.; расписание — <b>Каждые 30 минут</b>.</li>' +
+    '<li><b>Уведомления:</b> «запуск провален» — вкл., Notify after <b>3</b>; «успешен после провала» — вкл.; «будет отключена» — вкл.; TLS — выкл.</li>' +
+    '<li><b>Расширенное</b> → Заголовки → «Добавить» (ключ → значение): <code>Accept</code> → <code>application/vnd.github+json</code>; ' +
+    '<code>Authorization</code> → <code>Bearer github_pat_…</code> (ключ из части А); <code>X-GitHub-Api-Version</code> → <code>2022-11-28</code>. ' +
+    'Метод запроса — <b>POST</b>; тело запроса — <code>{"ref":"main"}</code>; на подсказку «Sending JSON data?» нажми <b>Add Content-Type header now</b>. Тайм-аут и остальное не трогай.</li>' +
+    '<li><b>Тестовый запуск</b> → <b>204 No Content</b> — всё верно (401 — ключ, 404 — ссылка или доступ к репозиторию, 422 — тело запроса) → <b>Создать</b>.</li>' +
+    '<li>Через полчаса в ' + fixA('actions', 'списке запусков') + ' — новые «workflow_dispatch», в History на cron-job.org — коды 204.</li></ol>' +
+    'IP в тестовом запуске уходит только на сервер GitHub, публично он нигде не виден.';
 }
 function fixAiHtml() {
   return 'Для починки лучше сильная нейросеть: <b>DeepSeek (с DeepThink)</b>, <b>ChatGPT</b> или <b>Claude</b> — Алиса и другие простые с этим не справятся.<br>' +
@@ -9701,7 +9740,17 @@ function fixAiText() {
   L.push('- Статичная страница на GitHub Pages: https://kvlgn.github.io/KvLGnChessProgress/ , репозиторий (публичный): ' + FIX_REPO);
   L.push('- Полное описание проекта и раздел «Если что-то сломалось»: https://raw.githubusercontent.com/KvLGn/KvLGnChessProgress/main/README.md (если можешь открывать ссылки — прочитай).');
   L.push('- KvLGnChessProgress.html — весь сайт одним файлом (~8700 строк). Данные: data/games.js, data/puzzles.js, data/progress.js — их создаёт скрипт');
-  L.push('  scripts/update.mjs; запускает его GitHub Actions (.github/workflows/update.yml) по расписанию, вручную — кнопка Run workflow или update.bat на ПК.');
+  L.push('  scripts/update.mjs; запускает его GitHub Actions (.github/workflows/update.yml), вручную — кнопка Run workflow или update.bat на ПК.');
+  L.push('- Кто запускает обновление: внешний будильник cron-job.org (задание «KvLGnChessProgress обновление») каждые ' + FIX_CRON.every + ' мин делает POST на');
+  L.push('  ' + FIX_CRON.url);
+  L.push('  с заголовками Accept: application/vnd.github+json, Authorization: Bearer <fine-grained токен GitHub>, X-GitHub-Api-Version: 2022-11-28,');
+  L.push('  Content-Type: application/json и телом {"ref":"main"}. Токен — только для репозитория KvLGn/KvLGnChessProgress, права Actions: Read and write');
+  L.push('  (Metadata: Read-only), действует до ' + FIX_CRON.untilRu + '. Успех — ответ 204, запуск в Actions с событием workflow_dispatch.');
+  L.push('  Расписание cron в update.yml — запасное: GitHub на деле запускает его примерно раз в 6 часов.');
+  L.push('  Если обновления встали: сначала History задания на cron-job.org (' + FIX_LINKS.cronJobs + '): 401 — токен истёк или неверен (сделать новый:');
+  L.push('  ' + FIX_LINKS.patNew + ', те же настройки, и заменить значение Authorization в задании → Тестовый запуск → 204 → Сохранить);');
+  L.push('  403/404 — у токена нет доступа к репозиторию или неверный URL; 422 — неверное тело запроса; задание выключено — включить.');
+  L.push('  Подробные шаги (новый ключ, замена, будильник с нуля) — на сайте: ☰ → Сервис → «Если сайт сломался» → Инструкция, шаг 8.');
   L.push('- data/plan.js — единственный файл, который правят руками (этапы, правило перехода, дебюты). Его проверяет lib/stages.js (validatePlan) —');
   L.push('  на сайте и в .github/workflows/check-plan.yml. Если plan.js сломан, сайт работает на копии data/plan-good.js и показывает красную плашку.');
   L.push('');
@@ -9726,7 +9775,7 @@ function fixAiText() {
   L.push('3. Причина в GitHub (обновление не запускается или падает) — скажи, куда нажать. Если нужен текст ошибки, попроси меня открыть запуск с ✗');
   L.push('   и скопировать строки из шага с ✗ (ссылки на запуски — выше).');
   L.push('4. Не выдумывай: если данных не хватает — спроси, что посмотреть, и скажи, где это найти.');
-  L.push('5. Токен Lichess (секрет LICHESS_TOKEN) никогда не проси прислать тебе — только где его заменить.');
+  L.push('5. Токен Lichess (секрет LICHESS_TOKEN) и ключ будильника (github_pat_…) никогда не проси прислать тебе — только где их заменить.');
   L.push('');
   L.push('Файл data/plan.js сейчас:');
   L.push('```js');

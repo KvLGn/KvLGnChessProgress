@@ -934,6 +934,10 @@
   .ai-parent.open .ai-chev { transform: rotate(90deg); }
   .ai-subs { margin: 0 0 4px 14px; border-left: 1px solid rgba(74,222,128,0.25); padding-left: 6px; }
   .ai-subitem .ai-t { font-size: 12.5px; }
+  .ai-times { display: flex; gap: 6px; margin: 2px 0 6px 22px; }
+  .ai-time { padding: 3px 10px; font: 500 12px Inter, sans-serif; color: var(--fg); background: none; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+  .ai-time:hover { border-color: var(--fg-dim); background: rgba(255,255,255,0.05); }
+  .ai-time.done { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.4); }
   .ai-item.done { background: rgba(74,222,128,0.12); }
   .ai-t { font: 600 13px Inter, sans-serif; }
   .ai-s { font: 11px Inter, sans-serif; color: var(--fg-dim); }
@@ -6503,12 +6507,16 @@ var AI_ASKS = [
      h: 'Чем мои победы отличаются от поражений? Что стоит повторять, а чего избегать?', hEn: 'How do my wins differ from my losses? What should I repeat and what should I avoid?'}
   ]},
   {g: 'Тренировки', gEn: 'Training', items: [
-    {t: 'План на сегодня', tEn: 'Plan for today', d: 'today',
-     ru: 'Что мне сделать сегодня, чтобы стать сильнее? 3–4 дела на 30–60 минут, с учётом того, что я уже сыграл и решил сегодня.', en: 'What should I do today to get stronger? 3–4 tasks for 30–60 minutes, taking into account what I already played and solved today.',
-     h: 'Чем мне лучше заняться сегодня, если есть 30–60 минут?', hEn: 'What should I work on today if I have 30–60 minutes?'},
-    {t: 'План на неделю', tEn: 'Weekly plan', d: 'week',
-     ru: 'Составь план тренировок на 7 дней по 30–60 минут: задачи, партии, дебют. По дням.', en: 'Make a 7-day training plan, 30–60 min a day: puzzles, games, opening. Day by day.',
-     h: 'Помогите составить план тренировок на неделю по 30–60 минут в день.', hEn: 'Could you help me make a weekly training plan, 30–60 minutes a day?'},
+    {t: 'План на сегодня', tEn: 'Plan for today', d: 'today', times: [30, 60, 120, 180],
+     s: 'Что мне сделать сегодня, чтобы стать сильнее, с учётом того, что я уже сыграл и решил сегодня. Время — на выбор.', sEn: 'What should I do today to get stronger, taking into account what I already played and solved today. Choose the time.',
+     ru: function() { return 'Что мне сделать сегодня, чтобы стать сильнее? ' + aiTasks('ru') + ' на ' + aiMinLabel('ru') + ', с учётом того, что я уже сыграл и решил сегодня.'; },
+     en: function() { return 'What should I do today to get stronger? ' + aiTasks('en') + ' for ' + aiMinLabel('en') + ', taking into account what I already played and solved today.'; },
+     h: function() { return 'Чем мне лучше заняться сегодня, если есть ' + aiMinLabel('ru') + '?'; }, hEn: function() { return 'What should I work on today if I have ' + aiMinLabel('en') + '?'; }},
+    {t: 'План на неделю', tEn: 'Weekly plan', d: 'week', times: [30, 60, 120, 180],
+     s: 'План тренировок на 7 дней по дням: задачи, партии, дебют. Время в день — на выбор.', sEn: 'A 7-day training plan, day by day: puzzles, games, opening. Choose the time per day.',
+     ru: function() { return 'Составь план тренировок на 7 дней по ' + aiMinLabel('ru') + ' в день: задачи, партии, дебют. По дням.'; },
+     en: function() { return 'Make a 7-day training plan, ' + aiMinLabel('en') + ' a day: puzzles, games, opening. Day by day.'; },
+     h: function() { return 'Помогите составить план тренировок на неделю по ' + aiMinLabel('ru') + ' в день.'; }, hEn: function() { return 'Could you help me make a weekly training plan, ' + aiMinLabel('en') + ' a day?'; }},
     {t: 'Задачи под слабые темы', tEn: 'Puzzles for weak themes', d: 'themes',
      ru: function(c) { return 'Какие темы задач решать и сколько в день? Мои слабые темы: ' + c.themes + '.'; }, en: function(c) { return 'Which puzzle themes to solve and how many per day? My weak themes: ' + c.themesEn + '.'; },
      h: function(c) { return 'Какие задачи мне решать? Слабее всего у меня темы: ' + c.themes + '.'; }, hEn: function(c) { return 'Which puzzles should I solve? My weakest themes are: ' + c.themesEn + '.'; }},
@@ -6775,6 +6783,16 @@ function aiMateStat(list) {   // по партиям: в скольких был
                   'a forced mate appeared in ' + had + ' games, delivered in ' + done + '; missed ' + lost + ' times (often found again later)') : '';
 }
 function aiInGoal(g) { var S = CUR.stage; return !!S && g.engine === 'Stockfish ' + S.engine && S.colors.indexOf(g.color) >= 0; }
+var AI_MIN = null;   // кнопки времени (times у пунктов) у «План на сегодня / на неделю»; AI_MIN — выбранное, пока собирается пакет
+function aiMin() { return AI_MIN || 60; }
+function aiMinLabel(lang, m) { m = m || aiMin(); return m < 60 ? m + (lang === 'en' ? ' minutes' : ' минут') : (m / 60) + (lang === 'en' ? (m === 60 ? ' hour' : ' hours') : ' ' + plural(m / 60, 'час', 'часа', 'часов')); }
+function aiMinShort(m) { return m < 60 ? m + AL(' мин', ' min') : (m / 60) + AL(' ' + plural(m / 60, 'час', 'часа', 'часов'), ' h'); }
+function aiTaskN() { return {30: 2, 60: 3, 120: 4, 180: 5}[aiMin()] || 3; }   // за полчаса — 2 дела, за 3 часа — 5
+function aiTasks(lang) { var n = aiTaskN(); return n + (lang === 'en' ? ' tasks' : ' ' + plural(n, 'дело', 'дела', 'дел')); }
+function aiBreak(lang) { return aiMin() >= 120 ? (lang === 'en' ? 'a 5–10 minute break every hour' : 'перерыв 5–10 минут каждый час') : null; }
+// свежесть данных: партии и задачи подтягиваются раз в час и нерегулярно — без этой строки нейросеть решит, что сегодня ещё ничего не сыграно
+function aiFresh() { var u = window.GAMES_UPDATED; return u ? AL('Данные обновлены ' + u + ' — партии и задачи после этого времени сюда не попали.', 'Data updated ' + u + ' — games and puzzles after that time are not included.') : null; }
+function aiCurOps() { var cs = (window.OPENINGS || {}).current || []; return cs.length ? AL('Изучаю дебют: ', 'Studying the opening: ') + cs.map(function(o) { return AL(o.name, opEn(o)); }).join(', ') + '.' : null; }
 var AI_CUR_OP = null;   // дебют пункта, для которого собирается пакет (пункты «Дебюты» — по каждому изучаемому дебюту)
 function aiOp() { return AI_CUR_OP || ((window.OPENINGS || {}).current || [])[0]; }
 function aiItems(G) { return G.dyn ? G.dyn() : G.items; }   // пункты группы: заданные или построенные из плана
@@ -6967,6 +6985,7 @@ var AI_DATA = {
     var d = isoDay(gameToday()), tg = games.filter(function(g) { return g.day === d; }), att = ((window.PUZZLES || {}).attempts || []).filter(function(a) { return a.day === d; }), st = streaks();
     var out = [AL('Сегодня ', 'Today ') + ddmm(gameToday()) + AL(': партий ', ': games ') + tg.length + (tg.length ? ' (' + aiWL(tg) + ')' : '') + AL(', задач ', ', puzzles ') + att.length +
       (att.length ? AL(' (решено ', ' (solved ') + att.filter(function(a) { return a.win; }).length + ')' : '') + '.'];
+    if (aiFresh()) out.unshift(aiFresh());
     tg.forEach(function(g) { out.push('- ' + aiGame(g)); });
     out.push(AL('Серия: ', 'Streak: ') + st.current + AL(' дн. подряд с партиями (рекорд ', ' days in a row with games (record ') + st.best + ').');
     out.push(AL('Последние 5 партий — ', 'Last 5 games — ') + aiAvgLine(games.slice(-5)) + '.');
@@ -7208,8 +7227,8 @@ var AI_COND = {
   phase:     [['одна главная причина', 'что тренировать'], ['one main cause', 'what to train']],
   winloss:   [['одно главное отличие'], ['one main difference']],
   deviate:   [['один главный отход от мастеров'], ['one main deviation from the masters']],
-  today:     [['3–4 дела', 'всего от 30 до 60 минут'], ['3–4 tasks', '30 to 60 minutes in total']],
-  week:      [['7 дней', 'от 30 до 60 минут в день'], ['7 days', '30 to 60 minutes a day']],
+  today:     function() { return [[aiTasks('ru'), 'всего ' + aiMin() + ' минут'].concat(aiBreak('ru') || []), [aiTasks('en'), aiMin() + ' minutes in total'].concat(aiBreak('en') || [])]; },
+  week:      function() { return [['7 дней', aiMin() + ' минут в день'].concat(aiBreak('ru') || []), ['7 days', aiMin() + ' minutes a day'].concat(aiBreak('en') || [])]; },
   themes:    [['не больше 3 тем', 'сколько задач в день'], ['at most 3 themes', 'how many puzzles a day']],
   checklist: [['ровно 5 пунктов'], ['exactly 5 points']],
   review:    [['не больше 6 шагов'], ['at most 6 steps']],
@@ -7219,7 +7238,7 @@ var AI_COND = {
   opAway:    [['одна главная проблема схемы', '2–3 действия'], ['one main problem of the setup', '2–3 actions']],
   goal:      [['сначала «да» или «нет»', 'не больше 3 действий'], ['first "yes" or "no"', 'at most 3 actions']]
 };
-function aiCond(dataKey) { var c = AI_COND[dataKey]; return c ? c[aiLang === 'en' ? 1 : 0] : null; }
+function aiCond(dataKey) { var c = AI_COND[dataKey]; if (typeof c === 'function') c = c(); return c ? c[aiLang === 'en' ? 1 : 0] : null; }
 /* ---------- текст для нейросети: промпт → сводка → данные под вопрос → просьба ---------- */
 function aiText(ask, isPlan, dataKey) {
   // «сэндвич»: задача одной строкой сверху → промпт → блоки данных в метках → полный вопрос в самом конце (Anthropic, Google, OpenAI)
@@ -7247,7 +7266,11 @@ var AI_SIMPLE_TPL = {
 AI_SIMPLE_TPL.goal = [['Ответ: да или нет — почему (числа из данных)', 'Что ускорит: 1) … 2) …'], ['Answer: yes or no — why (numbers from the data)', 'What would speed it up: 1) … 2) …']];
 AI_SIMPLE_TPL.list5 = [['1) …', '2) …', '3) …', '4) …', '5) …'], ['1) …', '2) …', '3) …', '4) …', '5) …']];
 AI_SIMPLE_TPL.days = [['День 1: что делать — сколько минут', 'День 2: …', '… до дня 7', 'Как понять через неделю, что помогло: …'], ['Day 1: what to do — how many minutes', 'Day 2: …', '… up to day 7', 'How to tell after a week that it helped: …']];
-AI_SIMPLE_TPL.today = [['1) что делать — сколько минут — зачем', '2) …', '3) …', 'Всего минут: …'], ['1) what to do — how many minutes — why', '2) …', '3) …', 'Total minutes: …']];
+AI_SIMPLE_TPL.today = function() {
+  var ru = ['1) что делать — сколько минут — зачем'], en = ['1) what to do — how many minutes — why'];
+  for (var i = 2; i <= aiTaskN(); i++) { ru.push(i + ') …'); en.push(i + ') …'); }
+  return [ru.concat('Всего минут: …'), en.concat('Total minutes: …')];
+};
 AI_SIMPLE_TPL.steps = [['Шаг 1: …', 'Шаг 2: …', '… не больше 6 шагов'], ['Step 1: …', 'Step 2: …', '… at most 6 steps']];
 AI_SIMPLE_TPL.progress = [['Стало лучше: … (было → стало)', 'Не изменилось или хуже: … (было → стало)', 'Дальше смотреть на: …'], ['Improved: … (before → now)', 'Unchanged or worse: … (before → now)', 'Watch next: …']];
 var AI_SIMPLE_KIND = {opLines: 'list5', opAway: 'advice', lastgame: 'game', weak: 'advice', typical: 'advice', opp: 'advice', losses: 'advice', phase: 'advice', winloss: 'advice', deviate: 'advice', themes: 'advice',
@@ -7358,11 +7381,13 @@ var AI_SIMPLE = {
   },
   today: function() {
     var d = isoDay(gameToday()), tg = games.filter(function(g) { return g.day === d; }), att = ((window.PUZZLES || {}).attempts || []).filter(function(a) { return a.day === d; }), last = games.slice(-5), out = [];
+    if (aiFresh()) out.push(aiFresh());
     out.push(AL('Сегодня уже: партий ', 'Already today: games ') + tg.length + AL(', задач ', ', puzzles ') + att.length + '.');
     out.push(AL('Последние 5 партий: ', 'Last 5 games: ') + aiWL(last) + AL('; точность ', '; accuracy ') + aiPct(avg(last, 'acc')) + AL('; зевков за партию ', '; blunders per game ') + aiR1(avg(last, 'blunders')) + '.');
     out.push(AL('Фазы в последних 5 партиях: ', 'Phases in the last 5 games: ') + aiSPhases(last) + '.');
     out.push(AL('Самые частые зевки в последних 5 партиях: ', 'Most frequent blunders in the last 5 games: ') + aiSTypes(last, 2, true).join('; ') + '.');
     var th = aiSTheme(); if (th) out.push(th);
+    if (aiCurOps()) out.push(aiCurOps());
     if (CUR.stage) out.push(AL('Цель этапа: играть против Stockfish ' + CUR.stage.engine + ', нужно ещё минимум ', 'Stage goal: play vs Stockfish ' + CUR.stage.engine + ', at least ') + gamesToGoal(CUR.colors[0]) + AL(' хороших партий.', ' more good games needed.'));
     return out;
   },
@@ -7373,6 +7398,7 @@ var AI_SIMPLE = {
     out.push(AL('Последние 10 партий — фазы: ', 'Last 10 games — phases: ') + aiSPhases(last) + '.');
     out.push(AL('Самые частые зевки (последние 10): ', 'Most frequent blunders (last 10): ') + aiSTypes(last, 3, true).join('; ') + '.');
     var wt = aiWeakThemes(3); if (wt.length) out.push(AL('Слабые темы задач (от самой слабой): ', 'Weak puzzle themes (weakest first): ') + wt.slice(0, 3).join(', ') + '.');
+    if (aiCurOps()) out.push(aiCurOps());
     if (CUR.stage) out.push(AL('Цель этапа: партии белыми против Stockfish ' + CUR.stage.engine + ', нужно ещё минимум ', 'Stage goal: games as white vs Stockfish ' + CUR.stage.engine + ', at least ') + gamesToGoal(CUR.colors[0]) + AL(' хороших партий.', ' more good games needed.'));
     return out;
   },
@@ -7511,6 +7537,7 @@ var AI_SIMPLE = {
 };
 function aiTextSimple(ask, dataKey) {
   var data = AI_SIMPLE[dataKey] ? AI_SIMPLE[dataKey](aiCtx()) : dataKey && AI_DATA[dataKey] ? AI_DATA[dataKey](aiCtx()) : [], tpl = AI_SIMPLE_TPL[AI_SIMPLE_KIND[dataKey]];
+  if (typeof tpl === 'function') tpl = tpl();
   var out = [AL('Задача: ', 'Task: ') + ask, '', AL('Ты помогаешь шахматисту-новичку. Правила:', 'You help a beginner chess player. Rules:'),
     AL('- Используй только данные ниже.', '- Use only the data below.'),
     AL('- Числа переписывай точно так, как они написаны, вместе с их подписью.', '- Copy numbers exactly as written, together with their labels.'),
@@ -7623,7 +7650,9 @@ function renderAiMenu() {
       return '<div class="ai-group' + (G.plan ? ' plan' : '') + '">' + gt + '</div>' +
         aiItems(G).map(function(it, ii) {
           var key = gi + ':' + ii, open = aiSubOpen === key;
-          var btn = '<button class="ai-item' + (it.sub ? ' ai-parent' + (open ? ' open' : '') : '') + '" data-g="' + gi + '" data-i="' + ii + '"><span class="ai-t">' + esc(v(aiLang === 'en' && it.tEn ? it.tEn : it.t)) + (it.sub ? '<span class="ai-chev">▸</span>' : '') + '</span><span class="ai-s">' + esc(v(it[aiLang])) + '</span></button>';
+          var par = it.sub || it.times;
+          var btn = '<button class="ai-item' + (par ? ' ai-parent' + (open ? ' open' : '') : '') + '" data-g="' + gi + '" data-i="' + ii + '"><span class="ai-t">' + esc(v(aiLang === 'en' && it.tEn ? it.tEn : it.t)) + (par ? '<span class="ai-chev">▸</span>' : '') + '</span><span class="ai-s">' + esc(it.times ? AL(it.s, it.sEn) : v(it[aiLang])) + '</span></button>';
+          if (it.times && open) return btn + '<div class="ai-times">' + it.times.map(function(m) { return '<button class="ai-time" data-g="' + gi + '" data-i="' + ii + '" data-min="' + m + '">' + aiMinShort(m) + '</button>'; }).join('') + '</div>';
           return btn + (it.sub && open ? '<div class="ai-subs">' + it.sub.map(function(sb, si) {
             return '<button class="ai-item ai-subitem" data-g="' + gi + '" data-i="' + ii + '" data-s="' + si + '"><span class="ai-t">' + esc(aiLang === 'en' ? sb.tEn : sb.t) + '</span><span class="ai-s">' + esc(sb[aiLang]) + '</span></button>';
           }).join('') + '</div>' : '');
@@ -7672,10 +7701,18 @@ $('aiMenu').addEventListener('click', function(e) {
   if (md) { aiModel = md.getAttribute('data-model'); try { localStorage.setItem('aiModel', aiModel); } catch (err) {} renderAiMenu(); return; }
   var m = e.target.closest('[data-mode]');
   if (m) { aiMode = m.getAttribute('data-mode'); aiDd = null; try { localStorage.setItem('aiMode', aiMode); } catch (err) {} renderAiMenu(); return; }
+  var tb = e.target.closest('.ai-time');
+  if (tb) {   // кнопка времени: пакет под выбранное время
+    var TG = AI_ASKS[+tb.getAttribute('data-g')], TI = aiItems(TG)[+tb.getAttribute('data-i')];
+    AI_MIN = +tb.getAttribute('data-min');
+    try { copyText(helpText(TI[aiLang](aiCtx()), !!TG.plan, TI.d, TI)); helpToast(AL(TI.t, TI.tEn) + ', ' + aiMinLabel(aiLang)); } finally { AI_MIN = null; }
+    tb.classList.add('done'); setTimeout(function() { tb.classList.remove('done'); }, 1500);
+    return;
+  }
   var it = e.target.closest('.ai-item');
   if (it) {
     var G = AI_ASKS[+it.getAttribute('data-g')], P = aiItems(G)[+it.getAttribute('data-i')], si = it.getAttribute('data-s'), c = aiCtx();
-    if (P.sub && si === null) {   // пункт с подпунктами — раскрыть / свернуть, без копирования
+    if ((P.sub || P.times) && si === null) {   // пункт с подпунктами — раскрыть / свернуть, без копирования
       var key = it.getAttribute('data-g') + ':' + it.getAttribute('data-i');
       aiSubOpen = aiSubOpen === key ? null : key; renderAiMenu(); return;
     }

@@ -6549,6 +6549,7 @@ function gsNorm(t) { return String(t || '').toLowerCase().replace(/ё/g, 'е'); 
 function gsFlash(el) {
   if (!el) return;
   el.scrollIntoView({behavior: 'smooth', block: 'center'});
+  if (el.id === 'filters') return;   // строку фильтров таблицы не подсвечиваем — только прокрутка
   el.classList.remove('gs-flash'); void el.offsetWidth; el.classList.add('gs-flash');
 }
 function gsCloseSide() {

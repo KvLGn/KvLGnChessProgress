@@ -1457,7 +1457,10 @@
   .mr-gwrap.info-up .mri-ud { top: auto; bottom: 6px; }   /* поднята — кнопка «вниз» внизу, на той же вертикали, что ▲ (right: 30px) */
   .mri-x { position: absolute; top: 4px; right: 8px; font-size: 18px; line-height: 1; color: var(--fg-mute); background: none; border: none; cursor: pointer; }
   .mri-x:hover { color: var(--fg); }
-  .mri-sec { min-width: 0; }
+  .mri-sec { min-width: 0; cursor: pointer; border-radius: 6px; margin: -4px -6px; padding: 4px 6px; transition: background 0.15s; }
+  .mri-sec:hover { background: rgba(255,255,255,0.025); }
+  .mri-sec.on { background: rgba(34,211,238,0.07); box-shadow: inset 0 0 0 1px rgba(34,211,238,0.35); }   /* этот блок показан на графике */
+  .mr-cap { color: #67e8f9; font-weight: 600; }
   .mri-sec + .mri-sec { border-left: 1px solid rgba(46,50,68,0.7); padding-left: 16px; }
   .mri-h { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 6px; }
   .mri-t { font-size: 12px; color: var(--fg); line-height: 1.45; margin-bottom: 3px; }
@@ -2820,17 +2823,24 @@ function mrInfoFit(w, mode) {
   pnl.style.transform = 'translateY(' + (-dy) + 'px)';
   pnl.setAttribute('data-dy', dy);
 }
+// выбранный блок панели сбрасывается — график снова с точками зевков (партия — по data-n графика)
+function mrGraphReset(w) {
+  if (!w.querySelector('.mri-sec.on')) return;
+  var gr = w.querySelector('.mr-graph'), g = gr && games[+gr.getAttribute('data-n') - 1];
+  if (g) mrGraphShow(w, g, '');
+}
 // закрыть панель «i»: из верхнего положения она уезжает вправо на своей высоте, и только потом график встаёт на место
 function mrInfoClose(w) {
   var pnl = w.querySelector('.mr-info');
   if (pnl && w.classList.contains('info-up')) {
     pnl.style.transform = 'translate(102%, ' + (-(+pnl.getAttribute('data-dy') || 0)) + 'px)';
     w.classList.remove('info-open');
-    setTimeout(function() { if (!w.classList.contains('info-open')) { w.classList.remove('info-up'); mrInfoFit(w, 'off'); var ud = w.querySelector('.mri-ud'); if (ud) ud.textContent = '▲'; } }, 320);
+    setTimeout(function() { if (!w.classList.contains('info-open')) { w.classList.remove('info-up'); mrInfoFit(w, 'off'); var ud = w.querySelector('.mri-ud'); if (ud) ud.textContent = '▲'; mrGraphReset(w); } }, 320);
     return;
   }
   w.classList.remove('info-open', 'info-up');
   mrInfoFit(w, 'off');
+  mrGraphReset(w);
 }
 function mrCount(label, v, color, delta, extra) {
   return '<div class="mr-cnt">' + (extra || '') + '<b style="color:' + color + '">' + v + '</b><span>' + label + '</span>' + (delta || '') + '</div>';
@@ -2840,11 +2850,47 @@ function msShort(rows) {
   var own = rows.filter(function(c) { return c.tier === 'own'; }), end = Math.ceil(rows[rows.length - 1].p / 2);
   return (own.length ? own[0].src + ' — до ' + Math.ceil(own[own.length - 1].p / 2) + '-го · ' : '') + 'сверка до ' + end + '-го хода';
 }
+// зевки соперника (оценка движка 'B' из jd): наказал — если после моего ответа перевес упал меньше чем на 2 пешки
+function mrOppBlunders(g) {
+  var sans = (g.mv || '').split(' ').filter(Boolean);
+  return (g.jd || []).filter(function(j) { return j[1] === 'B' && !anMine(g, j[0]) && j[0] < sans.length && g.ev; }).map(function(j) {
+    return {q: j[0], kept: g.ev[j[0]] - g.ev[j[0] + 1] < 20, san: sans[j[0] - 1], best: (j[2] || '').split(' ')[0]};
+  });
+}
+// перелом: самый большой скачок оценки за один полуход (меньше 1.5 пешки — переломом не считается)
+function mrTurn(g) {
+  var big = null;
+  if (g.ev) for (var i = 1; i < g.ev.length; i++) { var d = g.ev[i] - g.ev[i - 1]; if (!big || Math.abs(d) > Math.abs(big.d)) big = {p: i, d: d}; }
+  return big && Math.abs(big.d) >= 15 ? big : null;
+}
+// что показать на графике отчёта по клику на блок панели «i»: точки и линии ('' — обычные точки зевков)
+function mrGraphView(g, key) {
+  if (key === 'deb') {
+    var rows = msCompare(g, anMasterPicked(g));
+    return {caption: 'дебют против мастеров', dots: rows.map(function(c) { return {p: c.p, color: AN_MS[c.st].c, title: anMoveNo(c.p) + c.san + ' — ' + AN_MS[c.st].txt + ' (' + c.src + ': чаще ' + c.top + ')'}; }),
+      lines: rows.length ? [{p: rows[rows.length - 1].p, label: 'конец сверки'}] : []};
+  }
+  if (key === 'mate') return {caption: 'мат в N', dots: mateSeries(g).map(function(m) {
+    return m.lost ? {p: m.lost, color: BL_TYPES.mateMissed.color, title: 'Мат в ' + m.N2 + ' упущен'} : {p: m.s + 1, color: '#4ade80', title: 'Мат в ' + m.N + ' — начало, доведён'};
+  }), lines: mateSeries(g).map(function(m) { return {p: m.lost || m.s + 1, label: 'мат в ' + (m.lost ? m.N2 + ' ✗' : m.N + ' ✓')}; })};
+  if (key === 'opp') return {caption: 'ошибки соперника', dots: mrOppBlunders(g).map(function(o) {
+    return {p: o.q, color: o.kept ? '#4ade80' : '#f87171', title: anMoveNo(o.q) + o.san + ' — зевок бота, ' + (o.kept ? 'наказал' : 'пропустил')};
+  }), lines: []};
+  if (key === 'turn') { var t = mrTurn(g); return {caption: 'перелом партии', dots: t ? [{p: t.p, color: t.d > 0 ? '#4ade80' : '#f87171', title: 'Перелом'}] : [], lines: t ? [{p: t.p, label: 'перелом'}] : []}; }
+  return null;
+}
+// перерисовать график отчёта под выбранный блок панели (key '' — как обычно)
+function mrGraphShow(wrap, g, key) {
+  var gr = wrap.querySelector('.mr-graph'), v = mrGraphView(g, key);
+  if (!gr) return;
+  gr.outerHTML = evalGraph(g, 'mr', v ? v.dots : undefined, v ? {lines: v.lines, caption: v.caption} : undefined);
+  wrap.querySelectorAll('.mri-sec').forEach(function(sx) { sx.classList.toggle('on', sx.getAttribute('data-sec') === key); });
+}
 // панель «i» отчёта о матче: выезжает справа налево поверх графика перевеса. Каждый пункт — ссылка в «Анализ» на нужный ход (data-an="ply|lens")
 function mrInfoPanel(g) {
   var sans = (g.mv || '').split(' ').filter(Boolean);
   function go(ply, lens, html, title) { return '<button class="mri-go" type="button" data-an="' + ply + '|' + lens + '"' + (title ? ' title="' + esc(title) + '"' : '') + '>' + html + '</button>'; }
-  function sec(title, body) { return '<div class="mri-sec"><div class="mri-h">' + title + '</div>' + body + '</div>'; }
+  function sec(title, body, key) { return '<div class="mri-sec" data-sec="' + key + '" title="Клик — показать на графике"><div class="mri-h">' + title + '</div>' + body + '</div>'; }
   // 1. дебют против мастеров (тот же мастер, что выбран во вкладке «Мастера»)
   var rows = msCompare(g, anMasterPicked(g)), dev = rows.filter(function(c) { return c.st !== 'top'; })[0], deb;
   if (!rows.length) deb = '<div class="mri-n">нет данных мастеров</div>';
@@ -2862,31 +2908,29 @@ function mrInfoPanel(g) {
       ' <span class="mri-n">ход ' + Math.ceil((ply + 1) / 2) + (m.lost ? ' · ' + (typeof ev === 'number' && ev >= 50 ? 'выигрыш сохранён' : 'перевес упал') : m.mated ? ' · мат поставлен' : ' · доведён') + '</span></div>';
   }).join('') : '<div class="mri-n">форсированного мата не было</div>';
   // 3. ошибки соперника: его зевок (оценка движка 'B') — наказал, если после моего ответа перевес не упал больше чем на 2 пешки
-  var opp = (g.jd || []).filter(function(j) { return j[1] === 'B' && !anMine(g, j[0]) && j[0] < sans.length && g.ev; }).map(function(j) {
-    var q = j[0], kept = g.ev[q] - g.ev[q + 1] < 20;
-    return {q: q, kept: kept, san: sans[q - 1], best: (j[2] || '').split(' ')[0]};
-  });
+  var opp = mrOppBlunders(g);
   var oppHtml = opp.length ? '<div class="mri-t">Зевков бота: ' + opp.length + ' — наказал ' + opp.filter(function(o) { return o.kept; }).length +
       ', пропустил ' + opp.filter(function(o) { return !o.kept; }).length + '</div><div class="mri-chips">' + opp.map(function(o) {
       return go(o.q, 'all', '<span style="color:' + (o.kept ? '#4ade80' : '#f87171') + '">' + anMoveNo(o.q) + esc(o.san) + ' ' + (o.kept ? '✓' : '✗') + '</span>',
         'Бот сыграл ' + o.san + ' — зевок' + (o.best ? ' (лучше было ' + o.best + ')' : '') + '. ' + (o.kept ? 'Ты наказал: перевес сохранил' : 'Ты пропустил: после твоего ответа перевес упал'));
     }).join('') + '</div>' : '<div class="mri-n">зевков бота не было</div>';
   // 4. перелом: самый большой скачок оценки за один полуход
-  var big = null;
-  if (g.ev) for (var i = 1; i < g.ev.length; i++) { var d = g.ev[i] - g.ev[i - 1]; if (!big || Math.abs(d) > Math.abs(big.d)) big = {p: i, d: d}; }
-  var turn = big && Math.abs(big.d) >= 15 ? '<div class="mri-t">' + go(big.p - 1, 'all', '<b style="color:' + (big.d > 0 ? '#4ade80' : '#f87171') + '">' + anMoveNo(big.p) + esc(sans[big.p - 1] || '') + '</b>') +
+  var big = mrTurn(g);
+  var turn = big ? '<div class="mri-t">' + go(big.p - 1, 'all', '<b style="color:' + (big.d > 0 ? '#4ade80' : '#f87171') + '">' + anMoveNo(big.p) + esc(sans[big.p - 1] || '') + '</b>') +
       ' <span class="mri-n">' + (anMine(g, big.p) ? 'твой ход' : 'ход соперника') + '</span></div><div class="mri-t">перевес ' + evText(g.ev[big.p - 1]) + ' → <b>' + evText(g.ev[big.p]) + '</b></div>'
     : '<div class="mri-n">резких переломов не было</div>';
   return '<div class="mr-info" aria-hidden="true"><button class="mri-x" type="button" title="Закрыть">×</button>' +
     '<button class="mri-ud" type="button" title="Поднять панель над графиком — график откроется">▲</button>' +
-    sec('Дебют против мастеров', deb) + sec('Мат в N', mate) + sec('Ошибки соперника', oppHtml) + sec('Перелом партии', turn) + '</div>';
+    sec('Дебют против мастеров', deb, 'deb') + sec('Мат в N', mate, 'mate') + sec('Ошибки соперника', oppHtml, 'opp') + sec('Перелом партии', turn, 'turn') + '</div>';
 }
 // номер полухода зевка (1 — первый ход белых): позиция перед зевком — blPly − 1, после — blPly
 function blPly(g, b) { return (b.m - 1) * 2 + (g.color === 'white' ? 1 : 2); }
 // график перевеса: фазы фоном, линия перевеса (выше нуля — лучше у меня), точки зевков по типам
 // idPre — префикс id внутри SVG, если одна партия показана в двух местах (таблица и анализ)
 // dots — свои точки [{p: полуход, color, title}] (в «Анализе» — моменты выбранной линзы); без них — зевки партии
-function evalGraph(g, idPre, dots) {
+// opts.lines — вертикальные пунктиры [{p, label}], opts.caption — что показано (в заголовке, после «Перевес по ходу партии»)
+function evalGraph(g, idPre, dots, opts) {
+  opts = opts || {};
   if (!g.ev || g.ev.length < 3) return '';
   var W = 1000, H = 120, mid = H / 2, cap = 50, n = g.ev.length - 1;
   function x(p) { return (p / n * W).toFixed(1); }
@@ -2912,10 +2956,15 @@ function evalGraph(g, idPre, dots) {
     if (d.p > n) return;
     out.push('<circle cx="' + x(d.p) + '" cy="' + y(g.ev[d.p]) + '" r="5.5" fill="' + d.color + '" stroke="#11131a" stroke-width="1.5"><title>' + esc(d.title) + '</title></circle>');
   });
+  (opts.lines || []).forEach(function(l) {
+    if (l.p > n) return;
+    out.push('<line x1="' + x(l.p) + '" y1="0" x2="' + x(l.p) + '" y2="' + H + '" stroke="rgba(255,255,255,0.45)" stroke-dasharray="3,3" vector-effect="non-scaling-stroke"/>');
+    if (l.label) out.push('<text x="' + (+x(l.p) + 6) + '" y="' + (H - 6) + '" class="mr-z">' + esc(l.label) + '</text>');
+  });
   var ticks = [];
   for (var mv = 10; mv * 2 <= n; mv += 10) ticks.push('<span style="left:' + (mv * 2 / n * 100) + '%">' + mv + '</span>');
   out.push('<g class="mr-cur" style="display:none"><line y1="0" y2="' + H + '" stroke="rgba(255,255,255,0.5)" stroke-width="1" vector-effect="non-scaling-stroke"/></g>');
-  return '<div class="mr-graph" data-n="' + g.n + '"><div class="mr-graph-h"><span>Перевес по ходу партии</span><span class="mr-leg"><i class="up"></i>лучше у тебя <i class="dn"></i>у соперника</span></div>' +
+  return '<div class="mr-graph" data-n="' + g.n + '"><div class="mr-graph-h"><span>Перевес по ходу партии' + (opts.caption ? ' · <b class="mr-cap">' + esc(opts.caption) + '</b>' : '') + '</span><span class="mr-leg"><i class="up"></i>лучше у тебя <i class="dn"></i>у соперника</span></div>' +
     '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + out.join('') + '</svg>' +
     '<div class="mr-dot"></div><div class="mr-hint"></div>' +
     '<div class="mr-ticks">' + ticks.join('') + '</div></div>';
@@ -3765,7 +3814,17 @@ function renderGames() {
         return;
       }
       var b = e.target.closest('[data-an]');
-      if (b) { var a = b.getAttribute('data-an').split('|'); anOpen(g, +a[0], a[1]); }
+      if (b) { var a = b.getAttribute('data-an').split('|'); anOpen(g, +a[0], a[1]); return; }
+      var sc = e.target.closest('.mri-sec');
+      if (sc) {
+        var key = sc.classList.contains('on') ? '' : sc.getAttribute('data-sec');
+        if (key && !w.classList.contains('info-up')) {   // график закрыт панелью — поднять её
+          w.classList.add('info-up');
+          var udb = w.querySelector('.mri-ud'); if (udb) { udb.textContent = '▼'; udb.title = 'Вернуть панель на график'; }
+        }
+        mrGraphShow(w, g, key);
+        mrInfoFit(w, w.classList.contains('info-up') ? 'up' : 'cover');
+      }
     });
     var chBtn = detail.querySelector('.detail-chart');
     if (chBtn) chBtn.addEventListener('click', function(e) { e.stopPropagation(); showOnChart(g); });

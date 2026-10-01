@@ -7252,8 +7252,8 @@ var AI_COND = {
   winloss:   [['одно главное отличие'], ['one main difference']],
   deviate:   [['один главный отход от мастеров', 'почему ход мастеров лучше — из общих шахматных знаний, с пометкой «обычно»', 'правило для запоминания — с указанием, после какого хода бота оно действует (смотри ходы до отхода)'],
               ['one main deviation from the masters', 'why the masters\' move is better — from general chess knowledge, marked "usually"', 'a rule to remember — stating after which bot move it applies (see the moves up to the deviation)']],
-  today:     function() { return [[aiTasks('ru'), 'всего ' + aiMin() + ' минут'].concat(aiBreak('ru') || []), [aiTasks('en'), aiMin() + ' minutes in total'].concat(aiBreak('en') || [])]; },
-  week:      function() { return [['7 дней', aiMin() + ' минут в день'].concat(aiBreak('ru') || []), ['7 days', aiMin() + ' minutes a day'].concat(aiBreak('en') || [])]; },
+  today:     function() { return [[aiTasks('ru'), 'всего ' + aiMin() + ' минут, включая перерывы'].concat(aiBreak('ru') || []), [aiTasks('en'), aiMin() + ' minutes in total, including breaks'].concat(aiBreak('en') || [])]; },
+  week:      function() { return [['7 дней', aiMin() + ' минут в день, включая перерывы'].concat(aiBreak('ru') || []), ['7 days', aiMin() + ' minutes a day, including breaks'].concat(aiBreak('en') || [])]; },
   themes:    [['не больше 3 тем', 'сколько задач в день'], ['at most 3 themes', 'how many puzzles a day']],
   checklist: [['ровно 5 пунктов'], ['exactly 5 points']],
   review:    [['не больше 6 шагов'], ['at most 6 steps']],
@@ -7298,7 +7298,7 @@ AI_SIMPLE_TPL.days = [['День 1: что делать — сколько ми�
 AI_SIMPLE_TPL.today = function() {
   var ru = ['1) что делать — сколько минут — зачем'], en = ['1) what to do — how many minutes — why'];
   for (var i = 2; i <= aiTaskN(); i++) { ru.push(i + ') …'); en.push(i + ') …'); }
-  return [ru.concat('Всего минут: …'), en.concat('Total minutes: …')];
+  return [ru.concat('Всего минут с перерывами: …'), en.concat('Total minutes with breaks: …')];
 };
 AI_SIMPLE_TPL.plans = function() {   // идеи — из знаний модели, примеры и слабые места — из данных
   var o = aiOp() || {name: '—', color: 'white'}, w = o.color === 'black';

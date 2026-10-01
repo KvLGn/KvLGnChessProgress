@@ -6730,8 +6730,6 @@ function gsIndex() {
   var stk = streaks();
   add('Ответы', '🔥', 'Серия: ' + stk.current + ' ' + plural(stk.current, 'день', 'дня', 'дней') + ' подряд', 'рекорд ' + stk.best + ' ' + plural(stk.best, 'день', 'дня', 'дней'),
     'серия дни подряд стрик', function() { gsChart('activity', false); });
-  add('Ответы', '🎯', 'Цель этапа: ' + (CUR.stage ? CUR.colors.map(function(c) { return (CUR.colors.length > 1 ? COLOR_WORD[c.color] + ' ' : '') + colorLine(c); }).join(' · ') : 'план выполнен'),
-    stageTitle(), 'цель этап прогресс уровень', function() { gsCloseSide(); toggleVerdict(true); });
   if (nG) {
     var byAcc = games.slice().sort(function(a, b) { return b.acc - a.acc; });
     add('Ответы', '<span style="color:var(--green)">▲</span>', 'Лучшая партия: #' + byAcc[0].n + ' · ' + byAcc[0].acc + '%', byAcc[0].opening + ' · ' + byAcc[0].date, 'лучшая партия', function() { gsOpenGame(byAcc[0]); });

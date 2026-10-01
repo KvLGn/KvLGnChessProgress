@@ -6195,6 +6195,8 @@ function aiSummary() {
   L.push('## Этап');
   L.push(stageTitle() + (CUR.stage ? ' (этап ' + (CUR.idx + 1) + ' из ' + PLAN.stages.length + ')' : ''));
   L.push('Правило перехода: ' + stageRuleText());
+  if (CUR.stage) L.push('В цель этапа идут только партии ' + (CUR.stage.colors.length > 1 ? 'обоими цветами' : COLOR_WORD[CUR.stage.colors[0]]) + ' против Stockfish ' + CUR.stage.engine +
+    '; из последних 10 партий таких ' + games.slice(-10).filter(aiInGoal).length + ', остальные в цель не идут.');
   CUR.colors.forEach(function(c) {
     L.push('- ' + COLOR_WORD[c.color] + ': ' + (c.done ? 'выполнено ' + c.doneGame.date : colorLine(c)) + '. ' +
       c.blocks.map(function(b, i) { return 'пятёрка ' + (i + 1) + ': ' + (b.ok ? 'выполнена' : blockWhy(b)); }).join('; '));
@@ -6599,6 +6601,7 @@ function aiMateStat(list) {   // по партиям: в скольких был
   return had ? AL('форсированный мат был в ' + had + ' ' + plural(had, 'партии', 'партиях', 'партиях') + ', поставлен в ' + done + '; упущен ' + lost + ' ' + plural(lost, 'раз', 'раза', 'раз') + ' (часто потом мат находился снова)',
                   'a forced mate appeared in ' + had + ' games, delivered in ' + done + '; missed ' + lost + ' times (often found again later)') : '';
 }
+function aiInGoal(g) { var S = CUR.stage; return !!S && g.engine === 'Stockfish ' + S.engine && S.colors.indexOf(g.color) >= 0; }
 function aiOp() { return ((window.OPENINGS || {}).current || [])[0]; }
 function aiOpGames() { var o = aiOp(); return o ? games.filter(function(g) { return g.color === o.color && opMatch(o, g.opening); }) : []; }
 function themeName(k) { var P = window.PUZZLES || {}; return AL((P.themeNames || {})[k] || PZ_NAMES[k] || k, k.replace(/([a-z])([A-Z0-9])/g, '$1 $2').toLowerCase()); }
@@ -6652,7 +6655,7 @@ function aiAbout() {
       out.push(AL('Цель этапа', 'Stage goal') + (CUR.colors.length > 1 ? ' ' + AL(COLOR_WORD[c.color], 'as ' + COLOR_EN[c.color]) : '') + ': ' +
         (c.done ? AL('выполнена', 'done') : ok + AL(' из ', ' of ') + RULE.blocks + AL(' пятёрок; ещё минимум ', ' sets done; at least ') + gamesToGoal(c) + AL(' партий', ' more games')) + '.');
     });
-    var S = CUR.stage, inGoal = last.filter(function(g) { return g.engine === 'Stockfish ' + S.engine && S.colors.indexOf(g.color) >= 0; }).length;
+    var S = CUR.stage, inGoal = last.filter(aiInGoal).length;
     out.push(AL('В цель этапа идут только партии ' + (S.colors.length > 1 ? 'обоими цветами' : COLOR_WORD[S.colors[0]]) + ' против Stockfish ' + S.engine + '; из последних 10 партий таких ' + inGoal + ', остальные в цель не идут.',
                 'Only games ' + (S.colors.length > 1 ? 'with both colours' : 'as ' + COLOR_EN[S.colors[0]]) + ' vs Stockfish ' + S.engine + ' count towards the goal; ' + inGoal + ' of the last 10 games are such, the rest do not count.'));
   }
@@ -6678,6 +6681,7 @@ var AI_DATA = {
     AI_BL_MAX = 99;
     var o = aiOp(), isPlanOp = o && g.color === o.color && opMatch(o, g.opening);
     var out = [AL('Последняя партия: ', 'Last game: ') + aiGame(g),
+      (CUR.stage ? (aiInGoal(g) ? AL('Эта партия идёт в цель этапа.', 'This game counts towards the stage goal.') : AL('Эта партия НЕ идёт в цель этапа (в цель идут только партии против Stockfish ' + CUR.stage.engine + ').', 'This game does NOT count towards the stage goal (only games vs Stockfish ' + CUR.stage.engine + ' do).')) : ''),
       AL('Дебют этой партии — ', 'The opening of this game is ') + g.opening + (o ? (isPlanOp ? AL(' (это мой изучаемый дебют «' + o.name + '»)', ' (this is the opening I am studying)') : (PLAIN ? AL(' (это не тот дебют, который я учу, — учу дебют «' + o.name + '»)', ' (not the opening I am learning — I am learning the ' + opEn(o) + ')') : AL(' — это НЕ мой изучаемый дебют («' + o.name + '»); советы про дебют давай по дебюту этой партии.', ' — NOT the opening I am studying (' + opEn(o) + '); give opening advice for this game\'s opening.'))) : '')].concat(PLAIN ? [] : !(AI_FEN && window.Chess) ? [AL('Ходы: ', 'Moves: ') + aiMovesText(g)] : [AL('Партия в PGN (?? — зевок, ? — ошибка, ?! — неточность, у ходов бота тоже; в {} — лучший ход, тип зевка и оценка после хода в пешках с моей стороны):',
       'The game in PGN (?? — blunder, ? — mistake, ?! — inaccuracy, also for the bot\'s moves; in {} — the better move, blunder type and the evaluation after the move in pawns from my side):'), aiPgn(g)]), dv = g.div || {};
     out.push(AL('Фазы: дебют с 1-го хода', 'Phases: opening from move 1') + (dv.mid ? AL(', миттельшпиль с хода ', ', middlegame from move ') + Math.ceil(dv.mid / 2) : AL(', миттельшпиля не было', ', no middlegame')) +

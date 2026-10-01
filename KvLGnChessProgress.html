@@ -7166,7 +7166,7 @@ function renderAiMenu() {
     '<button data-kind="tech" class="ai-c-tech' + (T ? ' on' : '') + '">' + AL('Техническая', 'Technical') + '<i>' + AL('правка плана: этапы, правило, дебюты', 'plan changes: stages, rule, openings') + '</i></button>');
   $('aiMenu').innerHTML = '<div class="ai-box' + (T ? ' tech' : '') + '" role="dialog" aria-label="' + AL('Справка', 'Help') + '">' +
     '<div class="ai-head"><span class="ai-info" tabindex="0" aria-label="' + AL('Что здесь для чего', 'What is what') + '">i<span class="ai-info-tip">' + info + '</span></span><b>📋 ' + AL('Справка', 'Help') + '</b>' +
-      '<span class="ai-ctl">' + who + model + kind +
+      '<span class="ai-ctl">' + who + kind + model +
         '<span class="ai-lang"><button data-lang="ru" class="' + (aiLang === 'ru' ? 'on' : '') + '">RU</button><button data-lang="en" class="' + (aiLang === 'en' ? 'on' : '') + '">EN</button></span></span>' +
       '<button class="pzd-close ai-close" aria-label="' + AL('Закрыть', 'Close') + '">×</button></div>' +
     '<div class="ai-note">' + (H

@@ -970,7 +970,7 @@
   .vdx-head .vd-rd-btn:hover { border-color: #818cf8; color: #c7d2fe; }
   .vdx-head .vd-rd-btn + .vd-close { margin-left: 0; }
   .vd-detail.vdx.rd-on { height: 640px; }   /* схема — той же высоты, что списки, без прыжка при переключении */
-  .rd { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); grid-template-rows: minmax(0, 1fr); gap: 26px; }   /* слева пункты, справа схема */
+  .rd { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 26px; }   /* схема | таблица (в «К цели этапа»; со списком — .with-list) */
   .rd-left { min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
   .rd-bar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center; margin-bottom: 4px; }
   .rd-seg { display: inline-flex; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
@@ -994,7 +994,7 @@
   .rd-tbl td:first-child { color: var(--fg-dim); white-space: normal; }
   .rd-tbl td.was { color: var(--fg-mute); }
   .rd-tbl .up { color: var(--green); } .rd-tbl .down { color: var(--red); } .rd-tbl .same { color: var(--fg-mute); }
-  .rd.with-list { grid-template-columns: 250px minmax(0, 0.8fr) minmax(0, 1.45fr); gap: 20px; }   /* параметры | таблица | схема */
+  .rd.with-list { grid-template-columns: 250px minmax(0, 1.45fr) minmax(0, 0.8fr); gap: 20px; }   /* параметры | схема | таблица */
   .rd.with-list .rd-right { overflow-x: hidden; }
   .rd-by { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; justify-content: center; margin-top: 4px; }
   .rd-seg button:disabled { opacity: 0.35; cursor: not-allowed; }
@@ -6604,8 +6604,8 @@ function rdHtml() {
       (d === null ? '—' : better === null ? '=' : (better ? '▲' : '▼')) + '</td>' : '') + '<td class="was">' + (D.goal ? fmt(x, x.m.goal) : fmt(x, x.m.low ? x.hi : x.hi)) + '</td></tr>';
   }).join('');
   var tbl = k ? '<table class="rd-tbl"><tr><th></th><th>сейчас</th>' + (D.hasB ? '<th>было</th><th></th>' : '') + '<th>' + (D.goal ? 'нужно' : 'лучшее') + '</th></tr>' + rows + '</table>' : '';
-  return '<div class="rd' + (D.goal ? '' : ' with-list') + '">' + (D.goal ? '' : rdPopHtml()) + '<div class="rd-right">' + tbl + '</div>' +
-    '<div class="rd-left">' + bar + svg + by + '<div class="rd-tip"></div></div></div>';
+  return '<div class="rd' + (D.goal ? '' : ' with-list') + '">' + (D.goal ? '' : rdPopHtml()) +
+    '<div class="rd-left">' + bar + svg + by + '<div class="rd-tip"></div></div>' + '<div class="rd-right">' + tbl + '</div></div>';
 }
 // выпадающий список: готовые наборы сверху, ниже группы — клик раскрывает, галочки (3–8 параметров)
 // перерисовать, сохранив прокрутку выпадающего списка

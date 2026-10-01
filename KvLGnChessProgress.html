@@ -3797,7 +3797,18 @@ function renderGames() {
       '</span>' +
       '</div></td>';
 
-    function toggle() { row.classList.toggle('open'); }
+    function toggle() {
+      var open = row.classList.toggle('open');
+      if (open) return;
+      // свернули партию — панель «i» и выбор на графике сбрасываются: при следующем раскрытии отчёт в обычном виде
+      var w = detail.querySelector('.mr-gwrap'), ib = detail.querySelector('.mr-i');
+      if (!w) return;
+      w.classList.remove('info-open', 'info-up');
+      mrInfoFit(w, 'off');
+      var ud = w.querySelector('.mri-ud'); if (ud) ud.textContent = '▲';
+      if (ib) ib.classList.remove('on');
+      mrGraphReset(w);
+    }
     var blMore = detail.querySelector('.mr-bl-more');
     if (blMore) blMore.addEventListener('click', function(e) {
       e.stopPropagation();

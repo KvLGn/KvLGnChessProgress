@@ -353,7 +353,7 @@ window.PUZZLES = { rating, total, history: [{day, date, rating}], themeNames: {f
 | `go` | порядок первичной отрисовки, `renderPlanAlert` |
 
 ### Состояние в браузере (localStorage)
-`hush`, `wrMode`, `avgWindow`, `hiddenSeries.v2`, `chartMode`, `activityPeriod`, `blHidden`, `anLens`, `anMaster.v2`, `anHushBack`,
+`hush`, `wrMode`, `legWrMode` (под графиком: винрейт ⇄ ELO за период), `avgWindow`, `hiddenSeries.v2`, `chartMode`, `activityPeriod`, `blHidden`, `anLens`, `anMaster.v2`, `anHushBack`,
 `tblOpNames` / `anOpNames`, `aiMode` / `aiKind` / `aiModel` / `aiLang`, `planGood` (последняя исправная копия плана, пишется после удачной отрисовки); sessionStorage: `planForce` (страница не отрисовалась с этим планом — перезагрузка на запасной копии).
 Меняешь смысл значения по умолчанию — меняй имя ключа (`.v3`), иначе у пользователя останется старое состояние.
 

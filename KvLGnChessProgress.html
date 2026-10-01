@@ -187,7 +187,7 @@
   body.hush-head .vd-go { opacity: 0.5; }   /* «i» на месте, но карточка в скрытой шапке не открывается */
   body.hush-chart .records-btn, body.hush-chart #cf .f-btn { opacity: 0.45; cursor: not-allowed; }
   body.hush-chart .records-btn:hover { background: none; }
-  body.hush-chart .legend-item, body.hush-chart .stat.toggle { pointer-events: none; }
+  body.hush-chart .legend-item, body.hush-chart .stat.toggle, body.hush-chart #legendWrBox { pointer-events: none; }
   body.hush-chart .legend-item { opacity: 0.45; }
   body.hush-chart #chart .hit { pointer-events: none; cursor: default; }
   body.hush-chart .bl-info { opacity: 0.4; cursor: not-allowed; }   /* кнопка «i» у зевков — неактивна, пока график скрыт */
@@ -1168,6 +1168,9 @@
   .legend-wr-label::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
   .legend-wr-val { font-size: 22px; font-weight: 700; color: var(--fg-num); }
   .legend-wr-val small { font-size: 14px; color: var(--fg-dim); }
+  #legendWrBox { cursor: pointer; border-radius: 8px; padding: 2px 6px; margin-left: -6px; transition: background 0.15s; }
+  #legendWrBox:hover { background: rgba(255,255,255,0.04); }
+  #legendWrBox .legend-wr-val .trend-n { font-size: 11px; font-weight: 500; color: var(--fg-mute); margin-left: 4px; }
   .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; }
 
   /* show / hide series */
@@ -1882,7 +1885,7 @@
     <div class="legend-rule"></div>
     <div class="legend">
       <div class="bl-legend metrics-only" id="blLegend"></div>
-      <div class="legend-wr metrics-only"><span class="legend-wr-label">Винрейт</span><span class="legend-wr-val" id="legendWr"></span></div>
+      <div class="legend-wr metrics-only" id="legendWrBox" role="button" tabindex="0" title="Клик — переключить: винрейт ⇄ рост ELO за период"><span class="legend-wr-label" id="legendWrLbl">Винрейт</span><span class="legend-wr-val" id="legendWr"></span></div>
       <!-- легенда режима «Активность» -->
       <div class="legend-item activity-only res-toggle" data-res="win" role="button" tabindex="0" style="color:var(--green)"><span class="legend-sq" style="background:var(--green)"></span>ПОБЕДЫ</div>
       <div class="legend-item activity-only res-toggle" data-res="lose" role="button" tabindex="0" style="color:var(--red)"><span class="legend-sq" style="background:var(--red)"></span>ПОРАЖЕНИЯ</div>
@@ -2558,10 +2561,41 @@ function renderWindow() {
   renderWinPick();
   renderStats();
   renderChart();
-  var wr = winrate(statsGames());
-  $('legendWr').innerHTML = wr === null ? '—' : Math.round(wr) + '<small>%</small>';
+  renderLegendWr();
   applySeries();
 }
+// под графиком: винрейт ⇄ рост ELO за период (клик; выбор помнится — legWrMode). ELO — сумма изменений рейтинга
+// рейтинговых партий за дни периода (выделены колонки — только по ним); контроль — как у последней рейтинговой партии
+// (как periodElo в «Активности» — блиц и рапид не складываются); рейтинговых нет — «?»
+var legWrElo = false;
+try { legWrElo = localStorage.getItem('legWrMode') === 'elo'; } catch (e) {}
+function winPeriodElo() {
+  var list = statsGames(), all = window.RATING_GAMES || [];
+  if (!list.length || !all.length) return null;
+  var perf = all[all.length - 1].perf, R = all.filter(function(x) { return x.perf === perf && x.day; }), rg;
+  if (selCount()) { var ids = {}; list.forEach(function(g) { ids[g.id] = true; }); rg = R.filter(function(r) { return ids[r.id]; }); }
+  else {
+    var days = list.map(function(g) { return g.day; }).sort(), from = days[0], to = days[days.length - 1];
+    rg = R.filter(function(r) { return r.day >= from && r.day <= to; });
+  }
+  return rg.length ? {diff: rg.reduce(function(s, r) { return s + r.diff; }, 0), n: rg.length} : null;
+}
+function renderLegendWr() {
+  $('legendWrLbl').textContent = legWrElo ? 'ELO' : 'Винрейт';
+  if (!legWrElo) { var wr = winrate(statsGames()); $('legendWr').innerHTML = wr === null ? '—' : Math.round(wr) + '<small>%</small>'; return; }
+  var e = winPeriodElo();
+  if (!e) { $('legendWr').innerHTML = '<span style="color:var(--fg-mute)" title="В этом периоде нет рейтинговых партий">?</span>'; return; }
+  var c = e.diff > 0 ? 'var(--up)' : e.diff < 0 ? 'var(--red)' : 'var(--fg-mute)';
+  $('legendWr').innerHTML = '<span style="color:' + c + '">' + (e.diff > 0 ? '▲ +' : e.diff < 0 ? '▼ −' : '■ ') + Math.abs(e.diff) + '</span>' +
+    '<span class="trend-n">' + e.n + ' ' + plural(e.n, 'игра', 'игры', 'игр') + '</span>';
+}
+function toggleLegendWr() {
+  legWrElo = !legWrElo;
+  try { localStorage.setItem('legWrMode', legWrElo ? 'elo' : 'wr'); } catch (e) {}
+  renderLegendWr();
+}
+$('legendWrBox').addEventListener('click', toggleLegendWr);
+$('legendWrBox').addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleLegendWr(); } });
 
 function renderStats() {
   var list = statsGames();

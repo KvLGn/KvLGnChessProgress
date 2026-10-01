@@ -994,12 +994,12 @@
   .rd-tbl td:first-child { color: var(--fg-dim); white-space: normal; }
   .rd-tbl td.was { color: var(--fg-mute); }
   .rd-tbl .up { color: var(--green); } .rd-tbl .down { color: var(--red); } .rd-tbl .same { color: var(--fg-mute); }
-  .rd-pwrap { position: relative; }
-  .rd-pbtn { font: 500 12px Inter, sans-serif; color: var(--fg); background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
-  .rd-pbtn:hover, .rd-pbtn.open { border-color: #818cf8; }
-  .rd-pbtn span { color: var(--fg-mute); margin-left: 4px; }
-  .rd-pop { position: absolute; top: 0; bottom: 0; right: calc(100% + 12px); z-index: 8; width: 340px; overflow-y: auto; background: var(--bg-card); border: 1px solid var(--border);   /* слева от схемы, поверх таблицы */
-    border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,0.45); padding: 10px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+  .rd.with-list { grid-template-columns: minmax(0, 0.8fr) 250px minmax(0, 1.45fr); gap: 20px; }
+  .rd.with-list .rd-right { overflow-x: hidden; }
+  .rd.with-list .rd-tbl { font-size: 12.5px; }
+  .rd.with-list .rd-tbl th, .rd.with-list .rd-tbl td { padding-left: 6px; }   /* таблица | список параметров | схема */
+  .rd-pop { min-height: 0; overflow-y: auto; border-left: 1px solid rgba(46,50,68,0.7); border-right: 1px solid rgba(46,50,68,0.7); padding: 0 14px;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
   .rd-pop-h { font: 600 10px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); margin: 2px 2px 6px; }
   .rd-pre { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
   .rd-pre button { font: 500 11px Inter, sans-serif; color: var(--fg-dim); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
@@ -6402,7 +6402,7 @@ var RD = {on: false, scale: 'self', keys: ['acc', 'mid', 'blunders', 'punish', '
 try { var rdSaved = JSON.parse(localStorage.getItem('vdRadar.v1') || 'null'); if (rdSaved) for (var rk in rdSaved) RD[rk] = rdSaved[rk]; } catch (e) {}
 if (!Array.isArray(RD.keys)) RD.keys = Array.isArray(RD.custom) ? RD.custom.slice() : ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles'];   // старый формат (set/custom)
 delete RD.set; delete RD.custom;
-var rdPop = false, rdOpenG = {};   // выпадающий список параметров открыт? какие группы в нём раскрыты (не сохраняется)
+var rdOpenG = {};   // какие группы в списке параметров раскрыты (не сохраняется)
 function rdSave() { try { localStorage.setItem('vdRadar.v1', JSON.stringify(RD)); } catch (e) {} }
 function rdAvg(list, f) { var v = list.map(f).filter(function(x) { return x !== null && x !== undefined; }); return v.length ? v.reduce(function(a, b) { return a + b; }, 0) / v.length : null; }
 function rdPerGame(cnt) { return function(list) { return list.length ? list.reduce(function(s, g) { return s + cnt(g); }, 0) / list.length : null; }; }
@@ -6527,7 +6527,7 @@ function rdHtml() {
   var D = rdData(), S = 360, C = S / 2, R0 = 128;
   var bar = '<div class="rd-bar"><span class="rd-seg">' +
       [['self', 'Я против себя'], ['goal', 'К цели этапа']].map(function(x) { return '<button type="button" data-rds="' + x[0] + '" class="' + (RD.scale === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '</span>' +
-    (D.goal ? '' : '<span class="rd-pwrap"><button class="rd-pbtn' + (rdPop ? ' open' : '') + '" type="button">Параметры<span>' + RD.keys.length + (rdPop ? ' ◂' : ' ▸') + '</span></button></span>') + '</div>';
+    '</div>';
   var axes = D.axes, k = axes.length, svg = '';
   if (k < 3) {
     svg = '<div class="rd-note" style="margin-top:40px">' + (D.W < 3 ? 'Мало партий для схемы: нужно хотя бы 6' + (D.goal ? ' партий этапа' : '') + ', сейчас ' + D.n + '.' : 'Выбери хотя бы 3 параметра.') + '</div>';
@@ -6571,8 +6571,9 @@ function rdHtml() {
       (d === null ? '—' : better === null ? '=' : (better ? '▲' : '▼')) + '</td>' : '') + '<td class="was">' + (D.goal ? fmt(x, x.m.goal) : fmt(x, x.m.low ? x.hi : x.hi)) + '</td></tr>';
   }).join('');
   var tbl = k ? '<table class="rd-tbl"><tr><th></th><th>сейчас</th>' + (D.hasB ? '<th>было</th><th></th>' : '') + '<th>' + (D.goal ? 'нужно' : 'лучшее') + '</th></tr>' + rows + '</table>' : '';
-  return '<div class="rd"><div class="rd-right">' + leg + '<div class="rd-note">' + note + '</div>' + tbl + '</div>' +
-    '<div class="rd-left">' + bar + svg + '<div class="rd-tip"></div>' + (rdPop && !D.goal ? rdPopHtml() : '') + '</div></div>';
+  return '<div class="rd' + (D.goal ? '' : ' with-list') + '"><div class="rd-right">' + leg + '<div class="rd-note">' + note + '</div>' + tbl + '</div>' +
+    (D.goal ? '' : rdPopHtml()) +
+    '<div class="rd-left">' + bar + svg + '<div class="rd-tip"></div></div></div>';
 }
 // выпадающий список: готовые наборы сверху, ниже группы — клик раскрывает, галочки (3–8 параметров)
 // перерисовать, сохранив прокрутку выпадающего списка
@@ -6585,9 +6586,10 @@ function rdPopHtml() {
   var same = function(a, b) { return a.length === b.length && a.every(function(x) { return b.indexOf(x) >= 0; }); };
   return '<div class="rd-pop"><div class="rd-pop-h">Готовые наборы</div><div class="rd-pre">' +
     RD_SETS.map(function(x) { return '<button type="button" data-rdset="' + x.k + '" class="' + (same(x.keys, RD.keys) ? 'on' : '') + '">' + x.name + '</button>'; }).join('') + '</div>' +
-    '<div class="rd-pop-h">Свой набор — от 3 до 8 <span style="text-transform:none;letter-spacing:0;font-weight:400">· ▼ — чем меньше, тем лучше</span></div>' +
+    '<div class="rd-pop-h">Параметры · ' + RD.keys.length + ' (от 3 до 8)</div><div class="rd-note" style="font-size:11px;margin:-2px 2px 6px">▼ — чем меньше, тем лучше</div>' +
     RD_GROUPS.map(function(G) {
-      var ms = RD_METRICS.filter(function(m) { return m.group === G; }), on = ms.filter(function(m) { return RD.keys.indexOf(m.k) >= 0; }).length, open = rdOpenG[G];
+      var ms = RD_METRICS.filter(function(m) { return m.group === G; }), on = ms.filter(function(m) { return RD.keys.indexOf(m.k) >= 0; }).length;
+      var open = rdOpenG[G] === undefined ? on > 0 : rdOpenG[G];   // сначала раскрыты группы, где что-то выбрано
       return '<div class="rd-grp"><button type="button" class="rd-grp-h" data-rdg="' + esc(G) + '"><i>' + (open ? '▾' : '▸') + '</i>' + esc(G) + '<small>' + on + '/' + ms.length + '</small></button>' +
         (open ? '<div class="rd-grp-b">' + ms.map(function(m) {
           var sel = RD.keys.indexOf(m.k) >= 0, lock = (sel && RD.keys.length <= 3) || (!sel && RD.keys.length >= 8);
@@ -6620,7 +6622,6 @@ function toggleVerdict(open) {
   if (open) {
     if (row.classList.contains('open')) togglePuzzleDetail(false);
     if (row.classList.contains('op-open')) toggleOpeningDetail(false);
-    rdPop = false;
     renderVerdictDetail();
   }
   row.classList.toggle('vd-open', open);
@@ -6666,14 +6667,13 @@ $('vdCard').addEventListener('keydown', function(e) {
 });
 $('vdDetail').addEventListener('click', function(e) {
   if (e.target.closest('.vd-close')) { toggleVerdict(false); return; }
-  if (e.target.closest('.vd-rd-btn')) { RD.on = !RD.on; rdPop = false; rdSave(); renderVerdictDetail(); return; }
+  if (e.target.closest('.vd-rd-btn')) { RD.on = !RD.on; rdSave(); renderVerdictDetail(); return; }
   var rb = e.target.closest('[data-rds]');
   if (rb) { RD.scale = rb.getAttribute('data-rds'); rdSave(); renderVerdictDetail(); return; }
-  if (e.target.closest('.rd-pbtn')) { rdPop = !rdPop; renderVerdictDetail(); return; }
   rb = e.target.closest('[data-rdset]');
   if (rb) { RD.keys = RD_SETS.filter(function(x) { return x.k === rb.getAttribute('data-rdset'); })[0].keys.slice(); rdSave(); rdRerender(); return; }
   rb = e.target.closest('[data-rdg]');
-  if (rb) { var G = rb.getAttribute('data-rdg'); rdOpenG[G] = !rdOpenG[G]; rdRerender(); return; }
+  if (rb) { var G = rb.getAttribute('data-rdg'), wasOpen = !!$('vdDetail').querySelector('[data-rdg="' + G + '"]').nextElementSibling; rdOpenG[G] = !wasOpen; rdRerender(); return; }
   rb = e.target.closest('[data-rdck]');
   if (rb) {
     var ck = rb.getAttribute('data-rdck'), at = RD.keys.indexOf(ck);
@@ -6681,7 +6681,7 @@ $('vdDetail').addEventListener('click', function(e) {
     else if (!rb.checked && at >= 0 && RD.keys.length > 3) RD.keys.splice(at, 1);
     rdSave(); rdRerender(); return;
   }
-  if (rdPop && !e.target.closest('.rd-pop')) { rdPop = false; renderVerdictDetail(); return; }   // клик мимо списка — закрыть
+
   if (e.target.closest('a')) return;   // ссылка на Lichess — своя
   var it = e.target.closest('.vdx-item.go');
   if (it) { var v = vdItems[+it.getAttribute('data-vi')]; toggleVerdict(false); if (v && v.go) v.go(); return; }

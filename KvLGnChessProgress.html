@@ -3252,7 +3252,7 @@ function tooltipHtml(g) {
     rows.map(function(r) {
       return '<div' + (r.k === pinnedSeries ? ' style="font-size:14px;font-weight:700;margin-bottom:3px"' : '') + '>' + r.html + '</div>';
     }).join('') +
-    '<div style="color:var(--fg-dim);margin-top:4px;font-size:11px">' + esc(g.opening) + '</div>' +
+    '<div style="color:var(--fg-dim);margin-top:4px;font-size:11px">' + esc(planOpName(g) || 'вне плана') + '</div>' +   // дебют по плану — что я играл или пытался играть (не название Lichess)
     '<div style="color:#6b7080;margin-top:3px;font-size:10px">' + esc(g.engine) + ' · ' + COLOR_NAME[g.color] + '</div>';
 }
 

@@ -864,7 +864,7 @@
   .ai-head { flex-wrap: wrap; row-gap: 8px; min-width: 0; }
   .ai-own-btns { flex-wrap: wrap; }
   @media (max-width: 700px) { .ai-menu { padding: 8px; align-items: stretch; } .ai-box { width: 100%; max-height: none; padding: 12px; } .ai-own-btns button { flex: 1 1 auto; } }
-  .ai-box { width: 600px; max-width: 100%; height: min(86vh, 760px); display: flex; flex-direction: column; background: linear-gradient(180deg, #14201a 0%, #111815 100%);
+  .ai-box { width: 640px; max-width: 100%; height: min(86vh, 760px); display: flex; flex-direction: column; background: linear-gradient(180deg, #14201a 0%, #111815 100%);
     border: 1px solid rgba(74,222,128,0.3); border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.5); padding: 14px 16px 12px; }
   .ai-head { display: flex; align-items: center; gap: 12px; }
   .ai-head b { font-size: 14px; color: #bbf7d0; }
@@ -875,12 +875,15 @@
   .ai-lang button { font: 600 11px Inter, sans-serif; color: var(--fg-mute); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
   .ai-lang button.on { color: #86efac; border-color: rgba(74,222,128,0.5); }
   .ai-note { font-size: 11px; color: var(--fg-dim); margin: 6px 0 8px; }
-  .ai-ctl { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+  .ai-ctl { display: flex; align-items: center; gap: 4px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
   .ai-lang button:disabled { opacity: 0.35; cursor: default; }
-  .ai-dd { position: relative; }
+  .ai-dd { position: relative; display: inline-flex; align-items: center; }   /* не по строке текста — иначе на 2–3px ниже соседних кнопок */
+  .ai-ctl > .ai-lang { align-items: center; }
+  .ai-ctl .ai-hide { visibility: hidden; }   /* «Сильная | Простая» при «Для человека»: место сохраняется, кнопки не сдвигаются */
+  .ai-dd-btn.ai-c-who { min-width: 110px; justify-content: center; } .ai-dd-btn.ai-c-adv, .ai-dd-btn.ai-c-tech { min-width: 104px; justify-content: center; }   /* по самой длинной надписи («Для человека», «Техническая») — кнопки не сдвигаются */
   .ai-dd-btn { font: 600 11px Inter, sans-serif; background: none; border: 1px solid; border-radius: 6px; padding: 0 8px; cursor: pointer; white-space: nowrap; }
   .ai-head .ai-lang button, .ai-dd-btn { box-sizing: border-box; height: 26px; display: inline-flex; align-items: center; line-height: 1; }   /* все кнопки шапки одной высоты */
-  .ai-head { gap: 8px; } .ai-head > b { margin-right: 4px; }
+  .ai-head { gap: 8px; }
   .ai-dd-btn.ai-c-who { color: #86efac; border-color: rgba(74,222,128,0.5); }
   .ai-dd-btn.ai-c-adv { color: #86efac; border-color: rgba(74,222,128,0.5); }
   .ai-dd-btn.ai-c-tech { color: #fcd34d; border-color: rgba(251,191,36,0.5); }
@@ -7159,7 +7162,7 @@ function renderAiMenu() {
       '<p>Click an item — the request is copied, paste it into the chat.</p>');
   var who = dd('who', H ? AL('Для человека', 'For a person') : AL('Для ИИ', 'For AI'), 'ai-c-who',
     '<button data-mode="ai" class="' + (H ? '' : 'on') + '">' + AL('Для ИИ', 'For AI') + '</button><button data-mode="human" class="' + (H ? 'on' : '') + '">' + AL('Для человека', 'For a person') + '</button>');
-  var model = H ? '' : '<span class="ai-lang"><button data-model="strong" class="' + (aiModel === 'strong' || T ? 'on' : '') + '" title="' + AL('DeepSeek, ChatGPT, Claude, Gemini — полный запрос со сводкой', 'DeepSeek, ChatGPT, Claude, Gemini — the full request with the summary') + '">' + AL('Сильная', 'Strong') + '</button>' +
+  var model = '<span class="ai-lang' + (H ? ' ai-hide' : '') + '"><button data-model="strong" class="' + (aiModel === 'strong' || T ? 'on' : '') + '" title="' + AL('DeepSeek, ChatGPT, Claude, Gemini — полный запрос со сводкой', 'DeepSeek, ChatGPT, Claude, Gemini — the full request with the summary') + '">' + AL('Сильная', 'Strong') + '</button>' +
     '<button data-model="simple" class="' + (aiModel === 'simple' && !T ? 'on' : '') + '"' + (T ? ' disabled title="' + AL('Правка плана — всегда полный запрос', 'Plan changes always use the full request') + '"' : ' title="' + AL('Алиса, GigaChat, мини-версии — короткий запрос с готовыми выводами', 'Alice, GigaChat, mini versions — a short request with ready conclusions') + '"') + '>' + AL('Простая', 'Simple') + '</button></span>';
   var kind = dd('kind', T ? AL('Техническая', 'Technical') : AL('Совет', 'Advice'), T ? 'ai-c-tech' : 'ai-c-adv',
     '<button data-kind="advice" class="ai-c-adv' + (T ? '' : ' on') + '">' + AL('Совет', 'Advice') + '<i>' + AL('вопросы об игре и тренировках', 'questions about play and training') + '</i></button>' +

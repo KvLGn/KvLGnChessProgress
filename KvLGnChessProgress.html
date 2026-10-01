@@ -7669,6 +7669,13 @@ function aiTextSimple(ask, dataKey) {
   return out.join('\n');
 }
 /* ---------- текст для человека: совет — письмо (верх годится как пост в чат), план — задание программисту по шагам ---------- */
+function ruleSharedNote() {   // «правило одно на все этапы: на этапе 2 — отдельно белыми и чёрными» — из плана, не вписано руками
+  var i = CUR.stage ? CUR.idx + 1 : -1, S = (PLAN.stages || [])[i];
+  var nxt = S ? AL(' — на этапе ' + (i + 1) + ' (Stockfish ' + S.engine + ') его нужно выполнить ' + (S.colors.length > 1 ? 'отдельно белыми и отдельно чёрными' : COLOR_WORD[S.colors[0]]),
+                   ' — at stage ' + (i + 1) + ' (Stockfish ' + S.engine + ') it must be met ' + (S.colors.length > 1 ? 'separately as White and as Black' : 'as ' + COLOR_EN[S.colors[0]])) : '';
+  return AL('• Правило rule одно на все этапы: если его поменять, оно будет действовать и дальше' + nxt + ' (все этапы — в plan.js ниже).',
+            '• The rule is shared by all stages: a change also applies later' + nxt + ' (all stages — in plan.js below).');
+}
 function humanText(ask, isPlan, dataKey, item) {
   PLAIN = !isPlan;
   try { return humanTextInner(ask, isPlan, dataKey, item); } finally { PLAIN = false; }
@@ -7704,8 +7711,7 @@ function humanTextInner(ask, isPlan, dataKey, item) {
     AL('• Выполненные этапы записываются автоматически в data/progress.js — их не трогать.', '• Completed stages are recorded automatically in data/progress.js — do not touch it.'),
     AL('• Дебют становится «Изучаю», когда начинается этап, в openings которого стоит его id; дебют без этапа — «В планах». Ходы мастеров по новым студиям сайт подтянет сам при следующем автообновлении данных (обычно в течение часа, но не всегда сразу).',
        '• An opening becomes «Изучаю» (studying) when the stage that lists its id in openings starts; an opening without a stage is «В планах» (planned). Master moves for new studies are fetched by the next automatic data update (usually within an hour, not always right away).'),
-    AL('• Правило rule одно на все этапы: если его поменять, оно будет действовать и дальше — на этапе 2 его нужно выполнить отдельно белыми и отдельно чёрными (этапы и цвета — в plan.js ниже).',
-       '• The rule is shared by all stages: a change also applies later — at stage 2 it must be met separately as White and as Black (stages and colours — in plan.js below).'),
+    ruleSharedNote(),
     AL('• Любая правка правила или текущего этапа (rule, engine, colors) пересчитывается сразу: если по новым условиям этап уже был выполнен в прошлых партиях, сайт засчитает его задним числом, и при ближайшем автообновлении это навсегда запишется в data/progress.js — откатить нельзя. Поэтому смягчать правило — только осознанно.',
        '• Any change to the rule or the current stage (rule, engine, colors) is recalculated at once: if the stage would already have been completed under the new conditions, the site counts it retroactively, and the next automatic update records it in data/progress.js for good — it cannot be undone. So relax the rule only deliberately.'),
     AL('• data/plan.js — это код на JavaScript: одна лишняя или пропущенная запятая, скобка или кавычка ломает файл. Сайт тогда покажет красную плашку с причиной; рабочая копия плана есть только в браузере, где сайт уже открывали, — у остальных этапы и дебюты пропадут, пока файл не исправят.',

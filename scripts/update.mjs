@@ -10,9 +10,9 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import vm from 'node:vm';
 import { classifyBlunders } from './blunders.mjs';
 import { studyTrees, mastersForGames } from './masters.mjs';
+import { loadPlanState, saveGoodPlan, PROGRESS_JS } from './plan-check.mjs';
 const { Chess } = await import('chess.js');   // позиции партий — для типов зевков
 
 const USER = 'KvLGn';
@@ -26,9 +26,6 @@ const ROOT = join(PROGRESS, '..');   // Chess/
 const DATA = join(PROGRESS, 'data');
 const TOKEN_FILE = join(ROOT, 'claude', '.lichess-token');
 const GAMES_JS = join(DATA, 'games.js');
-const PLAN_JS = join(DATA, 'plan.js');
-const PROGRESS_JS = join(DATA, 'progress.js');
-const STAGES_JS = join(PROGRESS, 'lib', 'stages.js');
 const GAME_LOG = join(ROOT, 'claude', 'game-log.md');
 
 const FINISHED = new Set(['mate', 'resign', 'stalemate', 'timeout', 'draw', 'outoftime', 'cheat', 'variantEnd', 'insufficientMaterialClaim']);
@@ -156,35 +153,15 @@ function writeGamesJs(games, ratings, stamp) {
 
 /* ---------- progress.js: выполненные этапы плана (расчёт — тот же lib/stages.js, что на сайте) ---------- */
 
-// загрузить браузерный файл вида window.X = … в песочнице
-function loadWindowFile(file, ctx) {
-  if (!existsSync(file)) return;
-  try { vm.runInContext(readFileSync(file, 'utf8'), ctx, { filename: file }); }
-  catch (e) { console.log(`  ! ${file.split(/[\\/]/).pop()}: ${e.message}`); }
-}
-
-// план из data/plan.js (для «Мастеров»: студии дебютов); null — не загрузился
-function loadPlan() {
-  const ctx = vm.createContext({});
-  ctx.window = ctx;
-  loadWindowFile(PLAN_JS, ctx);
-  return ctx.PLAN || null;
-}
-
-function updateProgress(games) {
-  const ctx = vm.createContext({});
-  ctx.window = ctx;
-  loadWindowFile(STAGES_JS, ctx);
-  loadWindowFile(PLAN_JS, ctx);
-  loadWindowFile(PROGRESS_JS, ctx);
-  const S = ctx.STAGES, plan = ctx.PLAN, progress = ctx.PROGRESS || { stages: [] };
-  if (!S) { console.log('  ! lib/stages.js не загрузился — этапы не обновлены'); return; }
-  const check = S.validatePlan(plan, progress);
-  if (!check.ok) {
+function updateProgress(games, st) {
+  const { S, plan, progress } = st;
+  if (!st.check.ok) {
     console.log('  ! data/plan.js с ошибкой — этапы не обновлены:');
-    check.errors.forEach((e) => console.log('    - ' + e));
+    st.check.errors.forEach((e) => console.log('    - ' + e));
     return;
   }
+  // progress.js не прочитался — не перезаписываем, иначе пропадут записанные этапы
+  if (!st.progressOk) { console.log('  ! data/progress.js не прочитался — этапы не обновлены'); return; }
   const cur = S.evalStages(games, plan, progress);
   const fresh = cur.hist.filter((h) => !h.recorded);
   if (!fresh.length) return;
@@ -549,8 +526,12 @@ for (const g of raw) {
   games.push(convert(g));
 }
 
-// «Мастера»: что играли мастера в позициях моих партий — студии из plan.js и база мастеров Lichess (поле ms)
-const plan = loadPlan();
+// план: если plan.js сломан — последняя рабочая копия (data/plan-good.js), чтобы не пропали «Мастера»
+const planState = loadPlanState();
+const plan = planState.check.ok ? planState.plan : planState.good?.plan;
+if (!planState.check.ok) console.log('  ! data/plan.js с ошибкой — беру последнюю рабочую копию плана' + (planState.good ? ` (от ${planState.good.at})` : ' (её нет)'));
+
+// «Мастера»: что играли мастера в позициях моих партий — студии из плана и база мастеров Lichess (поле ms)
 if (plan) {
   console.log('Сверяю ходы с мастерами...');
   const trees = await studyTrees(Chess, plan, join(CACHE_DIR, 'study-trees.json'), console.log);
@@ -561,8 +542,11 @@ const before = previousIds();
 const added = games.filter((g) => !before.has(g.id));
 const stamp = stampFmt.format(new Date()).replace(',', '');
 
+// защита от сбоя Lichess: партии не пропадают — если их стало меньше, данные не трогаем
+if (games.length < before.size) fail(`Lichess вернул ${games.length} партий с анализом, а было ${before.size} — похоже на сбой; данные не изменены.`);
 writeGamesJs(games, ratings, stamp);
-updateProgress(games);
+updateProgress(games, planState);
+if (saveGoodPlan(planState, stamp)) console.log('  запасная копия плана обновлена (data/plan-good.js)');
 // заметки Claude (claude/*.md) есть только на ПК; в облаке их нет — пропускаем
 const HAS_NOTES = existsSync(join(ROOT, 'claude'));
 if (HAS_NOTES) writeGameLog(games, pending, stamp);
@@ -572,6 +556,8 @@ const puzzleUser = await (await api(`/api/user/${USER}`, token)).json();
 const activity = await fetchPuzzleActivity(token);
 const opCache = await puzzleOpenings(activity.map((a) => a.puzzle.id), token);
 const puzzles = buildPuzzles(puzzleUser, activity, opCache);
+const puzzlesBefore = existsSync(PUZZLES_JS) ? +((readFileSync(PUZZLES_JS, 'utf8').match(/"total":(\d+)/) || [])[1] || 0) : 0;
+if (puzzles.total < puzzlesBefore) fail(`Lichess вернул ${puzzles.total} задач, а было ${puzzlesBefore} — похоже на сбой; задачи не изменены.`);
 // русские названия тем — из сводки Lichess (язык аккаунта)
 const dash = await (await api('/api/puzzle/dashboard/90', token)).json();
 puzzles.themeNames = Object.fromEntries(Object.entries(dash.themes || {}).map(([k, v]) => [k, v.theme]));

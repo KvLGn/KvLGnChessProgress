@@ -1,0 +1,24 @@
+# Проверяет data/plan.js при каждой правке (с ПК, с github.com, от ИИ).
+# Сломан — запуск красный, и GitHub присылает письмо; причина — в логе шага «Проверить план».
+# Сайт при этом не падает: он показывает последнюю рабочую копию плана (data/plan-good.js).
+name: Проверка plan.js
+
+on:
+  push:
+    paths:
+      - 'data/plan.js'
+      - 'lib/stages.js'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Проверить план
+        run: node scripts/plan-check.mjs

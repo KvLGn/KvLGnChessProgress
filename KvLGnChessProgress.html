@@ -1976,9 +1976,14 @@
 <script src="data/games.js"></script>
 <script src="data/puzzles.js"></script>
 <script src="data/plan.js"></script>
+<!-- «const PLAN = …» вместо «window.PLAN = …» (так иногда пишут ИИ) — тоже принимаем, с предупреждением -->
+<script>try { if (!window.PLAN && typeof PLAN === 'object') { window.PLAN = PLAN; window.PLAN_CONST = true; } } catch (e) {}</script>
+<script src="data/plan-good.js"></script>
 <script src="data/progress.js"></script>
 <script src="lib/stages.js"></script>
 <script>
+// весь код сайта — внутри функции: имена из файлов данных (например, «const PLAN» в plan.js) не конфликтуют с его переменными
+(function() {
 /* =====================================================================
    ОГЛАВЛЕНИЕ — ищи разделы по заголовкам «/* ---------- … ---------- *\/»
    Полная карта проекта и принятые решения: progress/README.md
@@ -2009,16 +2014,24 @@
 var games = window.GAMES || [];
 
 /* ---------- план: этапы и дебюты из data/plan.js — текущий этап считается сам (логика — lib/stages.js) ---------- */
-// проверка plan.js: сломан — берём последнюю рабочую копию из браузера и показываем плашку с причиной
+// проверка plan.js: сломан — берём последнюю рабочую копию и показываем плашку с причиной.
+// Копий две: data/plan-good.js (её сохраняет обновление на GitHub — есть на любом устройстве) и копия в этом браузере; берётся более свежая
 var PLAN_CHECK = STAGES.validatePlan(window.PLAN, window.PROGRESS), PLAN_FALLBACK = null;
 var PLAN = window.PLAN;
+if (window.PLAN_CONST) PLAN_CHECK.warnings.unshift('в plan.js написано «const PLAN =» — правильно «window.PLAN =» (сайт работает, но лучше исправить)');
 if (PLAN_CHECK.ok) {
-  try { localStorage.setItem('planGood', JSON.stringify({plan: PLAN, at: new Date().toLocaleString('ru-RU')})); } catch (e) {}
+  try { localStorage.setItem('planGood', JSON.stringify({plan: PLAN, at: new Date().toLocaleString('ru-RU'), ts: Date.now()})); } catch (e) {}
 } else {
-  try { PLAN_FALLBACK = JSON.parse(localStorage.getItem('planGood') || 'null'); } catch (e) {}
-  PLAN = PLAN_FALLBACK && STAGES.validatePlan(PLAN_FALLBACK.plan).ok ? PLAN_FALLBACK.plan : null;
-  if (!PLAN) PLAN_FALLBACK = null;
-  PLAN = PLAN || {start: '—', rule: STAGES.DEFAULT_RULE, stages: [], openings: []};
+  var fbLocal = null, fbSite = window.PLAN_GOOD || null;
+  try { fbLocal = JSON.parse(localStorage.getItem('planGood') || 'null'); } catch (e) {}
+  var fbTs = function(f) {   // время копии: в браузере — ts, у plan-good.js — «дд.мм.гггг чч:мм» (МСК)
+    if (!f || !f.plan || !STAGES.validatePlan(f.plan).ok) return -1;
+    if (f.ts) return f.ts;
+    var m = /^(\d\d)\.(\d\d)\.(\d{4}) (\d\d):(\d\d)/.exec(f.at || '');
+    return m ? Date.UTC(+m[3], m[2] - 1, +m[1], m[4] - 3, +m[5]) : 0;
+  };
+  PLAN_FALLBACK = fbTs(fbLocal) > fbTs(fbSite) ? fbLocal : fbTs(fbSite) >= 0 ? fbSite : null;
+  PLAN = PLAN_FALLBACK ? PLAN_FALLBACK.plan : {start: '—', rule: STAGES.DEFAULT_RULE, stages: [], openings: []};
 }
 var RULE = STAGES.makeRule(PLAN);
 var median = STAGES.median;
@@ -8706,6 +8719,7 @@ renderGames();
 if (chartMode !== 'metrics') setMode(chartMode);
 applyHush();
 placeChartBtns();
+})();
 </script>
 
 </body>

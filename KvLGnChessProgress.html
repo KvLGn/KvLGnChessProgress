@@ -7102,6 +7102,13 @@ function aiAwayGroups(o, n) {
   away.forEach(function(g) { var k = g.opening.split(':')[0]; (grp[k] = grp[k] || []).push(g); });
   return {away: away, keys: Object.keys(grp).sort(function(a, b) { return grp[b].length - grp[a].length; }), grp: grp};
 }
+function aiAwaySummary(o, A) {   // «Итого: 7 партий; мой ход разошёлся с мастерами в 7 из 7; миттельшпиль в среднем 54% (с дебютом на доске — 65%)»
+  var dev = A.away.filter(function(g) { return msCompare(g, anMasters(g)[0] || 'all').some(function(x) { return x.st !== 'top'; }); }).length, b = opStats(o).board;
+  return AL('Итого: ' + A.away.length + ' ' + plural(A.away.length, 'партия', 'партии', 'партий') + '; мой ход разошёлся с мастерами в ' + dev + ' из ' + A.away.length + '; миттельшпиль в этих партиях в среднем ' + aiPct(avg(A.away, 'mid')) +
+      (b.length ? ' (когда дебют был на доске — ' + aiPct(avg(b, 'mid')) + ')' : '') + '.',
+    'Total: ' + A.away.length + ' games; my move differed from the masters in ' + dev + ' of ' + A.away.length + '; middlegame in these games ' + aiPct(avg(A.away, 'mid')) + ' on average' +
+      (b.length ? ' (with the opening on the board — ' + aiPct(avg(b, 'mid')) + ')' : '') + '.');
+}
 function aiAwayDev(gl) {   // мои отходы от мастеров в группе: «2. Bc4 — мастера чаще Nf3 (83%, мастера); 3. Bc4 — …»
   var c = {};
   var MS_EN = {m: 'masters', l: 'Lichess 2000+', a: 'Lichess 1800+'};
@@ -7124,7 +7131,7 @@ AI_DATA.opAway = function() {
     var gl = A.grp[k], dev = aiAwayDev(gl);
     out.push('– ' + k + ': ' + gl.length + ' (' + aiWL(gl) + AL('), миттельшпиль ', '), middlegame ') + aiPct(avg(gl, 'mid')) + AL('; партии ', '; games ') + gl.map(aiGid).join(', ') + (dev ? AL('; мой отход: ', '; my deviation: ') + dev : ''));
   });
-  out.push(AL('Для сравнения, когда дебют был на доске: ', 'For comparison, with the opening on the board: ') + (opStats(o).board.length ? aiWL(opStats(o).board) + AL(', миттельшпиль ', ', middlegame ') + aiPct(avg(opStats(o).board, 'mid')) : AL('таких партий нет', 'no such games')) + '.');
+  out.splice(1, 0, aiAwaySummary(o, A));
   return out;
 };
 // 15. планы после дебюта: что происходит в миттельшпиле моих партий этого дебюта
@@ -7418,6 +7425,7 @@ var AI_SIMPLE = {
     var A = aiAwayGroups(o, 20), out = [];
     if (!A.away.length) return [AL('Бот всегда отвечал по дебюту — уходов не было.', 'The bot always followed the opening — no deviations.')];
     out.push(AL('Партии по плану «' + o.name + '», где бот ответил иначе (' + A.away.length + '), по ответу бота:', 'Planned ' + opEn(o) + ' games where the bot replied differently (' + A.away.length + '), by the bot\'s reply:'));
+    out.push(aiAwaySummary(o, A));
     A.keys.forEach(function(k) { var gl = A.grp[k], dev = aiAwayDev(gl); out.push('– ' + k + ': ' + gl.length + ' (' + aiWL(gl) + ')' + (dev ? AL('; мой отход: ', '; my deviation: ') + dev : '')); });
     return out;
   },

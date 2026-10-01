@@ -891,6 +891,7 @@
     font: 600 17px/1 Inter, sans-serif; color: var(--fg-dim); background: var(--bg-card); border: 1px solid var(--border);
     box-shadow: 0 4px 14px rgba(0,0,0,0.4); cursor: pointer; transition: color 0.15s, border-color 0.15s; }
   .scroll-btn:hover { color: var(--fg); border-color: #818cf8; }
+  .scroll-btn.up { top: 20px; bottom: auto; }   /* ↑ — в правом верхнем углу */
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); z-index: 100; max-width: calc(100% - 32px);
     padding: 10px 16px; border-radius: 10px; background: #14201a; border: 1px solid rgba(74,222,128,0.4); color: var(--fg); font-size: 13px;
     opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
@@ -1883,7 +1884,7 @@
 <div class="footer" id="footer"></div>
 
 <div class="ai-menu" id="aiMenu"></div>
-<!-- плавающая стрелка: в шапке — ↓ к графику, ниже — ↑ наверх -->
+<!-- плавающая стрелка: в шапке — ↓ вниз, ниже — ↑ наверх (тогда в правом верхнем углу) -->
 <button class="scroll-btn" id="scrollBtn" type="button" aria-label="Наверх"></button>
 <script src="data/games.js"></script>
 <script src="data/puzzles.js"></script>
@@ -7230,16 +7231,17 @@ document.addEventListener('click', function(e) {
   if (!e.composedPath().some(function(el) { return el === $('eyeBtn') || el === $('eyeAll') || el === $('avatar'); })) setEyeOut(false);
 });
 
-/* ---------- плавающая стрелка в правом нижнем углу: в шапке ↓ к графику, ниже ↑ наверх ---------- */
+/* ---------- плавающая стрелка: в шапке ↓ в самый низ (правый нижний угол), ниже — ↑ наверх (правый верхний угол) ---------- */
 function renderScrollBtn() {
   var b = $('scrollBtn'), top = window.scrollY < 200;
   b.textContent = top ? '↓' : '↑';
-  b.title = top ? 'К графику' : 'Наверх';
+  b.classList.toggle('up', !top);
+  b.title = top ? 'Вниз, к последним партиям' : 'Наверх';
   b.setAttribute('aria-label', b.title);
 }
 $('scrollBtn').addEventListener('click', function(e) {
   e.stopPropagation();
-  if (window.scrollY < 200) window.scrollTo({top: $('chartBox').closest('.section').getBoundingClientRect().top + window.scrollY - 12, behavior: 'smooth'});
+  if (window.scrollY < 200) window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'smooth'});
   else window.scrollTo({top: 0, behavior: 'smooth'});
 });
 window.addEventListener('scroll', renderScrollBtn, {passive: true});

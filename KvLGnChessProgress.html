@@ -2897,30 +2897,34 @@ function mrGraphView(g, key) {
   return null;
 }
 // перерисовать график отчёта под выбранный блок панели (key '' — как обычно)
-// график отчёта по двум независимым выборам (атрибуты блока): фаза (data-gv-ph: ph-debut / ph-mid / ph-end) и отметки
-// (data-gv-key: j-I / j-M / j-B или блок панели «i»). Вместе — фаза выделена, точки и линии только в ней, в подписи их число
+// график отчёта по выбору (атрибуты блока, списки через запятую): фазы (data-gv-ph: ph-debut, ph-mid, ph-end) и отметки
+// (data-gv-key: j-I, j-M, j-B и блоки панели «i»). Каждая кнопка вкл / выкл сама по себе; отметки складываются,
+// с фазами — точки и линии только в выбранных фазах; в подписи — всё выбранное с числом точек
+function gvList(w, attr) { return (w.getAttribute(attr) || '').split(',').filter(Boolean); }
 function mrGraphShow(wrap, g) {
   var gr = wrap.querySelector('.mr-graph');
   if (!gr) return;
-  var key = wrap.getAttribute('data-gv-key') || '', phk = wrap.getAttribute('data-gv-ph') || '';
-  var v = key ? mrGraphView(g, key) : null, pv = phk ? mrGraphView(g, phk) : null;
-  var dots = v ? v.dots : undefined, lines = v ? v.lines : [], cap = [];
-  if (pv) {
-    cap.push(pv.caption);
-    if (pv.phase) {   // отметки — только в выбранной фазе (полуходы фазы: дебют до div.mid, миттельшпиль до div.end, эндшпиль после)
-      var n = g.ev ? g.ev.length - 1 : 9999, pm = g.div && g.div.mid ? g.div.mid : n, pe = g.div && g.div.end ? g.div.end : n;
-      var lo = pv.phase === 'debut' ? 0 : pv.phase === 'mid' ? pm : pe, hi = pv.phase === 'debut' ? pm : pv.phase === 'mid' ? pe : n;
-      var inPh = function(d) { return d.p > lo && d.p <= hi; };
-      if (!v) dots = (g.bl || []).map(function(b) { return {p: blPly(g, b), color: BL_TYPES[b.t].color, title: blLabel(b) + ' — ' + blTip(b)}; });
-      dots = dots.filter(inPh); lines = (lines || []).filter(inPh);
-      if (v) cap.push(v.caption + ' (' + dots.length + ')');
-    } else if (v) cap.push(v.caption);
-  } else if (v) cap.push(v.caption);
-  gr.outerHTML = evalGraph(g, 'mr', dots, (v || pv) ? {lines: lines, caption: cap.join(' · '), phase: pv && pv.phase} : undefined);
-  // подсветка: выбранный блок панели «i», фаза и счётчик
-  wrap.querySelectorAll('.mri-sec').forEach(function(sx) { sx.classList.toggle('on', sx.getAttribute('data-sec') === key); });
+  var keys = gvList(wrap, 'data-gv-key'), phks = gvList(wrap, 'data-gv-ph');
+  var phs = phks.map(function(k) { return mrGraphView(g, k); }), real = phs.filter(function(p) { return p.phase; }).map(function(p) { return p.phase; });
+  var n = g.ev ? g.ev.length - 1 : 9999, pm = g.div && g.div.mid ? g.div.mid : n, pe = g.div && g.div.end ? g.div.end : n;
+  function inPh(d) {   // полуходы фаз: дебют до div.mid, миттельшпиль до div.end, эндшпиль после
+    return !real.length || real.some(function(ph) { var lo = ph === 'debut' ? 0 : ph === 'mid' ? pm : pe, hi = ph === 'debut' ? pm : ph === 'mid' ? pe : n; return d.p > lo && d.p <= hi; });
+  }
+  var dots, lines = [], cap = phs.map(function(p) { return p.caption; });
+  if (keys.length) {
+    dots = [];
+    keys.forEach(function(k) {
+      var v = mrGraphView(g, k); if (!v) return;
+      var d = (v.dots || []).filter(inPh);
+      dots = dots.concat(d); lines = lines.concat((v.lines || []).filter(inPh));
+      cap.push(v.caption + (real.length || keys.length > 1 ? ' (' + d.length + ')' : ''));
+    });
+  } else if (real.length) dots = mrGraphView(g, 'j-B').dots.filter(inPh);   // только фазы — зевки в них
+  gr.outerHTML = evalGraph(g, 'mr', dots, (keys.length || phks.length) ? {lines: lines, caption: cap.join(' · '), phase: real} : undefined);
+  // подсветка выбранного: блоки панели «i», фазы и счётчики
+  wrap.querySelectorAll('.mri-sec').forEach(function(sx) { sx.classList.toggle('on', keys.indexOf(sx.getAttribute('data-sec')) >= 0); });
   var mr = wrap.closest('.mr');
-  if (mr) mr.querySelectorAll('[data-gv]').forEach(function(el) { var k = el.getAttribute('data-gv'); el.classList.toggle('on', k === key || k === phk); });
+  if (mr) mr.querySelectorAll('[data-gv]').forEach(function(el) { var k = el.getAttribute('data-gv'); el.classList.toggle('on', keys.indexOf(k) >= 0 || phks.indexOf(k) >= 0); });
 }
 // панель «i» отчёта о матче: выезжает справа налево поверх графика перевеса. Каждый пункт — ссылка в «Анализ» на нужный ход (data-an="ply|lens")
 function mrInfoPanel(g) {
@@ -2992,14 +2996,18 @@ function evalGraph(g, idPre, dots, opts) {
     if (d.p > n) return;
     out.push('<circle cx="' + x(d.p) + '" cy="' + y(g.ev[d.p]) + '" r="5.5" fill="' + d.color + '" stroke="#11131a" stroke-width="1.5"><title>' + esc(d.title) + '</title></circle>');
   });
-  if (opts.phase) [['debut', 0, pm || n], ['mid', pm, pe || n], ['end', pe, n]].forEach(function(z) {   // выделенная фаза — остальное притушено
-    if (z[0] === opts.phase || z[1] === null || z[2] <= z[1]) return;
+  var phs = opts.phase ? [].concat(opts.phase) : [];
+  if (phs.length) [['debut', 0, pm || n], ['mid', pm, pe || n], ['end', pe, n]].forEach(function(z) {   // выделенные фазы — остальное притушено
+    if (phs.indexOf(z[0]) >= 0 || z[1] === null || z[2] <= z[1]) return;
     out.push('<rect x="' + x(z[1]) + '" y="0" width="' + (x(z[2]) - x(z[1])).toFixed(1) + '" height="' + H + '" fill="rgba(10,12,18,0.62)"/>');
   });
-  (opts.lines || []).forEach(function(l) {
+  var lastX = -1e9, row = 0;   // близкие подписи линий — ступенькой вверх, чтобы не слипались
+  (opts.lines || []).slice().sort(function(a, b) { return a.p - b.p; }).forEach(function(l) {
     if (l.p > n) return;
     out.push('<line x1="' + x(l.p) + '" y1="0" x2="' + x(l.p) + '" y2="' + H + '" stroke="rgba(255,255,255,0.45)" stroke-dasharray="3,3" vector-effect="non-scaling-stroke"/>');
-    if (l.label) out.push('<text x="' + (+x(l.p) + 6) + '" y="' + (H - 6) + '" class="mr-z">' + esc(l.label) + '</text>');
+    if (!l.label) return;
+    row = +x(l.p) - lastX < 110 ? row + 1 : 0; lastX = +x(l.p);
+    out.push('<text x="' + (+x(l.p) + 6) + '" y="' + (H - 6 - row * 14) + '" class="mr-z">' + esc(l.label) + '</text>');
   });
   var ticks = [];
   for (var mv = 10; mv * 2 <= n; mv += 10) ticks.push('<span style="left:' + (mv * 2 / n * 100) + '%">' + mv + '</span>');
@@ -3873,10 +3881,11 @@ function renderGames() {
     // Клик по блоку панели (fromPanel) поднимает её, если она закрывает график; фазы и счётчики панель не двигают —
     // выбор виден на графике, когда панель закроют
     function gvPick(key, fromPanel) {
-      var w = detail.querySelector('.mr-gwrap'), attr = /^ph-/.test(key) ? 'data-gv-ph' : 'data-gv-key';   // фаза и отметки — независимо
-      if (w.getAttribute(attr) === key) key = '';
-      w.setAttribute(attr, key);
-      if (fromPanel && key && w.classList.contains('info-open') && !w.classList.contains('info-up')) {
+      var w = detail.querySelector('.mr-gwrap'), attr = /^ph-/.test(key) ? 'data-gv-ph' : 'data-gv-key';   // фазы и отметки — отдельными списками
+      var list = gvList(w, attr), i = list.indexOf(key), add = i < 0;
+      if (add) list.push(key); else list.splice(i, 1);   // клик — вкл, ещё клик — выкл
+      w.setAttribute(attr, list.join(','));
+      if (fromPanel && add && w.classList.contains('info-open') && !w.classList.contains('info-up')) {
         w.classList.add('info-up');
         var udb = w.querySelector('.mri-ud'); if (udb) { udb.textContent = '▼'; udb.title = 'Вернуть панель на график'; }
       }

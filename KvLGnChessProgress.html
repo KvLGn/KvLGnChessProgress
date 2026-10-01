@@ -6376,8 +6376,8 @@ var AI_ASKS = [
   ]},
   {g: 'План (вернёт новый plan.js)', gEn: 'Plan (returns a new plan.js)', plan: true, items: [
     {t: 'Пора ли менять правило перехода', tEn: 'Should the transition rule change', d: 'goal', ru: 'Не слишком ли жёсткое или мягкое правило перехода для моих цифр? Если нужно — поправь rule.', en: 'Is the stage transition rule too strict or too easy for my numbers? Adjust rule if needed.'},
-    {t: 'Добавить следующий этап', tEn: 'Add the next stage', d: 'goal', ru: function(c) { return 'Добавь следующий этап после последнего (например, оба цвета против Stockfish ' + (c.engine + 1) + ').'; }, en: function(c) { return 'Add the next stage after the last one (e.g. both colours vs Stockfish ' + (c.engine + 1) + ').'; }},
-    {t: 'Сменить или добавить дебют', tEn: 'Change or add an opening', ru: 'Помоги сменить или добавить дебют в план (я допишу какой): ', en: 'Help me change or add an opening in the plan (I will specify which): '},
+    {t: 'Добавить следующий этап', tEn: 'Add the next stage', d: 'nextstage', ru: function(c) { return 'Добавь следующий этап после последнего (например, оба цвета против Stockfish ' + (c.engine + 1) + ').'; }, en: function(c) { return 'Add the next stage after the last one (e.g. both colours vs Stockfish ' + (c.engine + 1) + ').'; }},
+    {t: 'Сменить или добавить дебют', tEn: 'Change or add an opening', d: 'openings', ru: 'Помоги сменить или добавить дебют в план (я допишу какой): ', en: 'Help me change or add an opening in the plan (I will specify which): '},
     {t: 'Пересобрать дорожную карту', tEn: 'Rebuild the roadmap', d: 'roadmap', ru: 'Предложи этапы после текущей дорожной карты с учётом моего темпа.', en: 'Propose stages after the current roadmap, considering my pace.'}
   ]}
 ];
@@ -6484,7 +6484,21 @@ function aiOppStat(list) {
   list.forEach(function(g) { all = all.concat(mrOppBlunders(g)); });
   if (!all.length) return AL('ошибок бота не было', 'the bot made no blunders');
   var k = all.filter(function(o) { return o.kept; }).length;
-  return AL('бот ошибся ' + all.length + ' раз, наказал ' + k + ', пропустил ' + (all.length - k), 'the bot blundered ' + all.length + ' times, punished ' + k + ', missed ' + (all.length - k));
+  return AL('бот ошибся ' + all.length + ' ' + plural(all.length, 'раз', 'раза', 'раз') + ', наказал ' + k + ', пропустил ' + (all.length - k), 'the bot blundered ' + all.length + ' times, punished ' + k + ', missed ' + (all.length - k));
+}
+// дебюты списка партий по семействам (название Lichess до двоеточия): «Italian Game — 4: 2 победы, 2 поражения, точность 70%», частые первыми
+function aiFamilies(list) {
+  var fam = {}, order = [];
+  list.forEach(function(g) { var k = g.opening.split(':')[0]; if (!fam[k]) { fam[k] = []; order.push(k); } fam[k].push(g); });
+  return order.sort(function(a, b) { return fam[b].length - fam[a].length; }).map(function(k) {
+    return '- ' + k + ' — ' + fam[k].length + ': ' + aiWL(fam[k]) + AL(', точность ', ', accuracy ') + aiPct(avg(fam[k], 'acc'));
+  });
+}
+// рейтинг задач: первая точка и последние 10 дней (история растёт без конца)
+function aiRatingPath(P) {
+  var h = P.history || [];
+  if (h.length <= 11) return h.map(function(x) { return x.date + ' ' + x.rating; }).join(', ');
+  return h[0].date + ' ' + h[0].rating + ' … ' + h.slice(-10).map(function(x) { return x.date + ' ' + x.rating; }).join(', ');
 }
 function aiMateStat(list) {
   var d = 0, l = 0;
@@ -6646,16 +6660,14 @@ var AI_DATA = {
     ex.slice(-8).reverse().forEach(function(x) { out.push('- ' + aiGid(x.g) + ': ' + aiBl(x.g, x.b)); });
     return out;
   },
+  // победы против поражений — по последним 20 партиям (за всё время пакет рос бы без конца и смешивал старую игру с нынешней)
   winloss: function() {
-    var W = games.filter(function(g) { return g.result === 'win'; }), L = games.filter(function(g) { return g.result === 'lose'; }), fam = {}, order = [];
-    games.forEach(function(g) { var k = g.opening.split(':')[0]; if (!fam[k]) { fam[k] = []; order.push(k); } fam[k].push(g); });
-    return [AL('Победы — ', 'Wins — ') + aiAvgLine(W), AL('  зевки по типам: ', '  blunders by type: ') + aiBlTypes(W), AL('Поражения — ', 'Losses — ') + aiAvgLine(L), AL('  зевки по типам: ', '  blunders by type: ') + aiBlTypes(L),
-      AL('Ошибки бота в победах: ', 'Bot blunders in wins: ') + aiOppStat(W) + AL('; в поражениях: ', '; in losses: ') + aiOppStat(L),
-      AL('По дебютам (название Lichess; каждая партия с результатом):', 'By opening (Lichess name; every game with its result):')]
-      .concat(order.map(function(k) {
-        var gl = fam[k], w = gl.filter(function(g) { return g.result === 'win'; }).length, l = gl.filter(function(g) { return g.result === 'lose'; }).length;
-        return '- ' + k + ' (' + w + 'W/' + l + 'L): ' + gl.map(function(g) { return aiGid(g) + ' ' + AL(RESULT[g.result].label.toLowerCase(), RES_EN[g.result]); }).join(', ');
-      }));
+    var last = games.slice(-20), W = last.filter(function(g) { return g.result === 'win'; }), L = last.filter(function(g) { return g.result === 'lose'; });
+    return [AL('Последние ' + last.length + ' партий.', 'Last ' + last.length + ' games.'),
+      AL('Победы — ', 'Wins — ') + aiAvgLine(W), AL('  зевки по типам: ', '  blunders by type: ') + aiBlTypes(W) + '; ' + aiOppStat(W),
+      AL('Поражения — ', 'Losses — ') + aiAvgLine(L), AL('  зевки по типам: ', '  blunders by type: ') + aiBlTypes(L) + '; ' + aiOppStat(L),
+      AL('Поражений до эндшпиля: ', 'Losses before the endgame: ') + L.filter(function(g) { return !hasEnd(g); }).length + AL(' из ', ' of ') + L.length,
+      AL('По дебютам (название Lichess):', 'By opening (Lichess name):')].concat(aiFamilies(last));
   },
   today: function() {
     var d = isoDay(gameToday()), tg = games.filter(function(g) { return g.day === d; }), att = ((window.PUZZLES || {}).attempts || []).filter(function(a) { return a.day === d; }), st = streaks();
@@ -6669,11 +6681,15 @@ var AI_DATA = {
     return out;
   },
   week: function() {
-    var att = (window.PUZZLES || {}).attempts || [], out = [AL('Активность за последние 14 дней (день: партий / задач):', 'Activity over the last 14 days (day: games / puzzles):')];
+    var att = (window.PUZZLES || {}).attempts || [], rows = [], started = false, g7 = 0, p7 = 0, d7 = 0;
     for (var i = 13; i >= 0; i--) {
-      var d = isoDay(addDays(gameToday(), -i));
-      out.push(ddmm(fromIso(d)) + ': ' + games.filter(function(g) { return g.day === d; }).length + ' / ' + att.filter(function(a) { return a.day === d; }).length);
+      var d = isoDay(addDays(gameToday(), -i)), ng = games.filter(function(g) { return g.day === d; }).length, np = att.filter(function(a) { return a.day === d; }).length;
+      if (i < 7) { g7 += ng; p7 += np; if (ng) d7++; }
+      if (ng || np) started = true;
+      if (started) rows.push(ddmm(fromIso(d)) + ': ' + ng + ' / ' + np);   // дни до первой активности не показываем
     }
+    var out = [AL('За последние 7 дней: партий ' + g7 + ', задач ' + p7 + ', дней с партиями ' + d7 + ' из 7.', 'Last 7 days: ' + g7 + ' games, ' + p7 + ' puzzles, ' + d7 + ' of 7 days with games.')];
+    if (rows.length) out = out.concat([AL('По дням за 14 дней (день: партий / задач), начиная с первого дня с занятиями:', 'By day over 14 days (day: games / puzzles), from the first active day:')], rows);
     out.push(AL('Зевки в последних 10 партиях: ', 'Blunders in the last 10 games: ') + aiBlTypes(games.slice(-10)) + '.');
     var wt = aiWeakThemes(5); if (wt.length) out.push(AL('Слабые темы задач (перфоманс): ', 'Weak puzzle themes (performance): ') + wt.join(', ') + '.');
     return out;
@@ -6720,10 +6736,11 @@ var AI_DATA = {
   opening: function() {
     var o = aiOp(), gl = aiOpGames(), att = (window.PUZZLES || {}).attempts || [];
     if (!o) return [AL('Изучаемый дебют не задан', 'No opening being studied')];
-    var pz = att.filter(function(a) { return opMatch(o, a.op); }), out = [AL('Партии в дебюте «' + o.name + '» (' + gl.length + '):', 'Games in the ' + opEn(o) + ' (' + gl.length + '):')];
+    var from = isoDay(addDays(gameToday(), -13)), pz = att.filter(function(a) { return a.day >= from && opMatch(o, a.op); });
+    var out = [AL('Партии в дебюте «' + o.name + '»: всего ' + gl.length + (gl.length > 8 ? ', ниже последние 8' : '') + ':', 'Games in the ' + opEn(o) + ': ' + gl.length + ' in total' + (gl.length > 8 ? ', the last 8 below' : '') + ':')];
     if (!gl.length) out.push(AL('партий пока нет', 'no games yet'));
     gl.slice(-8).forEach(function(g) { out.push(aiGame(g)); var ms = aiMs(g); if (ms) out.push('  ' + ms); });
-    return out.concat([AL('Задачи из этого дебюта: ', 'Puzzles from this opening: ') + pz.length + AL(', решено ', ', solved ') + pz.filter(function(a) { return a.win; }).length +
+    return out.concat([AL('Задачи из этого дебюта за 14 дней: ', 'Puzzles from this opening over 14 days: ') + pz.length + AL(', решено ', ', solved ') + pz.filter(function(a) { return a.win; }).length +
       ((o.studies || []).length ? AL('; студии мастеров: ', '; master studies: ') + o.studies.map(function(s) { return s.master + ' (lichess.org/study/' + s.id + ')'; }).join(', ') : '')]);
   },
   // где я отхожу от мастеров: по последним 10 партиям и самые частые отходы
@@ -6757,10 +6774,10 @@ var AI_DATA = {
   },
   progress: function() {
     var P = window.PUZZLES || {}, f = games.slice(0, 10), l = games.slice(-10);
-    return [AL('Первые 10 партий — ', 'First 10 games — ') + aiAvgLine(f), AL('  зевки по типам: ', '  blunders by type: ') + aiBlTypes(f) + '; ' + aiOppStat(f),
-      AL('Последние 10 партий — ', 'Last 10 games — ') + aiAvgLine(l), AL('  зевки по типам: ', '  blunders by type: ') + aiBlTypes(l) + '; ' + aiOppStat(l),
+    return [AL('Первые ', 'First ') + aiAvgLine(f), AL('  зевки по типам: ', '  blunders by type: ') + aiBlTypes(f) + '; ' + aiOppStat(f),
+      AL('Последние ', 'Last ') + aiAvgLine(l), AL('  зевки по типам: ', '  blunders by type: ') + aiBlTypes(l) + '; ' + aiOppStat(l),
       games.length < 20 ? AL('(партий меньше 20 — первые и последние 10 частично совпадают)', '(fewer than 20 games — the first and last 10 overlap)') : '',
-      AL('Рейтинг задач по дням: ', 'Puzzle rating by day: ') + (P.history || []).map(function(h) { return h.date + ' ' + h.rating; }).join(', ') + (P.rating ? AL(', сейчас ', ', now ') + P.rating : '')].filter(Boolean);
+      AL('Рейтинг задач: ', 'Puzzle rating: ') + aiRatingPath(P) + (P.rating ? AL(', сейчас ', ', now ') + P.rating : '')].filter(Boolean);
   },
   // свой вопрос: последние 10 партий с зевками — чтобы было на что опереться
   own: function() {
@@ -6769,7 +6786,48 @@ var AI_DATA = {
     return out;
   }
 };
-AI_DATA.plans = AI_DATA.opening;
+// 15. планы после дебюта: что происходит в миттельшпиле моих партий этого дебюта
+AI_DATA.plans = function() {
+  var o = aiOp(), all = aiOpGames(), gl = all.slice(-8), other = games.slice(-20).filter(function(g) { return all.indexOf(g) < 0; }), out = [];
+  if (!o) return [AL('Изучаемый дебют не задан', 'No opening being studied')];
+  if (!gl.length) return [AL('Партий в дебюте «' + o.name + '» пока нет', 'No games in the ' + opEn(o) + ' yet')];
+  out.push(AL('Миттельшпиль в моих партиях дебюта «' + o.name + '» (последние ' + gl.length + '): точность ', 'Middlegame in my ' + opEn(o) + ' games (last ' + gl.length + '): accuracy ') + aiPct(avg(gl, 'mid')) +
+    AL('; в других дебютах (из последних 20 партий): ', '; in other openings (of the last 20 games): ') + aiPct(avg(other, 'mid')) + '.');
+  gl.forEach(function(g) {
+    var dv = g.div || {}, mb = (g.bl || []).filter(function(b) { return b.p === 'mid'; });
+    out.push(aiGame(g));
+    out.push('  ' + AL('миттельшпиль с хода ', 'middlegame from move ') + (dv.mid ? Math.ceil(dv.mid / 2) : '—') + AL(', зевков в нём ', ', blunders in it ') + mb.length + (mb.length ? ': ' + mb.slice(0, 3).map(function(b) { return aiBl(g, b); }).join('; ') : ''));
+    var t = aiTurn(g); if (t) out.push('  ' + t);
+  });
+  return out;
+};
+// 20. следующий этап: где я сейчас по цели (коротко), темп, этапы плана и прогресс — без разбора каждой партии
+AI_DATA.nextstage = function() {
+  var out = [stageDesc() + '.'];
+  CUR.colors.forEach(function(c) {
+    out.push((CUR.colors.length > 1 ? AL(COLOR_WORD[c.color] + ': ', 'as ' + COLOR_EN[c.color] + ': ') : '') + (c.done ? AL('цель выполнена ', 'goal done ') + c.doneGame.date : c.blocks.map(function(b, i) { return AL('пятёрка ', 'set ') + (i + 1) + ' — ' + blockDesc(b); }).join('; ')));
+  });
+  var first = games.length ? games[0].day : null, days = first ? daysBetween(fromIso(first), gameToday()) + 1 : 0, act = {};
+  games.forEach(function(g) { act[g.day] = 1; });
+  out.push(AL('Темп: занимаюсь ' + days + ' дн., из них с партиями ' + Object.keys(act).length + ', партий в среднем ' + aiR1(days ? games.length / days : 0) + ' в день; за последние 7 дней — ',
+              'Pace: ' + days + ' days since start, ' + Object.keys(act).length + ' with games, ' + aiR1(days ? games.length / days : 0) + ' games a day on average; last 7 days — ') +
+    games.filter(function(g) { return g.day >= isoDay(addDays(gameToday(), -6)); }).length + '.');
+  out.push(AL('Этапы плана: ', 'Plan stages: ') + PLAN.stages.map(function(S, i) { return (i + 1) + ') ' + S.name + (i === CUR.idx ? AL(' ← сейчас', ' ← now') : ''); }).join('; '));
+  return out.concat(AI_DATA.progress());
+};
+// 21. смена дебюта: результаты по дебютам, мой дебют подробно, дебюты плана
+AI_DATA.openings = function() {
+  var last = games.slice(-20), O = window.OPENINGS || {}, out = [AL('Дебюты в последних ' + last.length + ' партиях (название Lichess):', 'Openings in the last ' + last.length + ' games (Lichess name):')].concat(aiFamilies(last));
+  (O.current || []).forEach(function(o) {
+    var gl = games.filter(function(g) { return g.color === o.color && opMatch(o, g.opening); });
+    out.push(AL('Изучаю «' + o.name + '» (' + COLOR_WORD[o.color] + '): партий ' + gl.length, 'Studying the ' + opEn(o) + ' (as ' + COLOR_EN[o.color] + '): ' + gl.length + ' games') + (gl.length ? ' (' + aiWL(gl) + AL(', точность ', ', accuracy ') + aiPct(avg(gl, 'acc')) + ')' : '') +
+      ((o.studies || []).length ? AL('; студии: ', '; studies: ') + o.studies.map(function(st) { return st.master; }).join(', ') : AL('; студий нет', '; no studies')) + '.');
+    gl.slice(-3).forEach(function(g) { var ms = aiMs(g); if (ms) out.push('  ' + aiGid(g) + ': ' + ms); });
+  });
+  function names(list) { return (list || []).map(function(o) { return aiOpName(o) + ' (' + AL(COLOR_WORD[o.color], COLOR_EN[o.color]) + ')'; }).join(', ') || '—'; }
+  out.push(AL('Далее по плану: ', 'Next in the plan: ') + names(O.next) + AL('; в планах: ', '; planned: ') + names(O.planned) + '.');
+  return out;
+};
 AI_DATA.roadmap = function() { return AI_DATA.goal().concat(AI_DATA.progress()); };
 
 /* ---------- текст для нейросети: задача и формат сверху, задача ещё раз внизу ---------- */

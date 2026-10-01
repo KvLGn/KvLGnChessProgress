@@ -1440,11 +1440,11 @@
   /* «i» над числом зевков и панель поверх графика перевеса (выезжает справа налево) */
   .mr-cnt { position: relative; }
   /* свой класс, не .bl-info: на .bl-info висит обработчик режима зевков графика */
-  .mr-cnt .mr-i { position: absolute; top: -24px; left: 50%; transform: translateX(-50%); width: 20px; height: 20px; border-radius: 50%; padding: 0; line-height: 1;
-    font: 700 12px Georgia, serif; font-style: italic; color: #fca5a5; background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.55); cursor: pointer; }
-  .mr-cnt .mr-i:hover { color: #fff; background: rgba(248,113,113,0.25); border-color: #f87171; }
+  .mr-cnt .mr-i { position: absolute; top: -34px; left: 50%; transform: translateX(-50%); width: 20px; height: 20px; border-radius: 50%; padding: 0; line-height: 1;
+    font: 700 12px Georgia, serif; font-style: italic; color: #f87171; background: #0b0d13; border: 1.5px solid #f87171; cursor: pointer; }   /* тёмная, как «!» */
+  .mr-cnt .mr-i:hover { color: #fca5a5; border-color: #fca5a5; }
   .mr-cnt .mr-i.on { color: #11131a; background: #f87171; border-color: #f87171; }
-  .mr-gwrap { position: relative; overflow: hidden; border-radius: 8px; }
+  .mr-gwrap { position: relative; overflow-x: clip; overflow-y: visible; }   /* прячем панель справа, но подсказка графика может выходить вниз */
   .mr-info { position: absolute; inset: 0; z-index: 6; display: grid; grid-template-columns: 1.35fr 1fr 1fr 1fr; gap: 0 18px; padding: 10px 34px 10px 14px;
     background: #171a25; border: 1px solid #2d3143; border-radius: 8px; overflow-y: auto; white-space: normal;   /* строка таблицы — nowrap, здесь текст переносится */
     transform: translateX(102%); transition: transform 0.3s ease; }

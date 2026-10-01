@@ -7,9 +7,14 @@ Russian first, English at the end — both say the same, use either.
 
 ## 🇷🇺 Как пользоваться (для человека)
 
-1. **Проще всего:** на сайте https://kvlgn.github.io/KvLGnChessProgress/ открой **«Итоги»** → **«📋 Справка» (режим «Для ИИ»)**
-   (или поиск → «Справка») и нажми нужную просьбу — скопируется всё сразу (промпт + сводка + просьба,
-   для правки плана ещё и полный plan.js). Вставь в любую нейросеть и отправь. Этот файл тогда не нужен.
+1. **Проще всего:** на сайте https://kvlgn.github.io/KvLGnChessProgress/ нажми в шапке **«📋 Справка»** (режим «Для ИИ»)
+   и выбери пункт — скопируется готовый пакет: задача и формат ответа сверху, роль и правила, словарь терминов,
+   коротко «обо мне», данные именно под этот вопрос (партии, зевки с ходами «сыграл / лучше», ошибки бота, маты,
+   сверка с мастерами, задачи) и задача ещё раз в конце; для правки плана — ещё и полный plan.js.
+   Пакет рассчитан на любую нейросеть, даже слабую (Алиса, GigaChat): обычно 4–7 тыс. знаков, правка плана — до 12 тыс.
+   Вставь в нейросеть и отправь — этот файл тогда не нужен.
+   Режим **«Для человека»** копирует письмо тренеру / в чат шахматистов (начало годится как пост, ниже подробности
+   со ссылками на ходы Lichess) или пошаговое задание программисту для правки плана.
 2. **Если сайт недоступен:** вставь в нейросеть блок **«ПРОМПТ»** ниже, затем цифры (что знаешь) и свою просьбу,
    например: «добавь этап против Stockfish 6», «поменяй Славянскую на Каро-Канн», «дай совет на эту неделю».
 3. Если нейросеть вернула новый `data/plan.js` — открой https://github.com/KvLGn/KvLGnChessProgress/blob/main/data/plan.js,
@@ -69,7 +74,7 @@ Russian first, English at the end — both say the same, use either.
 8. Опирайся только на данные сводки. Если данных мало (меньше 5 партий в разделе) — так и скажи.
    Когда ссылаешься на партию, сверяй её результат и цифры с данными; не обобщай («все три — поражения»), если это верно не для всех.
    Перфоманс темы задач — не рейтинг.
-   Отделяй факты из данных от предположений: всё, чего нет в цифрах (например, какого типа были зевки), помечай словом «возможно».
+   Отделяй факты из данных от предположений: всё, чего нет в цифрах, помечай словом «возможно» (типы зевков и лучшие ходы в данных сайта есть — на них можно опираться).
 9. Пиши по-русски, коротко. Обращайся на «ты» и не указывай пол игрока — формулируй нейтрально.
 
 **Как рассуждать о плане:**
@@ -96,14 +101,14 @@ Russian first, English at the end — both say the same, use either.
 
 ## 🇬🇧 How to use (for a human)
 
-1. Easiest: on the site open **«Итоги»** → **«📋 Справка» (режим «Для ИИ»)** → click a request (EN switch at the top). Prompt + summary + request are copied at once — paste into any AI chat.
+1. Easiest: on the site click **«📋 Справка»** in the header (mode «For AI», EN switch at the top) and pick an item. A ready package is copied: task and answer format first, role and rules, a glossary, a short "about me", data for this exact question (games, blunders with "played / better" moves, bot blunders, mates, masters comparison, puzzles) and the task again at the end. It is built to work in any AI chat, even a weak one. Mode «For a person» copies a letter for a coach or a chess chat, or a step-by-step task for a programmer.
 2. If the site is down: paste the **PROMPT** block below, then whatever numbers you know, then your request.
 3. If the AI returns a new `data/plan.js`, edit https://github.com/KvLGn/KvLGnChessProgress/blob/main/data/plan.js (✏️ → paste → Commit). The site updates in ~1 min.
 4. If the site breaks — GitHub → the file → History → restore the previous version.
 
 ### PROMPT — start
 
-You help a beginner chess player (Lichess: KvLGn) maintain his training plan. His dashboard site **automatically** pulls games
+You help a beginner chess player (Lichess: KvLGn) maintain their training plan. Their dashboard site **automatically** pulls games
 (with computer analysis) and puzzles from Lichess and computes averages, charts, automatic conclusions and tips. You do NOT touch that.
 
 Only one file is edited by hand: `data/plan.js` with `start` (start date), `rule` (stage transition rule), `stages` (ordered stages)
@@ -130,7 +135,7 @@ Answer rules:
 7. If asked for **advice** (not a plan change), don't return plan.js. Give 3 points: one action ≤ 90 chars + one "why" line citing a number from the summary. No generic phrases.
 8. Use only the summary data; if data is thin (< 5 games in a section), say so. When you cite a game, check its result and numbers against the data;
    do not generalise ("all three were losses") unless true for all. A puzzle theme performance is not a rating.
-   Separate facts from assumptions: mark anything not in the numbers (e.g. what kind of blunders they were) with "possibly".
+   Separate facts from assumptions: mark anything not in the numbers with "possibly" (blunder types and best moves are in the site data — rely on them).
 9. Reply in Russian, briefly. Do not assume the player's gender — keep the wording neutral.
 
 How to reason about the plan: one white opening vs the current bot → add black openings and beat the same bot with both colours → next Stockfish level with both colours.

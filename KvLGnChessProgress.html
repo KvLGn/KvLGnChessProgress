@@ -189,7 +189,10 @@
   body.hush-chart .records-btn:hover { background: none; }
   body.hush-chart .legend-item, body.hush-chart .stat.toggle { pointer-events: none; }
   body.hush-chart .legend-item { opacity: 0.45; }
-  body.hush-chart #chart .hit { pointer-events: none; cursor: default; }   /* график скрыт: столбики / колонки не нажимаются и без подсказок; период и стрелки работают */
+  body.hush-chart #chart .hit { pointer-events: none; cursor: default; }
+  body.hush-chart .bl-info { opacity: 0.4; cursor: not-allowed; }   /* кнопка «i» у зевков — неактивна, пока график скрыт */
+  body.hush-chart .bl-info:hover { color: #fca5a5; background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.55); }
+  body.hush-chart #blLegend { visibility: hidden; }   /* легенда типов (если режим был включён) — без кнопок, состояние не сбрасываем */   /* график скрыт: столбики / колонки не нажимаются и без подсказок; период и стрелки работают */
   .wr-label {
     font-size: 11px;
     font-weight: 500;
@@ -2294,6 +2297,7 @@ document.addEventListener('click', function(e) {
   var b = e.target.closest && e.target.closest('.bl-info');
   if (!b) return;
   e.stopPropagation();
+  if (hush.chart) return;   // график скрыт — режим зевков не переключается
   blMode = !blMode;
   if (blMode && cmpMode === 'view') cmpBlOpen = true;   // сравнение уже открыто — «Зевки» сразу раскрыты
   renderWindow();

@@ -4671,7 +4671,13 @@ function anBoardSvg(board, o) {
 }
 
 /* --- колонки --- */
-// партии: номер, дата, результат, точки типов зевков и их число, дебют, цвет и соперник
+// изменение рейтинга за рейтинговую партию (поле ir, как колонка «ИР» таблицы) — плашкой в стиле W/L; у товарищеских — ничего
+function anRatingChip(g) {
+  if (typeof g.ir !== 'number') return '';
+  var d = g.ir, c = d > 0 ? RESULT.win : d < 0 ? RESULT.lose : RESULT.draw;
+  return '<span class="an-res" style="color:' + c.color + ';background:' + c.bg + '" title="Изменение рейтинга за партию">' + (d > 0 ? '+' + d : d < 0 ? '−' + Math.abs(d) : '0') + '</span>';
+}
+// партии: номер, дата, результат (и изменение рейтинга), точки типов зевков и их число, дебют, цвет и соперник
 function anListHtml(list, g) {
   var head = '<div class="an-head">Партии <span>' + list.length + '</span><span class="th-seg an-opseg">' + opSegHtml(anOpNames, ['plan', 'lichess']) + '</span></div>';
   if (!list.length) return head + '<div class="an-list-in"><div class="an-empty">' + (games.length ? 'Нет партий под фильтр графика' : 'Партий пока нет') + '</div></div>';
@@ -4681,7 +4687,7 @@ function anListHtml(list, g) {
       .map(function(t) { return '<i style="background:' + BL_TYPES[t].color + '"></i>'; }).join('');
     return '<button class="an-g' + (x === g ? ' on' : '') + '" data-id="' + x.id + '">' +
       '<span class="an-g-top"><b>#' + x.n + '</b><span class="an-date">' + esc(x.date) + '</span>' +
-        '<span class="an-res" style="color:' + R.color + ';background:' + R.bg + '">' + R.letter + '</span>' +
+        '<span class="an-res" style="color:' + R.color + ';background:' + R.bg + '">' + R.letter + '</span>' + anRatingChip(x) +
         '<span class="an-g-bl" title="Зевков: ' + bl.length + (bl.length ? ' — ' + esc(blSummary(bl)) : '') + '">' +
           (anFresh(x) ? anBang('Новая партия (последние сутки) — есть что разобрать') : '') + dots + ' ' + (bl.length || '—') + '</span></span>' +
       '<span class="an-g-op" title="' + esc('Lichess: ' + x.opening + ' · план: ' + (planOpName(x) || 'вне плана')) + '">' +

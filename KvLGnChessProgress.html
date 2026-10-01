@@ -6569,11 +6569,11 @@ function rdHtml() {
     axes.forEach(function(x, i) { var q = pt(i, 1); g += '<line x1="' + C + '" y1="' + C + '" x2="' + q[0].toFixed(1) + '" y2="' + q[1].toFixed(1) + '" stroke="rgba(255,255,255,0.07)"/>'; });
     if (D.goal) g += '<polygon points="' + poly(axes.map(function() { return 1; })) + '" fill="none" stroke="#4ade80" stroke-opacity="0.55" stroke-dasharray="5 4"/>';
     if (D.hasB) g += '<polygon points="' + poly(axes.map(function(x) { return x.rb; })) + '" fill="rgba(156,163,175,0.12)" stroke="#9ca3af" stroke-opacity="0.7" stroke-dasharray="4 3"/>';
-    g += '<polygon points="' + poly(axes.map(function(x) { return x.ra; })) + '" fill="rgba(251,146,60,0.22)" stroke="#fb923c" stroke-width="1.6"/>';
+    g += '<polygon points="' + poly(axes.map(function(x) { return x.ra; })) + '" fill="rgba(192,132,252,0.26)" stroke="#c084fc" stroke-width="1.8"/>';   // «сейчас» — фиолетовый, светлее фона
     axes.forEach(function(x, i) {
       if (x.ra === null) return;
       var q = pt(i, x.ra);
-      g += '<circle class="rd-pt" data-rdi="' + i + '" cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="5" fill="#fdba74" stroke="#1a1d27" stroke-width="1.5"/>';
+      g += '<circle class="rd-pt" data-rdi="' + i + '" cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="5" fill="#e9d5ff" stroke="#1a1d27" stroke-width="1.5"/>';
     });
     axes.forEach(function(x, i) {   // длинная подпись — в две строки (по пробелу ближе к середине)
       var q = pt(i, 1.17), c = Math.cos(ang(i)), sn = Math.sin(ang(i)), anchor = Math.abs(c) < 0.3 ? 'middle' : c > 0 ? 'start' : 'end';
@@ -6596,7 +6596,7 @@ function rdHtml() {
       ? RD_DAYS.map(function(x) { return '<button type="button" data-rdd="' + x[0] + '" class="' + ((RD.days || 7) === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('')
       : RD_N.map(function(v) { var can = nAll >= 2 * v, on = Sl2.ok && Sl2.W === v || (!Sl2.ok && false);
           return '<button type="button" data-rdn="' + v + '" class="' + (on ? 'on' : '') + '"' + (can ? '' : ' disabled title="Нужно хотя бы ' + 2 * v + ' партий, сейчас ' + nAll + '"') + '>' + v + '</button>'; }).join('')) + '</span>' +
-    (cap ? '<div class="rd-cap"><i style="background:#fb923c"></i>' + esc(cap).replace(' против ', ' <i style="background:#9ca3af;margin-left:8px"></i>против ') + '</div>' : '') + '</div>';
+    (cap ? '<div class="rd-cap"><i style="background:#c084fc"></i>' + esc(cap).replace(' против ', ' <i style="background:#9ca3af;margin-left:8px"></i>против ') + '</div>' : '') + '</div>';
   var fmt = function(x, v) { return v === null || v === undefined ? '—' : x.m.fmt(v); };
   var rows = axes.map(function(x) {
     var d = x.a !== null && x.b !== null ? x.a - x.b : null, better = d === null || Math.abs(d) < 1e-9 ? null : (x.m.low ? d < 0 : d > 0);

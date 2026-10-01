@@ -1437,6 +1437,35 @@
   .mr-cnt b { font-size: 20px; line-height: 1.1; }
   .mr-cnt span { font-size: 10px; color: var(--fg-dim); }
   .mr-graph { position: relative; margin-bottom: 6px; }
+  /* «i» над числом зевков и панель поверх графика перевеса (выезжает справа налево) */
+  .mr-cnt { position: relative; }
+  /* свой класс, не .bl-info: на .bl-info висит обработчик режима зевков графика */
+  .mr-cnt .mr-i { position: absolute; top: -24px; left: 50%; transform: translateX(-50%); width: 20px; height: 20px; border-radius: 50%; padding: 0; line-height: 1;
+    font: 700 12px Georgia, serif; font-style: italic; color: #fca5a5; background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.55); cursor: pointer; }
+  .mr-cnt .mr-i:hover { color: #fff; background: rgba(248,113,113,0.25); border-color: #f87171; }
+  .mr-cnt .mr-i.on { color: #11131a; background: #f87171; border-color: #f87171; }
+  .mr-gwrap { position: relative; overflow: hidden; border-radius: 8px; }
+  .mr-info { position: absolute; inset: 0; z-index: 6; display: grid; grid-template-columns: 1.35fr 1fr 1fr 1fr; gap: 0 18px; padding: 10px 34px 10px 14px;
+    background: #171a25; border: 1px solid #2d3143; border-radius: 8px; overflow-y: auto; white-space: normal;   /* строка таблицы — nowrap, здесь текст переносится */
+    transform: translateX(102%); transition: transform 0.3s ease; }
+  .mr-gwrap.info-open .mr-info { transform: none; }
+  .mri-x { position: absolute; top: 4px; right: 8px; font-size: 18px; line-height: 1; color: var(--fg-mute); background: none; border: none; cursor: pointer; }
+  .mri-x:hover { color: var(--fg); }
+  .mri-sec { min-width: 0; }
+  .mri-sec + .mri-sec { border-left: 1px solid rgba(46,50,68,0.7); padding-left: 16px; }
+  .mri-h { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 6px; }
+  .mri-t { font-size: 12px; color: var(--fg); line-height: 1.45; margin-bottom: 3px; }
+  .mri-n { font-size: 11.5px; color: var(--fg-mute); }
+  .mri-go { font: inherit; color: inherit; background: none; border: none; padding: 0; cursor: pointer; border-radius: 4px; }
+  .mri-go:hover { background: rgba(255,255,255,0.06); }
+  .mri-marks { display: flex; flex-wrap: wrap; gap: 2px; margin: 2px 0 5px; }
+  .mri-marks .mri-go { width: 20px; height: 20px; font-size: 13px; font-weight: 700; background: rgba(255,255,255,0.04); }
+  .mri-chips { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; font-weight: 600; }
+  @media (max-width: 700px) {
+    .mr-info { position: static; transform: none; display: none; grid-template-columns: 1fr; gap: 10px; margin-top: 8px; }
+    .mr-gwrap.info-open .mr-info { display: grid; }
+    .mri-sec + .mri-sec { border-left: none; padding-left: 0; border-top: 1px solid rgba(46,50,68,0.7); padding-top: 8px; }
+  }
   .mr-graph-h { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-dim); margin-bottom: 4px; }
   .mr-leg { text-transform: none; letter-spacing: 0; display: flex; align-items: center; gap: 5px; }
   .mr-leg i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
@@ -2766,8 +2795,53 @@ function mrBar(label, v, color, delta) {
   return '<div class="mr-ph"><div class="mr-ph-top"><span style="color:' + color + '">' + label + '</span><b>' + (has ? v + '%' : '—') + '</b>' + (delta || '') + '</div>' +
     '<div class="mr-ph-bar"><i style="width:' + (has ? v : 0) + '%;background:' + color + '"></i></div></div>';
 }
-function mrCount(label, v, color, delta) {
-  return '<div class="mr-cnt"><b style="color:' + color + '">' + v + '</b><span>' + label + '</span>' + (delta || '') + '</div>';
+function mrCount(label, v, color, delta, extra) {
+  return '<div class="mr-cnt">' + (extra || '') + '<b style="color:' + color + '">' + v + '</b><span>' + label + '</span>' + (delta || '') + '</div>';
+}
+// коротко для панели: «Карлсен — до 1-го · сверка до 7-го хода» (подробно — msSummary во вкладке «Мастера»)
+function msShort(rows) {
+  var own = rows.filter(function(c) { return c.tier === 'own'; }), end = Math.ceil(rows[rows.length - 1].p / 2);
+  return (own.length ? own[0].src + ' — до ' + Math.ceil(own[own.length - 1].p / 2) + '-го · ' : '') + 'сверка до ' + end + '-го хода';
+}
+// панель «i» отчёта о матче: выезжает справа налево поверх графика перевеса. Каждый пункт — ссылка в «Анализ» на нужный ход (data-an="ply|lens")
+function mrInfoPanel(g) {
+  var sans = (g.mv || '').split(' ').filter(Boolean);
+  function go(ply, lens, html, title) { return '<button class="mri-go" type="button" data-an="' + ply + '|' + lens + '"' + (title ? ' title="' + esc(title) + '"' : '') + '>' + html + '</button>'; }
+  function sec(title, body) { return '<div class="mri-sec"><div class="mri-h">' + title + '</div>' + body + '</div>'; }
+  // 1. дебют против мастеров (тот же мастер, что выбран во вкладке «Мастера»)
+  var rows = msCompare(g, anMasterPicked(g)), dev = rows.filter(function(c) { return c.st !== 'top'; })[0], deb;
+  if (!rows.length) deb = '<div class="mri-n">нет данных мастеров</div>';
+  else deb = '<div class="mri-t">' + esc(msShort(rows)) + '</div>' +
+    '<div class="mri-marks">' + rows.slice(0, 12).map(function(c) {
+      return go(c.p - 1, 'ms', '<span style="color:' + AN_MS[c.st].c + (c.weak ? ';opacity:0.55' : '') + '">' + AN_MS[c.st].mark + '</span>',
+        anMoveNo(c.p) + c.san + ' — ' + AN_MS[c.st].txt + ' (' + c.src + ': чаще ' + c.top + ')');
+    }).join('') + '</div>' +
+    (dev ? '<div class="mri-t">Первый отход: ' + go(dev.p - 1, 'ms', '<b style="color:' + AN_MS[dev.st].c + '">' + anMoveNo(dev.p) + esc(dev.san) + ' ' + AN_MS[dev.st].mark + '</b>') +
+      ' <span class="mri-n">(' + esc(dev.src) + ' чаще ' + esc(dev.top) + ' ' + dev.cnt(dev.list[0]) + ')</span></div>' : '<div class="mri-t" style="color:#4ade80">Все ходы — как у мастеров ✓</div>');
+  // 2. мат в N
+  var ms = mateSeries(g), mate = ms.length ? ms.map(function(m) {
+    var ply = m.lost ? m.lost - 1 : m.s, ev = m.lost && g.ev ? g.ev[m.lost] : null;
+    return '<div class="mri-t">' + go(ply, 'mate', '<b style="color:' + (m.lost ? BL_TYPES.mateMissed.color : '#4ade80') + '">♛ мат в ' + (m.lost ? m.N2 : m.N) + ' ' + (m.lost ? '✗' : '✓') + '</b>') +
+      ' <span class="mri-n">ход ' + Math.ceil((ply + 1) / 2) + (m.lost ? ' · ' + (typeof ev === 'number' && ev >= 50 ? 'выигрыш сохранён' : 'перевес упал') : m.mated ? ' · мат поставлен' : ' · доведён') + '</span></div>';
+  }).join('') : '<div class="mri-n">форсированного мата не было</div>';
+  // 3. ошибки соперника: его зевок (оценка движка 'B') — наказал, если после моего ответа перевес не упал больше чем на 2 пешки
+  var opp = (g.jd || []).filter(function(j) { return j[1] === 'B' && !anMine(g, j[0]) && j[0] < sans.length && g.ev; }).map(function(j) {
+    var q = j[0], kept = g.ev[q] - g.ev[q + 1] < 20;
+    return {q: q, kept: kept, san: sans[q - 1], best: (j[2] || '').split(' ')[0]};
+  });
+  var oppHtml = opp.length ? '<div class="mri-t">Зевков бота: ' + opp.length + ' — наказал ' + opp.filter(function(o) { return o.kept; }).length +
+      ', пропустил ' + opp.filter(function(o) { return !o.kept; }).length + '</div><div class="mri-chips">' + opp.map(function(o) {
+      return go(o.q, 'all', '<span style="color:' + (o.kept ? '#4ade80' : '#f87171') + '">' + anMoveNo(o.q) + esc(o.san) + ' ' + (o.kept ? '✓' : '✗') + '</span>',
+        'Бот сыграл ' + o.san + ' — зевок' + (o.best ? ' (лучше было ' + o.best + ')' : '') + '. ' + (o.kept ? 'Ты наказал: перевес сохранил' : 'Ты пропустил: после твоего ответа перевес упал'));
+    }).join('') + '</div>' : '<div class="mri-n">зевков бота не было</div>';
+  // 4. перелом: самый большой скачок оценки за один полуход
+  var big = null;
+  if (g.ev) for (var i = 1; i < g.ev.length; i++) { var d = g.ev[i] - g.ev[i - 1]; if (!big || Math.abs(d) > Math.abs(big.d)) big = {p: i, d: d}; }
+  var turn = big && Math.abs(big.d) >= 15 ? '<div class="mri-t">' + go(big.p - 1, 'all', '<b style="color:' + (big.d > 0 ? '#4ade80' : '#f87171') + '">' + anMoveNo(big.p) + esc(sans[big.p - 1] || '') + '</b>') +
+      ' <span class="mri-n">' + (anMine(g, big.p) ? 'твой ход' : 'ход соперника') + '</span></div><div class="mri-t">перевес ' + evText(g.ev[big.p - 1]) + ' → <b>' + evText(g.ev[big.p]) + '</b></div>'
+    : '<div class="mri-n">резких переломов не было</div>';
+  return '<div class="mr-info" aria-hidden="true"><button class="mri-x" type="button" title="Закрыть">×</button>' +
+    sec('Дебют против мастеров', deb) + sec('Мат в N', mate) + sec('Ошибки соперника', oppHtml) + sec('Перелом партии', turn) + '</div>';
 }
 // номер полухода зевка (1 — первый ход белых): позиция перед зевком — blPly − 1, после — blPly
 function blPly(g, b) { return (b.m - 1) * 2 + (g.color === 'white' ? 1 : 2); }
@@ -2823,7 +2897,7 @@ function matchReport(g) {
       mrBar('Эндшпиль', hasEnd(g) ? g.end : null, '#a78bfa', hasEnd(g) ? detailDelta(g, 'end', true) : '') + '</div>' +
     '<div class="mr-cnts">' + mrCount('неточн.', g.inacc, 'var(--yellow)', detailDelta(g, 'inacc', false, true)) +
       mrCount('ошибок', g.mistakes, '#fb923c', detailDelta(g, 'mistakes', false, true)) +
-      mrCount('зевков', g.blunders, 'var(--red)', detailDelta(g, 'blunders', false, true)) + '</div>' +
+      mrCount('зевков', g.blunders, 'var(--red)', detailDelta(g, 'blunders', false, true), g.mv ? '<button class="mr-i" type="button" title="Подробнее о партии: дебют против мастеров, маты, ошибки соперника, перелом">i</button>' : '') + '</div>' +
   '</div>';
   var go = !!g.mv;   // клик по зевку — «Анализ» на позиции перед ним (нужна запись ходов)
   var list = g.bl && g.bl.length ? '<div class="mr-bl">' + g.bl.map(function(b) {
@@ -2833,7 +2907,7 @@ function matchReport(g) {
       '<span class="mr-bl-d">' + (typeof b.d === 'number' ? '−' + b.d : 'мат') + '</span>' +
       '<span class="mr-bl-p">' + (b.p ? PHASE_RU[b.p] : '') + '</span><span class="mr-bl-go">' + (go ? '›' : '') + '</span></div>';
   }).join('') + '</div>' : '';
-  return head + stats + evalGraph(g) + list;
+  return head + stats + '<div class="mr-gwrap">' + evalGraph(g) + (g.mv ? mrInfoPanel(g) : '') + '</div>' + list;
 }
 function evText(v) { return v >= 100 ? '+10 и больше' : v <= -100 ? '−10 и больше' : (v > 0 ? '+' : v < 0 ? '−' : '') + (Math.abs(v) / 10).toFixed(1); }
 function mrHover(e) {
@@ -3626,6 +3700,23 @@ function renderGames() {
       }
       r.addEventListener('click', go);
       r.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(e); } });
+    });
+    // «i» над зевками — панель поверх графика; пункты панели открывают «Анализ» на нужном ходу
+    var iBtn = detail.querySelector('.mr-i');
+    if (iBtn) iBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var w = detail.querySelector('.mr-gwrap'), on = !w.classList.contains('info-open'), pnl = w.querySelector('.mr-info');
+      // открыта: блок не ниже содержимого панели (поверх графика, без прокрутки); закрыта — высота графика
+      w.style.minHeight = on && pnl ? pnl.scrollHeight + 'px' : '';
+      w.classList.toggle('info-open', on);
+      iBtn.classList.toggle('on', on);
+    });
+    var info = detail.querySelector('.mr-info');
+    if (info) info.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (e.target.closest('.mri-x')) { var w = detail.querySelector('.mr-gwrap'); w.classList.remove('info-open'); w.style.minHeight = ''; if (iBtn) iBtn.classList.remove('on'); return; }
+      var b = e.target.closest('[data-an]');
+      if (b) { var a = b.getAttribute('data-an').split('|'); anOpen(g, +a[0], a[1]); }
     });
     var chBtn = detail.querySelector('.detail-chart');
     if (chBtn) chBtn.addEventListener('click', function(e) { e.stopPropagation(); showOnChart(g); });
@@ -4586,19 +4677,30 @@ var MS_FEW = 10;   // меньше партий в позиции — «самы
 var AN_MS = {top: {c: '#4ade80', t: 'good', mark: '✓', txt: 'как чаще всего у мастеров'},
              alt: {c: '#facc15', t: null,   mark: '~', txt: 'встречалось, но не чаще всего'},
              off: {c: '#f87171', t: 'bad',  mark: '✗', txt: 'мастера так не играли'}};
-function anMasterMoments(g, P) {
-  var out = [], want = anMasterPicked(g);
+// сверка партии с мастерами по полю ms (без доски — по записи ходов): для каждого моего хода из первых 20 —
+//   {p, san, st: 'top' | 'alt' | 'off', top, list, total, own, tier: 'own' | 'm' | 'l' | 'a', weak, src, cnt(x) — «×12» / «80%»}
+//   want — ключ «дебют/мастер» или 'all'. Общая для вкладки «Мастера» (anMasterMoments) и панели «i» отчёта о матче
+function msCompare(g, want) {
+  var sans = (g.mv || '').split(' ').filter(Boolean), out = [];
   (g.ms || []).forEach(function(r) {
     var p = r[0] + 1, base = r[1], own = want !== 'all' && r[2] && r[2][want];
-    if (p > P.n) return;
+    if (p > sans.length || (!own && !base)) return;
     var list = own || (base && base[1]) || [];
     var total = own ? own.reduce(function(sum, x) { return sum + x[1]; }, 0) : base ? base[0] : 0;
     if (!list.length || !total) return;
-    var san = P.moves[p - 1].san, i = list.map(function(x) { return x[0]; }).indexOf(san);
-    var st = i === 0 ? 'top' : i > 0 ? 'alt' : 'off', S = AN_MS[st], top = list[0][0];
-    function cnt(x) { return own ? '×' + x[1] : Math.round(x[1] / total * 100) + '%'; }
-    if (!own && !base) return;
-    var tier = own ? 'own' : base[2] || 'm', weak = tier === 'a' || total < MS_FEW;
+    var san = sans[p - 1], i = list.map(function(x) { return x[0]; }).indexOf(san);
+    var tier = own ? 'own' : base[2] || 'm';
+    out.push({p: p, san: san, st: i === 0 ? 'top' : i > 0 ? 'alt' : 'off', top: list[0][0], list: list, total: total, own: own, tier: tier,
+      weak: tier === 'a' || total < MS_FEW, src: own ? masterName(want, g) : MS_TIER[tier].short,
+      cnt: function(x) { return own ? '×' + x[1] : Math.round(x[1] / total * 100) + '%'; }});
+  });
+  return out;
+}
+function anMasterMoments(g, P) {
+  var out = [], want = anMasterPicked(g);
+  msCompare(g, want).forEach(function(c) {
+    var p = c.p, san = c.san, st = c.st, S = AN_MS[st], top = c.top, list = c.list, total = c.total, own = c.own, tier = c.tier, weak = c.weak, cnt = c.cnt;
+    if (p > P.n) return;
     var src = own ? masterName(want, g) + ' · ' + anGamesN(total) : MS_TIER[tier].name + ' · ' + anGamesN(total) +
       (want !== 'all' ? ' <span style="color:var(--fg-mute)">(у ' + masterName(want, g) + ' этой позиции нет)</span>' : '') +
       (weak ? ' <span style="color:var(--fg-mute)">— ' + (total < MS_FEW ? 'мало партий, ориентир слабый' : 'уровень ниже мастеров') + '</span>' : '');
@@ -4706,15 +4808,17 @@ function anInfoHtml(g, P, v) {
       (typeof ev === 'number' ? ' · перевес <b>' + evText(ev) + '</b>' + (ev ? (ev > 0 ? ' у тебя' : ' у соперника') : '') : '') + '</div></div>';
 }
 // «Мастера»: итог над таблицей — до какого хода сверка шла по каждому источнику: «Карлсен — до 4-го · мастера — до 7-го · игроки 2000+ — до 9-го»
-function anMasterSummary(g, moments) {
-  if (!moments.length) return 'Сравнивать не с чем — у партии нет данных мастеров (обнови данные)';
+function anMasterSummary(g, moments) { return msSummary(g, moments.map(function(m) { return {p: m.p, src: m.ms.src}; })); }
+// rows — [{p, src}] по порядку ходов (src — подпись источника: «Карлсен», «мастера», «игроки 2000+», «любители 1800+»)
+function msSummary(g, rows) {
+  if (!rows.length) return 'Сравнивать не с чем — у партии нет данных мастеров (обнови данные)';
   var last = {}, order = [];
-  moments.forEach(function(m) {
-    var k = m.ms.tier === 'own' ? m.ms.src : MS_TIER[m.ms.tier].short;
+  rows.forEach(function(m) {
+    var k = m.src;
     if (!(k in last)) order.push(k);
     last[k] = Math.ceil(m.p / 2);
   });
-  var end = Math.ceil(moments[moments.length - 1].p / 2), total = Math.ceil(anPositions(g).n / 2);
+  var end = Math.ceil(rows[rows.length - 1].p / 2), total = Math.ceil((g.mv || '').split(' ').filter(Boolean).length / 2);
   order.sort(function(a, b) { return last[a] - last[b]; });   // по ходу, до которого дошёл источник
   return order.map(function(k) { return k + ' — до ' + last[k] + '-го'; }).join(' · ') +
     (end >= 20 ? ' · дальше не сравниваем (20 ходов)' : end < total ? ' · дальше позиции нет в базах' : '');

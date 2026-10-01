@@ -6605,6 +6605,10 @@ function aiSans(g) { return (g.mv || '').split(' ').filter(Boolean); }
 function aiLink(g, p) { return 'lichess.org/' + g.id + (g.color === 'black' ? '/black' : '') + (p ? '#' + p : ''); }
 function aiRef(g) { if (AI_REFS.indexOf(g) < 0) AI_REFS.push(g); }
 function aiGid(g) { return (PLAIN ? '' : '#' + g.n + ' ') + g.date; }
+function aiLineTo(g, p) {   // «1. e4 e5 2. Nf3 d6 3. Bc4»
+  return aiSans(g).slice(0, p).map(function(s, i) { return i % 2 ? s : (i / 2 + 1) + '. ' + s; }).join(' ');
+}
+function aiDevLine(off, g) { return '  ' + AL('ходы до отхода: ', 'moves up to the deviation: ') + aiLineTo(g, off.p) + AL(' — у мастеров: ', ' — the masters play: ') + off.top; }
 function aiMove(g, p) { var s = aiSans(g)[p - 1]; return anMoveNo(p) + (s || '?'); }
 // одна партия одной строкой: результат, как закончилась, точность по фазам, зевки, дебют, ссылка
 function aiGame(g) {
@@ -7073,6 +7077,7 @@ var AI_DATA = {
       if (!ms) return;
       aiRef(g); out.push('- ' + aiGid(g) + ' ' + AL(COLOR_WORD[g.color], 'as ' + COLOR_EN[g.color]) + ', ' + g.opening + ': ' + ms.replace(/^[^:]+: /, ''));
       var rows = msCompare(g, anMasters(g)[0] || 'all'), off = rows.filter(function(c) { return c.st !== 'top'; })[0];
+      if (off) out.push(aiDevLine(off, g));
       if (off) { var k = anMoveNo(off.p) + off.san + AL(' вместо ', ' instead of ') + off.top; cnt[k] = (cnt[k] || 0) + 1; }
     });
     if (out.length === 1) return [AL('Данных о ходах мастеров для последних партий нет', 'No master data for the recent games')];
@@ -7236,7 +7241,8 @@ var AI_COND = {
   losses:    [['одна главная причина', 'что исправить первым'], ['one main cause', 'what to fix first']],
   phase:     [['одна главная причина', 'что тренировать'], ['one main cause', 'what to train']],
   winloss:   [['одно главное отличие'], ['one main difference']],
-  deviate:   [['один главный отход от мастеров'], ['one main deviation from the masters']],
+  deviate:   [['один главный отход от мастеров', 'почему ход мастеров лучше — из общих шахматных знаний, с пометкой «обычно»', 'правило для запоминания — с указанием, после какого хода бота оно действует (смотри ходы до отхода)'],
+              ['one main deviation from the masters', 'why the masters\' move is better — from general chess knowledge, marked "usually"', 'a rule to remember — stating after which bot move it applies (see the moves up to the deviation)']],
   today:     function() { return [[aiTasks('ru'), 'всего ' + aiMin() + ' минут'].concat(aiBreak('ru') || []), [aiTasks('en'), aiMin() + ' minutes in total'].concat(aiBreak('en') || [])]; },
   week:      function() { return [['7 дней', aiMin() + ' минут в день'].concat(aiBreak('ru') || []), ['7 days', aiMin() + ' minutes a day'].concat(aiBreak('en') || [])]; },
   themes:    [['не больше 3 тем', 'сколько задач в день'], ['at most 3 themes', 'how many puzzles a day']],
@@ -7291,9 +7297,11 @@ AI_SIMPLE_TPL.plans = function() {   // идеи — из знаний моде�
   return [['1) ' + ru, '2) …', '3) …', '4) Где у меня ломалось: #партия — что случилось (из данных)', '5) Что отработать: …'],
           ['1) ' + en, '2) …', '3) …', '4) Where it broke down for me: #game — what happened (from the data)', '5) What to practise: …']];
 };
+AI_SIMPLE_TPL.deviate = [['Отход: #партия, ходы до отхода → мой ход …, у мастеров … (число из данных)', 'Почему ход мастеров лучше (обычно …): …', 'Когда так играть: после какого хода бота …', 'Как запомнить: …'],
+  ['Deviation: #game, moves up to it → my move …, the masters play … (number from the data)', 'Why the masters\' move is better (usually …): …', 'When to play it: after which bot move …', 'How to remember: …']];
 AI_SIMPLE_TPL.steps = [['Шаг 1: …', 'Шаг 2: …', '… не больше 6 шагов'], ['Step 1: …', 'Step 2: …', '… at most 6 steps']];
 AI_SIMPLE_TPL.progress = [['Стало лучше: … (было → стало)', 'Не изменилось или хуже: … (было → стало)', 'Дальше смотреть на: …'], ['Improved: … (before → now)', 'Unchanged or worse: … (before → now)', 'Watch next: …']];
-var AI_SIMPLE_KIND = {opLines: 'list5', opAway: 'advice', lastgame: 'game', weak: 'advice', typical: 'advice', opp: 'advice', losses: 'advice', phase: 'advice', winloss: 'advice', deviate: 'advice', themes: 'advice',
+var AI_SIMPLE_KIND = {opLines: 'list5', opAway: 'advice', lastgame: 'game', weak: 'advice', typical: 'advice', opp: 'advice', losses: 'advice', phase: 'advice', winloss: 'advice', deviate: 'deviate', themes: 'advice',
   goal: 'goal', checklist: 'list5', opening: 'list5', plans: 'plans', week: 'days', today: 'today', review: 'steps', weekcmp: 'progress', progress: 'progress'};
 // помощники лёгкого пакета: одна строка — одна партия / один зевок, с подписью
 function aiSGame(g) {   // «#2 28.09 — ПОРАЖЕНИЕ: точность 71%, миттельшпиль 68%, зевков 6, до эндшпиля НЕ дошли»
@@ -7462,6 +7470,7 @@ var AI_SIMPLE = {
       var ms = aiMs(g); if (!ms) return;
       out.push('- ' + aiGid(g) + ', ' + g.opening + ': ' + ms.replace(/^[^:]+: /, ''));
       var off = msCompare(g, anMasters(g)[0] || 'all').filter(function(c) { return c.st !== 'top'; })[0];
+      if (off) out.push(aiDevLine(off, g));
       if (off) { var k = anMoveNo(off.p) + off.san + AL(' вместо ', ' instead of ') + off.top; cnt[k] = (cnt[k] || 0) + 1; }
     });
     var rep = Object.keys(cnt).filter(function(k) { return cnt[k] > 1; }).sort(function(a, b) { return cnt[b] - cnt[a]; });

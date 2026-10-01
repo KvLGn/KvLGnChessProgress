@@ -754,6 +754,19 @@
   .op-slide { flex: 0 0 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .op-sl-lbl { color: var(--fg-mute); }
   .op-dots { flex-shrink: 0; display: flex; gap: 3px; }
+  .op-cur { position: relative; overflow: hidden; }
+  .op-ctrack { display: flex; }
+  .op-cslide { flex: 0 0 100%; min-width: 0; }
+  .op-cdots { position: absolute; right: 0; top: 9px; display: flex; gap: 3px; }
+  .op-cdots i { width: 4px; height: 4px; border-radius: 50%; background: var(--fg-mute); opacity: 0.5; transition: opacity 0.3s, background 0.3s; }
+  .op-cdots i.on { background: #60a5fa; opacity: 1; }
+  .opd-nav { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; vertical-align: middle; }
+  .opd-nav button { width: 18px; height: 18px; padding: 0; line-height: 1; font: 600 13px Inter, sans-serif; color: var(--fg-dim); background: none; border: 1px solid var(--border); border-radius: 5px; cursor: pointer; }
+  .opd-nav button:hover { color: var(--fg); border-color: var(--fg-dim); }
+  .opd-dots { display: inline-flex; gap: 3px; } .opd-dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--fg-mute); opacity: 0.5; } .opd-dots i.on { background: #60a5fa; opacity: 1; }
+  .opd-slide { overflow: hidden; } .opd-slide.in-r { animation: opdInR 0.3s ease; } .opd-slide.in-l { animation: opdInL 0.3s ease; }
+  @keyframes opdInR { from { transform: translateX(30%); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes opdInL { from { transform: translateX(-30%); opacity: 0; } to { transform: none; opacity: 1; } }
   .op-dots i { width: 3px; height: 3px; border-radius: 50%; background: var(--fg-mute); opacity: 0.5; transition: opacity 0.3s, background 0.3s; }
   .op-dots i.on { background: #60a5fa; opacity: 1; }
   .op-sub { font-size: 11px; color: var(--fg-mute); }
@@ -5660,18 +5673,44 @@ function renderOpeningCard() {
     return;
   }
   if (hush.head) { opN = 0; $('opCard').innerHTML = head + '<div class="hush-na">нет данных</div><div></div>'; startOpCarousel(); return; }
-  var cur = O.current[0], st = opStats(cur);
+  var cs = O.current, n = cs.length;
+  if (opCurIdx >= n) opCurIdx = 0;
+  // слайд = название + строка цифр этого дебюта; при нескольких — карусель вбок, первый слайд дублируется в конце для бесшовного круга
+  var slides = cs.map(function(o) { return '<div class="op-cslide"><div class="op-main" title="Изучаю сейчас">' + opName(o) + '</div><div class="op-line">' + opGamesLine(opStats(o)) + '</div></div>'; });
   $('opCard').innerHTML = head +
-    '<div class="op-main" title="Изучаю сейчас">' + opName(cur) + '</div>' +
-    '<div class="op-line">' + opGamesLine(st) + '</div>' +
+    (n > 1 ? '<div class="op-cur"><div class="op-ctrack" style="transform:translateX(' + (-100 * opCurIdx) + '%)">' + slides.join('') + slides[0] + '</div>' +
+      '<div class="op-cdots">' + cs.map(function(_, k) { return '<i' + (k === opCurIdx ? ' class="on"' : '') + '></i>'; }).join('') + '</div></div>'
+           : slides[0]) +
     '<div class="op-line op-next">' + opCarousel(O) + '</div>' +
     '<div class="op-sub">В планах: ' + (O.planned || []).length + ((O.done || []).length ? ' · изучено: ' + O.done.length : '') + '</div>';
   startOpCarousel();
+  startOpCurCarousel();
+}
+// какой изучаемый дебют сейчас показан: карточка и панель «Изучаю» всегда на одном и том же
+var opCurIdx = 0, opCurTimer = null, opCurStep = 0;
+function opCurShow(idx, animate) {   // повернуть карусель карточки на дебют idx (и точки)
+  var track = $('opCard').querySelector('.op-ctrack'), n = ((window.OPENINGS || {}).current || []).length;
+  if (!track || n < 2) return;
+  track.style.transition = animate ? 'transform 0.5s ease' : 'none';
+  track.style.transform = 'translateX(' + (-100 * idx) + '%)';
+  $('opCard').querySelectorAll('.op-cdots i').forEach(function(d, k) { d.classList.toggle('on', k === idx % n); });
+}
+function startOpCurCarousel() {
+  clearInterval(opCurTimer);
+  var n = ((window.OPENINGS || {}).current || []).length;
+  if (n < 2 || hush.head) return;
+  opCurStep = opCurIdx;
+  opCurTimer = setInterval(function() {
+    if (opPaused || $('sideRow').classList.contains('op-open')) return;   // при наведении и открытой панели — стоит
+    opCurStep++;
+    opCurShow(opCurStep, true);
+    opCurIdx = opCurStep % n;
+    if (opCurStep === n) setTimeout(function() { opCurStep = 0; opCurShow(0, false); }, 520);   // с дубля первого — назад без анимации
+  }, 5000);
 }
 // карусель «Далее / В планах»: по одному дебюту на слайд, сначала следующие, потом планы
 function opCarousel(O) {
-  var slides = (O.current || []).slice(1).map(function(o) { return ['Изучаю', o]; })
-    .concat((O.next || []).map(function(o) { return ['Далее', o]; }))
+  var slides = (O.next || []).map(function(o) { return ['Далее', o]; })
     .concat((O.planned || []).map(function(o) { return ['В планах', o]; }))
     .map(function(p) { return '<div class="op-slide"><span class="op-sl-lbl">' + p[0] + ':</span> ' + opName(p[1]) + '</div>'; });
   if (!slides.length) return 'Далее: —';
@@ -5710,6 +5749,7 @@ function studyLinks(o) {
   }).join('<span class="sep">·</span>');
 }
 
+var opdDir = 0;   // направление последнего листания в панели — для анимации въезда сбоку
 function renderOpeningDetail() {
   var O = window.OPENINGS || {};
   if (hush.head) {
@@ -5745,7 +5785,10 @@ function renderOpeningDetail() {
   }
   $('opDetail').innerHTML =
     '<button class="pzd-close op-close" aria-label="Закрыть">×</button>' +
-    '<div class="opd-col"><div class="pzd-title">Изучаю</div>' + (O.current || []).map(current).join('') + '</div>' +
+    '<div class="opd-col"><div class="pzd-title">Изучаю' + ((O.current || []).length > 1 ? '<span class="opd-nav"><button data-opd="-1" aria-label="Предыдущий дебют">‹</button>' +
+      '<span class="opd-dots">' + O.current.map(function(_, k) { return '<i' + (k === opCurIdx ? ' class="on"' : '') + '></i>'; }).join('') + '</span>' +
+      '<button data-opd="1" aria-label="Следующий дебют">›</button></span>' : '') + '</div>' +
+      '<div class="opd-slide' + (opdDir ? (opdDir > 0 ? ' in-r' : ' in-l') : '') + '">' + current((O.current || [])[opCurIdx] || O.current[0]) + '</div></div>' +
     '<div class="opd-col">' +
       '<div class="pzd-title">Следующие</div><div class="op-chips">' + ((O.next || []).length ? O.next.map(chip).join('') : '<span class="pzd-empty">—</span>') + '</div>' +
       '<div class="pzd-title" style="margin-top:8px">В планах</div><div class="op-chips">' + ((O.planned || []).length ? O.planned.map(chip).join('') : '<span class="pzd-empty">—</span>') + '</div>' +
@@ -5765,7 +5808,15 @@ $('opCard').addEventListener('keydown', function(e) {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleOpeningDetail(); }
 });
 $('opDetail').addEventListener('click', function(e) {
-  if (e.target.closest('.op-close')) toggleOpeningDetail(false);
+  if (e.target.closest('.op-close')) { toggleOpeningDetail(false); return; }
+  var b = e.target.closest('[data-opd]');
+  if (b) {   // листание изучаемых дебютов вручную; карточка поворачивается на тот же дебют
+    var n = ((window.OPENINGS || {}).current || []).length;
+    opdDir = +b.getAttribute('data-opd');
+    opCurIdx = (opCurIdx + opdDir + n) % n;
+    renderOpeningDetail(); opdDir = 0;
+    opCurStep = opCurIdx; opCurShow(opCurIdx, true);
+  }
 });
 // панель дебютов закрывается только кликом по карточке или ×, как задачи и итоги (раньше — при уходе курсора)
 

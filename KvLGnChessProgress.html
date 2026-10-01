@@ -250,6 +250,9 @@
   .link-glyph { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 22px; line-height: 1; border-radius: 7px; background: rgba(167,139,250,0.15); color: #c4b5fd; }
   .link-name { font-size: 13px; font-weight: 600; line-height: 1.2; }
   .link-sub { font-size: 10px; color: var(--fg-dim); }
+  button.link { font: inherit; text-align: left; cursor: pointer; }
+  .link-glyph-help { background: rgba(74,222,128,0.13); font-size: 17px; }
+  .link-help:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: 0 2px 0 rgba(0,0,0,0.45), 0 4px 10px rgba(0,0,0,0.25); border-color: var(--border); }
   .link-go { margin-left: 6px; font-size: 11px; color: var(--fg-mute); transition: color 0.15s; }
   .link:hover .link-go { color: var(--c); }
   .link-sep { display: none; }
@@ -1690,6 +1693,11 @@
         <div class="link-glyph">♝</div>
         <div><div class="link-name">PGN Mentor</div><div class="link-sub">партии мастеров</div></div><span class="link-go">↗</span>
       </a>
+      <div class="link-sep"></div>
+      <button class="link link-help" id="helpBtn" type="button" style="--c:#4ade80" title="Готовые вопросы для нейросети или человека: клик по пункту — копия текста">
+        <div class="link-glyph link-glyph-help">📋</div>
+        <div><div class="link-name">Справка</div><div class="link-sub">вопросы для ИИ и людей</div></div>
+      </button>
       <button class="sect-eye" id="eyeHead" type="button" data-sec="head"></button>
       <div class="mn" id="mn">
         <button class="mn-btn" id="menuBtn" type="button" title="Меню (Ctrl+K)" aria-label="Меню" aria-haspopup="true" aria-expanded="false">
@@ -5954,7 +5962,6 @@ function renderVerdictDetail() {
   }
   $('vdDetail').innerHTML =
     '<div class="vdx-head"><span class="vdx-h">🎯 Итоги</span>' + stage +
-      '<button class="vd-ai" type="button" title="Готовые вопросы для нейросети или человека: клик — копия текста">📋 Справка</button>' +
       '<button class="pzd-close vd-close" aria-label="Закрыть">×</button></div>' +
     '<div class="vdx-cols">' +
       col('bad', '▼ Что улучшить', 'var(--red)', 'Слабых мест не найдено') +
@@ -6015,7 +6022,6 @@ $('vdCard').addEventListener('keydown', function(e) {
 });
 $('vdDetail').addEventListener('click', function(e) {
   if (e.target.closest('.vd-close')) { toggleVerdict(false); return; }
-  if (e.target.closest('.vd-ai')) { copySummary(); return; }
   var t = e.target.closest('.vd-tab');
   if (t) { vdTab = t.getAttribute('data-t'); vdPage = 0; renderVerdictDetail(); return; }
   var p = e.target.closest('.vd-pager button');
@@ -6913,7 +6919,6 @@ function gsIndex() {
   ext('Мой профиль на Lichess', 'lichess.org/@/KvLGn', 'профиль аккаунт', 'https://lichess.org/@/KvLGn');
 
   /* --- сервисные --- */
-  add('Сервис', '📋', 'Справка', 'готовые вопросы для ИИ или человека: совет, план на неделю, разбор поражений, правка плана', 'сводка ии ai нейросеть chatgpt промпт копировать', copySummary);
   add('Сервис', '⟳', 'Как обновить данные', 'запусти progress/update.bat · обновлено: ' + (window.GAMES_UPDATED || '—'), 'обновить данные update bat', function() { gsFlash($('footer')); });
   add('Сервис', '↓', 'К графику', 'показатели, активность, анализ — блок как есть', 'график показатели активность анализ', function() {
     window.scrollTo({top: $('chartBox').closest('.section').getBoundingClientRect().top + window.scrollY - 12, behavior: 'smooth'}); });
@@ -7066,6 +7071,8 @@ function mnOpen() {
   $('mn').classList.add('open'); $('menuBtn').classList.add('open'); $('menuBtn').setAttribute('aria-expanded', 'true');
 }
 function mnClose() { $('mn').classList.remove('open'); $('menuBtn').classList.remove('open'); $('menuBtn').setAttribute('aria-expanded', 'false'); }
+// «Справка» — кнопка в шапке; копирует данные со всех частей, поэтому при любой скрытой части недоступна
+$('helpBtn').addEventListener('click', function(e) { e.stopPropagation(); if (!hushAny()) copySummary(); });
 $('menuBtn').addEventListener('click', function(e) { e.stopPropagation(); if ($('mn').classList.contains('open')) mnClose(); else mnOpen(); });
 // наведение на группу (компьютер) и клик (телефон) — её содержимое справа
 $('mnPanel').addEventListener('mouseover', function(e) {
@@ -7137,6 +7144,8 @@ function applyHush() {
     b.title = (on ? 'Показать ' : 'Скрыть ') + SECT_NAME[b.getAttribute('data-sec')];
     b.setAttribute('aria-label', b.title);
   });
+  $('helpBtn').disabled = hushAny();
+  $('helpBtn').title = hushAny() ? 'Справка недоступна, пока часть страницы скрыта' : 'Готовые вопросы для нейросети или человека: клик по пункту — копия текста';
   $('menuBtn').disabled = hushAll();   // всё скрыто — меню недоступно
   $('menuBtn').title = hushAll() ? 'Меню недоступно — всё скрыто' : 'Меню (Ctrl+K)';
   if (hushAll()) mnClose();

@@ -8,10 +8,9 @@ Russian first, English at the end — both say the same, use either.
 ## 🇷🇺 Как пользоваться (для человека)
 
 1. **Проще всего:** на сайте https://kvlgn.github.io/KvLGnChessProgress/ нажми в шапке **«📋 Справка»** (режим «Для ИИ»)
-   и выбери пункт — скопируется готовый пакет: задача и формат ответа сверху, роль и правила, словарь терминов,
-   коротко «обо мне», данные именно под этот вопрос (партии, зевки с ходами «сыграл / лучше», ошибки бота, маты,
-   сверка с мастерами, задачи) и задача ещё раз в конце; для правки плана — ещё и полный plan.js.
-   Пакет рассчитан на любую нейросеть, даже слабую (Алиса, GigaChat): обычно 4–7 тыс. знаков, правка плана — до 12 тыс.
+   и выбери пункт — скопируется готовый пакет: короткий промпт, сводка с сайта (этап, партии, дебюты, задачи, выводы сайта),
+   данные именно под этот вопрос (партии, зевки с ходами «сыграл / лучше», ошибки бота, маты, сверка с мастерами) и просьба;
+   для правки плана — ещё и полный plan.js. Обычно 5–8 тыс. знаков, правка плана — до 15 тыс.
    Вставь в нейросеть и отправь — этот файл тогда не нужен.
    Режим **«Для человека»** копирует письмо тренеру / в чат шахматистов (начало годится как пост, ниже подробности
    со ссылками на ходы Lichess) или пошаговое задание программисту для правки плана.
@@ -75,8 +74,7 @@ Russian first, English at the end — both say the same, use either.
    Когда ссылаешься на партию, сверяй её результат и цифры с данными; не обобщай («все три — поражения»), если это верно не для всех.
    Перфоманс темы задач — не рейтинг.
    Отделяй факты из данных от предположений: всё, чего нет в цифрах, помечай словом «возможно» (типы зевков и лучшие ходы в данных сайта есть — на них можно опираться).
-9. Не придумывай того, чего нет в данных: сравнений, причин, тем задач, минут, рейтингов; свой вывод начинай со слова «возможно».
-10. Пиши по-русски, коротко. Обращайся к игроку на «вы» («вы сыграли», «у вас 86%») — пол игрока не указан, с «вы» его не нужно угадывать.
+9. Пиши по-русски, коротко, списком.
 
 **Как рассуждать о плане:**
 - Порядок: сначала один дебют за белых против текущего бота → добавить дебюты за чёрных и стабильно бить того же бота
@@ -137,8 +135,7 @@ Answer rules:
 8. Use only the summary data; if data is thin (< 5 games in a section), say so. When you cite a game, check its result and numbers against the data;
    do not generalise ("all three were losses") unless true for all. A puzzle theme performance is not a rating.
    Separate facts from assumptions: mark anything not in the numbers with "possibly" (blunder types and best moves are in the site data — rely on them).
-9. Do not invent anything that is not in the data (comparisons, causes, puzzle themes, minutes, ratings); start your own conclusions with "possibly".
-10. Reply in Russian, briefly. Do not assume the player's gender — keep the wording neutral (in Russian address the player as «вы»).
+9. Reply in Russian, briefly, as a list.
 
 How to reason about the plan: one white opening vs the current bot → add black openings and beat the same bot with both colours → next Stockfish level with both colours.
 A failing five shows the weakness: few wins → play more/slower; median accuracy below threshold → error review, puzzles for the weak phase; weak losses (many blunders) → hanging-piece puzzles.

@@ -964,6 +964,41 @@
     opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
   .vdx-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+  /* «Схема» в «Итогах»: паутинка как в Доте — последние партии против предыдущих */
+  .vdx-head .vd-rd-btn { margin-left: auto; font: 600 11px Inter, sans-serif; letter-spacing: 0.5px; color: #a5b4fc; background: none; border: 1px solid rgba(129,140,248,0.4);
+    border-radius: 7px; padding: 5px 12px; cursor: pointer; white-space: nowrap; }
+  .vdx-head .vd-rd-btn:hover { border-color: #818cf8; color: #c7d2fe; }
+  .vdx-head .vd-rd-btn + .vd-close { margin-left: 0; }
+  .vd-detail.vdx.rd-on { height: 640px; }   /* схема — той же высоты, что списки, без прыжка при переключении */
+  .rd { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 26px; }
+  .rd-left { min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+  .rd-bar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center; margin-bottom: 4px; }
+  .rd-seg { display: inline-flex; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
+  .rd-seg button { font: 500 11px Inter, sans-serif; color: var(--fg-dim); background: none; border: none; border-radius: 6px; padding: 4px 9px; cursor: pointer; white-space: nowrap; }
+  .rd-seg button:hover { color: var(--fg); }
+  .rd-seg button.on { background: var(--bg-card-hover); color: var(--fg); }
+  .rd-svg { width: 100%; max-width: 540px; flex: 1; min-height: 0; }
+  .rd-svg text { font: 600 11px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; fill: #cbd5e1; }
+  .rd-svg .rd-pt { cursor: default; }
+  .rd-tip { position: absolute; z-index: 5; pointer-events: none; display: none; white-space: nowrap; font-size: 12px; line-height: 1.45; color: var(--fg-dim);
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
+  .rd-tip b { color: var(--fg); }
+  .rd-right { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 6px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+  .rd-leg { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--fg-dim); }
+  .rd-leg i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+  .rd-note { font-size: 12px; color: var(--fg-mute); line-height: 1.5; }
+  .rd-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .rd-tbl th { font: 600 10px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); text-align: right; padding: 0 0 6px 10px; }
+  .rd-tbl th:first-child, .rd-tbl td:first-child { text-align: left; padding-left: 0; }
+  .rd-tbl td { padding: 5px 0 5px 10px; text-align: right; color: var(--fg); border-top: 1px solid rgba(46,50,68,0.6); white-space: nowrap; }
+  .rd-tbl td:first-child { color: var(--fg-dim); white-space: normal; }
+  .rd-tbl td.was { color: var(--fg-mute); }
+  .rd-tbl .up { color: var(--green); } .rd-tbl .down { color: var(--red); } .rd-tbl .same { color: var(--fg-mute); }
+  .rd-ck { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 14px; font-size: 12px; color: var(--fg-dim); }
+  .rd-ck label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .rd-ck label:hover { color: var(--fg); }
+  .rd-ck input { accent-color: #818cf8; }
+  .rd-ck .rd-ckg { grid-column: 1 / -1; font: 600 10px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); margin-top: 6px; }
   .vdx-col { min-height: 0; display: flex; flex-direction: column; }
   .vdx-title { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
   .vdx-title span { color: var(--fg-mute); font-weight: 400; margin-left: 4px; }
@@ -6329,15 +6364,193 @@ function renderVerdictDetail() {
     return '<div class="vdx-col"><div class="vdx-title" style="color:' + color + '">' + title + ' <span>' + items.length + '</span></div>' +
       '<div class="vdx-list">' + (items.length ? html : '<div class="pzd-empty">' + empty + '</div>') + '</div></div>';
   }
+  $('vdDetail').classList.toggle('rd-on', RD.on);
   $('vdDetail').innerHTML =
     '<div class="vdx-head"><span class="vdx-h">🎯 Итоги</span>' + stage +
+      '<button class="vd-rd-btn" type="button" title="' + (RD.on ? 'Вернуть списки' : 'Схема: сильные и слабые стороны — последние партии против предыдущих') + '">' + (RD.on ? 'Список' : 'Схема') + '</button>' +
       '<button class="pzd-close vd-close" aria-label="Закрыть">×</button></div>' +
+    (RD.on ? rdHtml() :
     '<div class="vdx-cols">' +
       col('bad', '▼ Что улучшить', 'var(--red)', 'Слабых мест не найдено') +
       col('good', '▲ Что идёт хорошо', 'var(--green)', 'Пока мало данных') +
       col('tip', '💡 План', '#fbbf24', 'Пока нечего советовать') +
-    '</div>';
+    '</div>');
 }
+
+/* ---------- «Итоги» → «Схема»: паутинка (как в Доте) — последние W партий против W перед ними ----------
+   Шкала «Я против себя»: центр — твой худший уровень за всю историю (по скользящему окну из W партий), край — лучший.
+   Шкала «К цели этапа»: оси — условия правила rule; центр — первые W партий этапа, край (зелёный контур) — требование правила.
+   Параметр = {k, label, group, fn(list) → число | null, low: меньше — лучше, fmt}. Новый параметр — одна строка в RD_METRICS. */
+var RD = {on: false, scale: 'self', set: 'main', custom: ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles']};
+try { var rdSaved = JSON.parse(localStorage.getItem('vdRadar.v1') || 'null'); if (rdSaved) for (var rk in rdSaved) RD[rk] = rdSaved[rk]; } catch (e) {}
+function rdSave() { try { localStorage.setItem('vdRadar.v1', JSON.stringify(RD)); } catch (e) {} }
+function rdAvg(list, f) { var v = list.map(f).filter(function(x) { return x !== null && x !== undefined; }); return v.length ? v.reduce(function(a, b) { return a + b; }, 0) / v.length : null; }
+function rdBlType(t) { return function(list) { return list.length ? list.reduce(function(s, g) { return s + (g.bl || []).filter(function(b) { return b.t === t; }).length; }, 0) / list.length : null; }; }
+var rdPct = function(v) { return Math.round(v) + '%'; }, rdOne = function(v) { return v.toFixed(1); };
+var RD_METRICS = [
+  {k: 'acc', label: 'Точность', group: 'Фазы', fn: function(l) { return rdAvg(l, function(g) { return g.acc; }); }, fmt: rdPct},
+  {k: 'debut', label: 'Дебют', group: 'Фазы', fn: function(l) { return rdAvg(l, function(g) { return g.debut; }); }, fmt: rdPct},
+  {k: 'mid', label: 'Миттельшпиль', group: 'Фазы', fn: function(l) { return rdAvg(l, function(g) { return g.mid; }); }, fmt: rdPct},
+  {k: 'end', label: 'Эндшпиль', group: 'Фазы', fn: function(l) { return rdAvg(l, function(g) { return g.end; }); }, fmt: rdPct},
+  {k: 'blunders', label: 'Зевки', group: 'Ошибки', low: true, fn: function(l) { return rdAvg(l, function(g) { return g.blunders; }); }, fmt: rdOne, unit: 'за партию'},
+  {k: 'mistakes', label: 'Ошибки', group: 'Ошибки', low: true, fn: function(l) { return rdAvg(l, function(g) { return g.mistakes; }); }, fmt: rdOne, unit: 'за партию'},
+  {k: 'inacc', label: 'Неточности', group: 'Ошибки', low: true, fn: function(l) { return rdAvg(l, function(g) { return g.inacc; }); }, fmt: rdOne, unit: 'за партию'},
+  {k: 'hang', label: 'Под боем', group: 'Ошибки', low: true, fn: rdBlType('hang'), fmt: rdOne, unit: 'зевков за партию'},
+  {k: 'tactic', label: 'Тактика бота', group: 'Ошибки', low: true, fn: rdBlType('tactic'), fmt: rdOne, unit: 'зевков за партию'},
+  {k: 'punish', label: 'Наказание', group: 'Против бота', more: 'доля зевков бота, после которых перевес сохранён', fn: function(l) {
+    var o = []; l.forEach(function(g) { if (g.mv) o = o.concat(mrOppBlunders(g)); });
+    return o.length ? o.filter(function(x) { return x.kept; }).length / o.length * 100 : null; }, fmt: rdPct},
+  {k: 'convert', label: 'Реализация', group: 'Против бота', more: 'партии, где был перевес +3 и больше, — сколько выиграно', fn: function(l) {
+    var had = l.filter(function(g) { return g.ev && Math.max.apply(null, g.ev) >= 30; });
+    return had.length ? had.filter(function(g) { return g.result === 'win'; }).length / had.length * 100 : null; }, fmt: rdPct},
+  {k: 'defend', label: 'Защита', group: 'Против бота', more: 'партии, где перевес был у бота (−3 и хуже), — сколько не проиграно', fn: function(l) {
+    var bad = l.filter(function(g) { return g.ev && Math.min.apply(null, g.ev) <= -30; });
+    return bad.length ? bad.filter(function(g) { return g.result !== 'lose'; }).length / bad.length * 100 : null; }, fmt: rdPct},
+  {k: 'winrate', label: 'Победы', group: 'Против бота', fn: function(l) { return l.length ? winrate(l) : null; }, fmt: rdPct},
+  {k: 'theory', label: 'Теория', group: 'Дебют', more: 'сколько своих ходов подряд как у мастеров', fn: function(l) {
+    return rdAvg(l, function(g) {
+      var rows = msCompare(g, 'all').filter(function(c) { return anMine(g, c.p); });
+      if (!rows.length) return null;
+      var k = 0; for (var i = 0; i < rows.length && rows[i].st !== 'off'; i++) k++;
+      return k;
+    }); }, fmt: rdOne, unit: 'ходов'},
+  {k: 'puzzles', label: 'Задачи', group: 'Задачи', more: 'перфоманс по задачам за дни этих партий', fn: function(l) {
+    var att = ((window.PUZZLES || {}).attempts || []), days = {};
+    l.forEach(function(g) { days[g.day] = true; });
+    var a = att.filter(function(x) { return days[x.day]; });
+    return a.length >= 5 ? pzPerf(a) : null; }, fmt: function(v) { return String(Math.round(v)); }}
+];
+var RD_SETS = [
+  {k: 'main', name: 'Главное', keys: ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles']},
+  {k: 'phases', name: 'Фазы', keys: ['debut', 'mid', 'end', 'acc', 'theory']},
+  {k: 'errors', name: 'Ошибки', keys: ['blunders', 'mistakes', 'inacc', 'hang', 'tactic']},
+  {k: 'bot', name: 'Против бота', keys: ['punish', 'convert', 'defend', 'winrate']},
+  {k: 'custom', name: 'Свой', keys: null}
+];
+function rdMetric(k) { return RD_METRICS.filter(function(m) { return m.k === k; })[0]; }
+// оси «К цели этапа» — условия правила rule (на партиях этапа против его бота)
+function rdGoalMetrics() {
+  var R = RULE;
+  return [
+    {k: 'g-win', label: 'Победы', more: 'побед в пятёрке', goal: R.wins, fn: function(l) { return l.length ? l.filter(function(g) { return g.result === 'win'; }).length / l.length * R.games : null; },
+      fmt: function(v) { return v.toFixed(1) + ' из ' + R.games; }},
+    {k: 'g-med', label: 'Медиана точности', goal: R.medianAcc, fn: function(l) { return l.length ? median(l.map(function(g) { return g.acc; })) : null; }, fmt: rdPct},
+    {k: 'g-honest', label: 'Честные поражения', more: 'невыигранные партии с точностью ≥ ' + R.lossMinAcc + '% и зевков ≤ ' + R.lossMaxBlunders, goal: 100, fn: function(l) {
+      var nw = l.filter(function(g) { return g.result !== 'win'; }); return nw.length ? nw.filter(honestLoss).length / nw.length * 100 : null; }, fmt: rdPct},
+    {k: 'g-lacc', label: 'Точность поражений', goal: R.lossMinAcc, fn: function(l) { return rdAvg(l.filter(function(g) { return g.result !== 'win'; }), function(g) { return g.acc; }); }, fmt: rdPct},
+    {k: 'g-lbl', label: 'Зевки в поражениях', low: true, goal: R.lossMaxBlunders, fn: function(l) { return rdAvg(l.filter(function(g) { return g.result !== 'win'; }), function(g) { return g.blunders; }); },
+      fmt: rdOne, unit: 'за партию'}
+  ];
+}
+function rdData() {
+  var goal = RD.scale === 'goal';
+  var list = goal ? [].concat.apply([], CUR.colors.map(function(c) { return c.rel; })).sort(function(a, b) { return a.n - b.n; }) : games.slice();
+  var n = list.length, W = n >= 20 ? 10 : Math.floor(n / 2);
+  var keys = goal ? null : (RD.set === 'custom' ? RD.custom : RD_SETS.filter(function(x) { return x.k === RD.set; })[0].keys);
+  var metrics = goal ? rdGoalMetrics() : keys.map(rdMetric).filter(Boolean);
+  if (W < 3) return {n: n, W: W, axes: [], goal: goal};
+  var A = list.slice(-W), B = list.slice(-2 * W, -W), first = list.slice(0, W);
+  var axes = metrics.map(function(m) {
+    var a = m.fn(A), b = m.fn(B), lo, hi, r = function() { return null; };
+    if (goal) {   // центр — начало этапа, край — требование правила (дальше края — с запасом, до 1.15)
+      var st = m.fn(first), gl = m.goal;
+      lo = st; hi = gl;
+      r = function(v) {
+        if (v === null) return null;
+        var good = m.low ? v <= gl : v >= gl;
+        if (good) return Math.min(1.15, 1 + (m.low ? gl - v : v - gl) / Math.max(1, Math.abs(gl)) * 0.5);
+        if (st === null || st === gl || (m.low ? st <= v : st >= v)) return 0.12;
+        return 0.12 + 0.88 * Math.max(0, Math.min(1, (v - st) / (gl - st)));
+      };
+    } else {     // худший и лучший уровень за историю — по всем окнам из W партий подряд
+      var vals = [];
+      for (var i = W; i <= n; i++) { var v = m.fn(list.slice(i - W, i)); if (v !== null) vals.push(v); }
+      if (vals.length) { lo = Math.min.apply(null, vals); hi = Math.max.apply(null, vals); }
+      if (m.low && vals.length) { var t = lo; lo = hi; hi = t; }   // для «меньше — лучше» худшее — максимум
+      r = function(v) { if (v === null || lo === undefined) return null; if (hi === lo) return 0.55; return 0.12 + 0.88 * Math.max(0, Math.min(1, (v - lo) / (hi - lo))); };
+    }
+    return {m: m, a: a, b: b, ra: r(a), rb: B.length === W ? r(b) : null, lo: lo, hi: hi};
+  });
+  return {n: n, W: W, axes: axes, goal: goal, hasB: B.length === W};
+}
+function rdHtml() {
+  var D = rdData(), S = 360, C = S / 2, R0 = 128;
+  var bar = '<div class="rd-bar"><span class="rd-seg">' +
+      [['self', 'Я против себя'], ['goal', 'К цели этапа']].map(function(x) { return '<button type="button" data-rds="' + x[0] + '" class="' + (RD.scale === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '</span>' +
+    (D.goal ? '' : '<span class="rd-seg">' + RD_SETS.map(function(x) { return '<button type="button" data-rdset="' + x.k + '" class="' + (RD.set === x.k ? 'on' : '') + '">' + x.name + '</button>'; }).join('') + '</span>') + '</div>';
+  var axes = D.axes, k = axes.length, svg = '';
+  if (k < 3) {
+    svg = '<div class="rd-note" style="margin-top:40px">' + (D.W < 3 ? 'Мало партий для схемы: нужно хотя бы 6' + (D.goal ? ' партий этапа' : '') + ', сейчас ' + D.n + '.' : 'Выбери хотя бы 3 параметра.') + '</div>';
+  } else {
+    var ang = function(i) { return -Math.PI / 2 + i * 2 * Math.PI / k; };
+    var pt = function(i, r) { return [C + Math.cos(ang(i)) * R0 * r, C + Math.sin(ang(i)) * R0 * r]; };
+    var poly = function(rs) { return rs.map(function(r, i) { var q = pt(i, r === null ? 0.12 : r); return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' '); };
+    var g = '';
+    [0.25, 0.5, 0.75, 1].forEach(function(r) { g += '<polygon points="' + poly(axes.map(function() { return r; })) + '" fill="' + (r === 1 ? 'rgba(255,255,255,0.025)' : 'none') + '" stroke="rgba(255,255,255,' + (r === 1 ? 0.16 : 0.07) + '"/>'; });
+    axes.forEach(function(x, i) { var q = pt(i, 1); g += '<line x1="' + C + '" y1="' + C + '" x2="' + q[0].toFixed(1) + '" y2="' + q[1].toFixed(1) + '" stroke="rgba(255,255,255,0.07)"/>'; });
+    if (D.goal) g += '<polygon points="' + poly(axes.map(function() { return 1; })) + '" fill="none" stroke="#4ade80" stroke-opacity="0.55" stroke-dasharray="5 4"/>';
+    if (D.hasB) g += '<polygon points="' + poly(axes.map(function(x) { return x.rb; })) + '" fill="rgba(156,163,175,0.12)" stroke="#9ca3af" stroke-opacity="0.7" stroke-dasharray="4 3"/>';
+    g += '<polygon points="' + poly(axes.map(function(x) { return x.ra; })) + '" fill="rgba(251,146,60,0.22)" stroke="#fb923c" stroke-width="1.6"/>';
+    axes.forEach(function(x, i) {
+      if (x.ra === null) return;
+      var q = pt(i, x.ra);
+      g += '<circle class="rd-pt" data-rdi="' + i + '" cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="5" fill="#fdba74" stroke="#1a1d27" stroke-width="1.5"/>';
+    });
+    axes.forEach(function(x, i) {   // длинная подпись — в две строки (по пробелу ближе к середине)
+      var q = pt(i, 1.17), c = Math.cos(ang(i)), sn = Math.sin(ang(i)), anchor = Math.abs(c) < 0.3 ? 'middle' : c > 0 ? 'start' : 'end';
+      var lines = [x.m.label], sp = [];
+      if (x.m.label.length > 11) { x.m.label.replace(/ /g, function(m, at) { sp.push(at); }); }
+      if (sp.length) { var cut = sp.sort(function(a, b) { return Math.abs(a - x.m.label.length / 2) - Math.abs(b - x.m.label.length / 2); })[0]; lines = [x.m.label.slice(0, cut), x.m.label.slice(cut + 1)]; }
+      var y0 = q[1] + 4 - (lines.length - 1) * (sn < -0.3 ? 13 : sn > 0.3 ? 0 : 6.5);
+      g += '<text x="' + q[0].toFixed(1) + '" y="' + y0.toFixed(1) + '" text-anchor="' + anchor + '"' + (x.ra === null ? ' opacity="0.4"' : '') + '>' +
+        lines.map(function(t, j) { return '<tspan x="' + q[0].toFixed(1) + '" dy="' + (j ? 13 : 0) + '">' + esc(t) + '</tspan>'; }).join('') + '</text>';
+    });
+    svg = '<svg class="rd-svg" viewBox="-95 -24 ' + (S + 190) + ' ' + (S + 48) + '">' + g + '</svg>';
+  }
+  // справа: легенда, пояснение шкалы и таблица «сейчас / было»
+  var W = D.W, wN = W + ' ' + plural(W, 'партия', 'партии', 'партий');
+  var leg = '<div class="rd-leg"><span><i style="background:#fb923c"></i>последние ' + wN + '</span>' + (D.hasB ? '<span><i style="background:#9ca3af"></i>' + wN + ' перед ними</span>' : '') +
+    (D.goal ? '<span><i style="background:#4ade80"></i>требование правила</span>' : '') + '</div>';
+  var note = D.goal
+    ? 'Оси — условия перехода на следующий этап (партии этапа против его бота). Центр — где ты был в начале этапа, зелёный контур — требование правила; за контуром — с запасом.'
+    : 'Каждая ось — от твоего худшего уровня (центр) до лучшего (край) за всю историю, по ' + wN + ' подряд. Это сравнение с самим собой, а не с другими игроками.';
+  var fmt = function(x, v) { return v === null || v === undefined ? '—' : x.m.fmt(v); };
+  var rows = axes.map(function(x) {
+    var d = x.a !== null && x.b !== null ? x.a - x.b : null, better = d === null || Math.abs(d) < 1e-9 ? null : (x.m.low ? d < 0 : d > 0);
+    return '<tr><td title="' + esc(x.m.more || '') + '">' + esc(x.m.label) + '</td><td>' + fmt(x, x.a) + '</td>' + (D.hasB ? '<td class="was">' + fmt(x, x.b) + '</td><td class="' + (better === null ? 'same' : better ? 'up' : 'down') + '">' +
+      (d === null ? '—' : better === null ? '=' : (better ? '▲' : '▼')) + '</td>' : '') + '<td class="was">' + (D.goal ? fmt(x, x.m.goal) : fmt(x, x.m.low ? x.hi : x.hi)) + '</td></tr>';
+  }).join('');
+  var tbl = k ? '<table class="rd-tbl"><tr><th></th><th>сейчас</th>' + (D.hasB ? '<th>было</th><th></th>' : '') + '<th>' + (D.goal ? 'нужно' : 'лучшее') + '</th></tr>' + rows + '</table>' : '';
+  var ck = '';
+  if (!D.goal && RD.set === 'custom') {
+    var groups = [];
+    RD_METRICS.forEach(function(m) { if (groups.indexOf(m.group) < 0) groups.push(m.group); });
+    ck = '<div class="rd-ck">' + groups.map(function(gname) {
+      return '<div class="rd-ckg">' + gname + '</div>' + RD_METRICS.filter(function(m) { return m.group === gname; }).map(function(m) {
+        var on = RD.custom.indexOf(m.k) >= 0, lock = (on && RD.custom.length <= 3) || (!on && RD.custom.length >= 8);
+        return '<label' + (lock ? ' style="opacity:0.5"' : '') + '><input type="checkbox" data-rdck="' + m.k + '"' + (on ? ' checked' : '') + (lock ? ' disabled' : '') + '>' + esc(m.label) + '</label>';
+      }).join('');
+    }).join('') + '</div><div class="rd-note">От 3 до 8 параметров.</div>';
+  }
+  return '<div class="rd"><div class="rd-left">' + bar + svg + '<div class="rd-tip"></div></div>' +
+    '<div class="rd-right">' + leg + '<div class="rd-note">' + note + '</div>' + tbl + ck + '</div></div>';
+}
+// подсказка у точки: настоящее значение, было, лучшее / худшее или цель
+$('vdDetail').addEventListener('mouseover', function(e) {
+  var c = e.target.closest && e.target.closest('.rd-pt'), tip = $('vdDetail').querySelector('.rd-tip');
+  if (!tip) return;
+  if (!c) { tip.style.display = 'none'; return; }
+  var D = rdData(), x = D.axes[+c.getAttribute('data-rdi')];
+  if (!x) return;
+  var f = function(v) { return v === null || v === undefined ? '—' : x.m.fmt(v); };
+  tip.innerHTML = '<b>' + esc(x.m.label) + ': ' + f(x.a) + '</b>' + (x.m.unit ? ' ' + x.m.unit : '') + (D.hasB ? ' <span>(было ' + f(x.b) + ')</span>' : '') +
+    (x.m.more ? '<div>' + esc(x.m.more) + '</div>' : '') +
+    '<div>' + (D.goal ? 'начало этапа ' + f(x.lo) + ' · нужно ' + f(x.m.goal) : 'худшее ' + f(x.lo) + ' · лучшее ' + f(x.hi)) + '</div>';
+  tip.style.display = 'block';
+  var box = tip.parentNode.getBoundingClientRect(), cb = c.getBoundingClientRect();
+  tip.style.left = Math.max(0, Math.min(box.width - tip.offsetWidth, cb.left - box.left - tip.offsetWidth / 2)) + 'px';
+  tip.style.top = (cb.top - box.top - tip.offsetHeight - 8) + 'px';
+});
 
 function toggleVerdict(open) {
   var row = $('sideRow');
@@ -6391,6 +6604,18 @@ $('vdCard').addEventListener('keydown', function(e) {
 });
 $('vdDetail').addEventListener('click', function(e) {
   if (e.target.closest('.vd-close')) { toggleVerdict(false); return; }
+  if (e.target.closest('.vd-rd-btn')) { RD.on = !RD.on; rdSave(); renderVerdictDetail(); return; }
+  var rb = e.target.closest('[data-rds]');
+  if (rb) { RD.scale = rb.getAttribute('data-rds'); rdSave(); renderVerdictDetail(); return; }
+  rb = e.target.closest('[data-rdset]');
+  if (rb) { RD.set = rb.getAttribute('data-rdset'); rdSave(); renderVerdictDetail(); return; }
+  rb = e.target.closest('[data-rdck]');
+  if (rb) {
+    var ck = rb.getAttribute('data-rdck'), at = RD.custom.indexOf(ck);
+    if (rb.checked && at < 0 && RD.custom.length < 8) RD.custom.push(ck);
+    else if (!rb.checked && at >= 0 && RD.custom.length > 3) RD.custom.splice(at, 1);
+    rdSave(); renderVerdictDetail(); return;
+  }
   if (e.target.closest('a')) return;   // ссылка на Lichess — своя
   var it = e.target.closest('.vdx-item.go');
   if (it) { var v = vdItems[+it.getAttribute('data-vi')]; toggleVerdict(false); if (v && v.go) v.go(); return; }

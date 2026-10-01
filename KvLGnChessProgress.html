@@ -1150,7 +1150,8 @@
   .hit:hover, .hit.active { fill: rgba(255,255,255,0.035); }
 
   /* черта над нижней строкой — только под панелью «Средние» (над винрейтом), над легендой её нет */
-  .legend-rule { width: 100%; height: 3px; background: linear-gradient(to right, #2a2e3f 0, #2a2e3f 203px, transparent 203px); }
+  .legend-rule { width: 100%; height: 3px; background: linear-gradient(to right, #2a2e3f 0, #2a2e3f 203px, transparent 203px);
+    position: relative; top: -8px; }   /* чуть выше — винрейт / ELO под ней свободнее (общая для «Показателей» и «Активности») */
   .legend .legend-item { position: relative; top: -24px; }
   .legend {
     display: flex;
@@ -1713,7 +1714,7 @@
     .act-range b { font-size: 13px; }
     .records-on .rec-scope { display: flex; margin-left: auto; margin-right: auto; }
     .chart-area { order: 3; }
-    .legend-rule { order: 4; background: #2a2e3f; }
+    .legend-rule { order: 4; background: #2a2e3f; top: 0; }
     .legend { order: 5; }
     .legend .legend-item { top: 0; }
     /* график: прокрутка вбок, чтобы подписи не были микроскопическими */

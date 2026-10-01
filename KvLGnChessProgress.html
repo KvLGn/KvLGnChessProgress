@@ -6315,7 +6315,7 @@ var AI_ASKS = [
   {g: 'Разбор игры', gEn: 'Game review', items: [
     {t: 'Разбор последней партии', tEn: 'Review of my last game', d: 'lastgame', f: 'game',
      ru: 'Разбери мою последнюю партию по ходам: где я ошибся, что было лучше и чему это учит.', en: 'Review my last game move by move: where I went wrong, what was better and what it teaches.',
-     h: 'Не могли бы вы посмотреть мою последнюю партию: где главные ошибки и чему они учат?', hEn: 'Could you look at my last game: where are the main mistakes and what do they teach?'},
+     h: 'Где в моей последней партии главные ошибки и чему они учат?', hEn: 'Where are the main mistakes in my last game and what do they teach?'},
     {t: 'Главная слабость сейчас', tEn: 'Main weakness right now', d: 'weak', f: 'advice',
      ru: 'Что больше всего мешает мне выигрывать? Назови одну главную проблему и как её лечить.', en: 'What hurts my results most? Name one main problem and how to fix it.',
      h: 'Что, по-вашему, больше всего мешает мне выигрывать и как это исправить?', hEn: 'What do you think hurts my results most, and how can I fix it?'},
@@ -6418,8 +6418,16 @@ function aiGame(g) {
   return aiGid(g) + ' ' + AL(COLOR_WORD[g.color], 'as ' + COLOR_EN[g.color]) + ' vs ' + g.engine + ': ' + AL(RESULT[g.result].label, RES_EN[g.result]) + how +
     AL(', ходов ', ', moves ') + g.moves + (g.dur ? AL(', ' + Math.max(1, Math.round(g.dur / 60)) + ' мин', ', ' + Math.max(1, Math.round(g.dur / 60)) + ' min') : '') +
     AL(', точность ', ', accuracy ') + g.acc + '%' + AL(' (дебют ', ' (opening ') + aiPct(g.debut) + AL(', миттельшпиль ', ', middlegame ') + aiPct(g.mid) +
-    AL(', эндшпиль ', ', endgame ') + (hasEnd(g) ? g.end + '%' : AL('не дошли', 'not reached')) + ')' + AL(', зевков ', ', blunders ') + g.blunders +
-    AL(', ошибок ', ', mistakes ') + g.mistakes + ', ' + g.opening + ' — ' + aiLink(g);
+    AL(', эндшпиль ', ', endgame ') + (hasEnd(g) ? g.end + '%' : AL('не дошли', 'not reached')) + ')' +
+    (PLAIN ? '' : AL(', зевков ', ', blunders ') + g.blunders + AL(', ошибок ', ', mistakes ') + g.mistakes) + ', ' + g.opening + ' — ' + aiLink(g) + (PLAIN ? aiGameBl(g) : '');
+}
+// для человека: зевки партии отдельными строками под ней — «1 зевок: ход 9. cxd6, лучше a4 — позиционная, миттельшпиль, −3.6 пешки (ссылка на ход)»
+var AI_BL_MAX = 3;   // сколько зевков партии показывать человеку (в разборе партии и поражений — все)
+function aiGameBl(g) {
+  var bl = g.bl || [], n = bl.length, mx = AI_BL_MAX;
+  if (!n) return AL('\n  зевков нет', '\n  no blunders');
+  return '\n  ' + AL(n + ' ' + plural(n, 'зевок', 'зевка', 'зевков') + ':', n + ' blunder' + (n === 1 ? '' : 's') + ':') +
+    bl.slice(0, mx).map(function(b) { return '\n  - ' + aiBl(g, b); }).join('') + (n > mx ? AL('\n  - и ещё ' + (n - mx), '\n  - and ' + (n - mx) + ' more') : '');
 }
 // зевок: «ход 9. cxd6, лучше a4 — позиционная, миттельшпиль, −3.6 пешки»
 function aiBl(g, b) {
@@ -6447,7 +6455,7 @@ function aiMates(g) {
     if (!m.lost) return AL('мат в ' + m.N + ' доведён до конца', 'mate in ' + m.N + ' delivered');
     var j = (g.jd || []).filter(function(x) { return x[0] === m.lost; })[0], best = j ? (j[2] || '').split(' ')[0] : '';
     return AL('на ходу ' + Math.ceil(m.lost / 2) + ' у меня был мат в ' + m.N2 + ', а сыграно ' + aiMove(g, m.lost) + ' — мат упущен (ошибка)', 'at move ' + Math.ceil(m.lost / 2) + ' I had mate in ' + m.N2 + ', but played ' + aiMove(g, m.lost) + ' — mate missed (a mistake)') +
-      (best ? AL(', лучше ', ', better ') + best : '');
+      (best ? AL(', лучше ', ', better ') + best : '') + (PLAIN ? ' (' + aiLink(g, m.lost) + ')' : '');
   });
 }
 // дебют против мастеров: до какого хода как у мастеров и первый отход
@@ -6581,18 +6589,22 @@ var AI_DATA = {
   lastgame: function() {
     var g = games[games.length - 1];
     if (!g) return [AL('Партий пока нет', 'No games yet')];
-    var out = [AL('Последняя партия: ', 'Last game: ') + aiGame(g), AL('Ходы: ', 'Moves: ') + aiMovesText(g)], dv = g.div || {};
+    AI_BL_MAX = 99;
+    var out = [AL('Последняя партия: ', 'Last game: ') + aiGame(g)].concat(PLAIN ? [] : [AL('Ходы: ', 'Moves: ') + aiMovesText(g)]), dv = g.div || {};
     out.push(AL('Фазы: дебют с 1-го хода', 'Phases: opening from move 1') + (dv.mid ? AL(', миттельшпиль с хода ', ', middlegame from move ') + Math.ceil(dv.mid / 2) : AL(', миттельшпиля не было', ', no middlegame')) +
       (dv.end ? AL(', эндшпиль с хода ', ', endgame from move ') + Math.ceil(dv.end / 2) : AL(', эндшпиля не было', ', no endgame')) + '.');
-    out.push(AL('Мои зевки:', 'My blunders:') + ((g.bl || []).length ? '' : AL(' нет', ' none')));
-    (g.bl || []).forEach(function(b) { out.push('- ' + aiBl(g, b)); });
+    if (!PLAIN) {
+      out.push(AL('Мои зевки:', 'My blunders:') + ((g.bl || []).length ? '' : AL(' нет', ' none')));
+      (g.bl || []).forEach(function(b) { out.push('- ' + aiBl(g, b)); });
+    }
     var sans = aiSans(g), M = (g.jd || []).filter(function(j) { return j[1] === 'M' && anMine(g, j[0]); }).slice(0, 5);
-    if (M.length) out.push(AL('Мои ошибки (слабее зевка): ', 'My mistakes (less than a blunder): ') + M.map(function(j) { return aiMove(g, j[0]) + ((j[2] || '') ? AL(', лучше ', ', better ') + j[2].split(' ')[0] : ''); }).join('; '));
+    if (M.length) out.push(AL('Мои ошибки (слабее зевка): ', 'My mistakes (less than a blunder): ') + M.map(function(j) { return aiMove(g, j[0]) + ((j[2] || '') ? AL(', лучше ', ', better ') + j[2].split(' ')[0] : '') + (PLAIN ? ' (' + aiLink(g, j[0]) + ')' : ''); }).join('; '));
     var opp = aiOpp(g);
     if (opp.length) out.push(AL('Ошибки бота: ', 'Bot blunders: ') + opp.map(function(o) { return o.line; }).join('; '));
     var t = aiTurn(g); if (t) out.push(t);
     var m = aiMates(g); if (m.length) out.push(AL('Маты: ', 'Mates: ') + m.join('; '));
     var ms = aiMs(g); if (ms) out.push(ms);
+    AI_BL_MAX = 3;
     return out;
   },
   weak: function() {
@@ -6643,11 +6655,13 @@ var AI_DATA = {
     var older = recent.length < 3 ? games.slice(0, -10).filter(isL).slice(-(3 - recent.length)) : [];
     if (!recent.length && !older.length) return [AL('Поражений нет', 'No losses')];
     var out = [AL('Поражений в последних 10 партиях — ', 'Losses in the last 10 games — ') + recent.length + (older.length ? AL(' (мало, добавлены ещё ' + older.length + ' более ранних)', ' (few, ' + older.length + ' earlier added)') : '') + ':'];
+    AI_BL_MAX = 99;
     older.concat(recent).forEach(function(g) {
       out.push(aiGame(g) + (older.indexOf(g) >= 0 ? AL(' (раньше)', ' (earlier)') : ''));
-      (g.bl || []).forEach(function(b) { out.push('  - ' + aiBl(g, b)); });
+      if (!PLAIN) (g.bl || []).forEach(function(b) { out.push('  - ' + aiBl(g, b)); });
       var t = aiTurn(g); if (t) out.push('  ' + t);
     });
+    AI_BL_MAX = 3;
     return out;
   },
   phase: function(c) {
@@ -6782,7 +6796,7 @@ var AI_DATA = {
   // свой вопрос: последние 10 партий с зевками — чтобы было на что опереться
   own: function() {
     var out = [AL('Последние 10 партий (с зевками):', 'Last 10 games (with blunders):')];
-    games.slice(-10).forEach(function(g) { out.push(aiGame(g)); (g.bl || []).slice(0, 3).forEach(function(b) { out.push('  - ' + aiBl(g, b)); }); });
+    games.slice(-10).forEach(function(g) { out.push(aiGame(g)); if (!PLAIN) (g.bl || []).slice(0, 3).forEach(function(b) { out.push('  - ' + aiBl(g, b)); }); });
     return out;
   }
 };
@@ -6796,7 +6810,7 @@ AI_DATA.plans = function() {
   gl.forEach(function(g) {
     var dv = g.div || {}, mb = (g.bl || []).filter(function(b) { return b.p === 'mid'; });
     out.push(aiGame(g));
-    out.push('  ' + AL('миттельшпиль с хода ', 'middlegame from move ') + (dv.mid ? Math.ceil(dv.mid / 2) : '—') + AL(', зевков в нём ', ', blunders in it ') + mb.length + (mb.length ? ': ' + mb.slice(0, 3).map(function(b) { return aiBl(g, b); }).join('; ') : ''));
+    out.push('  ' + AL('миттельшпиль с хода ', 'middlegame from move ') + (dv.mid ? Math.ceil(dv.mid / 2) : '—') + AL(', зевков в нём ', ', blunders in it ') + mb.length + (mb.length && !PLAIN ? ': ' + mb.slice(0, 3).map(function(b) { return aiBl(g, b); }).join('; ') : ''));
     var t = aiTurn(g); if (t) out.push('  ' + t);
   });
   return out;
@@ -6860,12 +6874,12 @@ function humanTextInner(ask, isPlan, dataKey, item) {
     var refs = AI_REFS.slice().sort(function(a, b) { return b.n - a.n; }).slice(0, 3);
     var q = item ? (aiLang === 'en' ? item.hEn : item.h) : null;
     q = typeof q === 'function' ? q(aiCtx()) : q || ask;
-    out.push(AL('Привет! Учусь играть в шахматы и хочу спросить совета.', 'Hi! I am learning chess and would like some advice.'), '');
+    out.push(AL('Привет! Учусь играть в шахматы. Посмотрите, пожалуйста, мою игру по одному вопросу — ниже статистика, которая к нему относится.', 'Hi! I am learning chess. Could you please look at my play on one question — below are the stats that relate to it.'), '');
     out.push(AL('Вопрос: ', 'Question: ') + q, '');
     out.push(AL('Коротко обо мне:', 'About me in short:'));
     out = out.concat(aiAbout().map(function(t) { return '• ' + t; }));
     if (refs.length) { out.push('', AL('Партии по теме:', 'Games on the topic:')); refs.forEach(function(g) { out.push('• ' + g.date + ', ' + AL(RESULT[g.result].label.toLowerCase(), RES_EN[g.result]) + ' — ' + aiLink(g)); }); }
-    if (data.length) out = out.concat(['', AL('— Подробности для тех, кто захочет разобраться (цифры посчитаны по компьютерному анализу Lichess; ходы в английской записи) —', '— Details for anyone who wants to dig in (numbers from Lichess computer analysis; moves in standard notation) —')], data);
+    if (data.length) out = out.concat(['', AL('Статистика по вопросу (по компьютерному анализу Lichess; ходы в английской записи, ссылки ведут прямо на ход):', 'Stats for the question (from Lichess computer analysis; moves in standard notation, links open the exact move):')], data);
     out.push('', AL('Спасибо за любой совет!', 'Thanks for any advice!'));
     return out.join('\n');
   }

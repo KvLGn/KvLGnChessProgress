@@ -44,7 +44,8 @@ window.PLAN = {
   //   match   — как дебют называется у Lichess (часть названия) — для галочек в таблице и статистики
   //   studies — студии Lichess (id — из адреса lichess.org/study/<id>, parts — число частей,
   //             ids — id всех частей по порядку, первая = id; нужны, чтобы сверять ходы с мастером.
-  //             Студия должна быть открыта хотя бы по ссылке (Unlisted), иначе скрипт её не скачает)
+  //             Студия должна быть открыта хотя бы по ссылке (Unlisted), иначе скрипт её не скачает;
+  //             aka — другие написания фамилии мастера в студии, например ['Kortschnoj'] для Korchnoi)
   openings: [
     {id: 'italian',  name: 'Итальянская',  color: 'white', match: ['Italian Game'],
      studies: [{master: 'Carlsen', id: 'nhubKmIC', parts: 2, ids: ['nhubKmIC', 'kW7SBd3P']},
@@ -55,13 +56,13 @@ window.PLAN = {
      studies: [{master: 'Kramnik', id: '3RYYgqp3', parts: 2, ids: ['3RYYgqp3', 'kD1ktlel']}]},
     // в планах (этап не назначен)
     {id: 'london',   name: 'Лондонская',   color: 'white', match: ['London System'],
-     studies: [{master: 'Kamsky', id: 'aUBTZkzt', parts: 3}]},
+     studies: [{master: 'Kamsky', id: 'aUBTZkzt', parts: 3, ids: ['aUBTZkzt', 'sBg5bUd4', 'AydTPDly']}]},
     {id: 'french',   name: 'Французская',  color: 'black', vs: 'e4', match: ['French Defense'],
-     studies: [{master: 'Korchnoi', id: '0942TaOS', parts: 3}]},
+     studies: [{master: 'Korchnoi', aka: ['Kortschnoj'], id: '0942TaOS', parts: 3, ids: ['0942TaOS', 'X64r98nT', 'OLE3gBby']}]},
     {id: 'ruy',      name: 'Испанская',    color: 'white', match: ['Ruy Lopez'],
      studies: [{master: 'Carlsen', id: 'NiBvAB6p', parts: 5}, {master: 'Kasparov', id: 'TyLTwVqg', parts: 1}, {master: 'Kramnik', id: 'mTH3VfOo', parts: 2}]},
     {id: 'najdorf',  name: 'Сицилианская Найдорф', color: 'black', vs: 'e4', match: ['Sicilian Defense: Najdorf'],
-     studies: [{master: 'Kasparov', id: 'CbxETWPo', parts: 1}]}
+     studies: [{master: 'Kasparov', id: 'CbxETWPo', parts: 1, ids: ['CbxETWPo']}]}
     // Студии, которые сейчас не в планах (чтобы вернуть — добавь строкой выше):
     //   {id: 'kings-gambit', name: 'Королевский гамбит', color: 'white', match: ["King's Gambit"], studies: [{master: 'Spassky', id: '9I3pKaXa', parts: 1}]},
     //   {id: 'berlin', name: 'Берлинская', color: 'black', vs: 'e4', match: ['Ruy Lopez: Berlin Defense'], studies: [{master: 'Carlsen', id: 'u1aCC4Rl', parts: 1}, {master: 'Kramnik', id: 'sDKxJweM', parts: 1}]},

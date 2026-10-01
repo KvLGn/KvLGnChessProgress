@@ -38,7 +38,8 @@ function pgnMoves(text) {
 }
 const header = (text, name) => ((text.match(new RegExp('^\\[' + name + ' "([^"]*)"\\]', 'm')) || [])[1] || '');
 // «Carlsen, M» / «So, W» — фамилия мастера в начале имени (So не спутать с Sokolov)
-const isMaster = (name, master) => new RegExp('^' + master.replace(/[^A-Za-z]/g, '') + '(,|\\s|$)', 'i').test(name.trim());
+// aka — другие написания фамилии в студии (Korchnoi / Kortschnoj)
+const isMaster = (name, master, aka) => [master].concat(aka || []).some((m) => new RegExp('^' + m.replace(/[^A-Za-z]/g, '') + '(,|\\s|$)', 'i').test(name.trim()));
 
 /* ---------- студии → дерево мастера ---------- */
 async function fetchStudy(id) {
@@ -51,7 +52,7 @@ export async function studyTrees(Chess, plan, cacheFile, log) {
   const cache = readJson(cacheFile, { at: 0, sig: '', trees: {} });
   const want = [];
   (plan.openings || []).forEach((o) => (o.studies || []).forEach((s) => {
-    if (Array.isArray(s.ids) && s.ids.length) want.push({ op: o.id, color: o.color, master: s.master, ids: s.ids });
+    if (Array.isArray(s.ids) && s.ids.length) want.push({ op: o.id, color: o.color, master: s.master, aka: s.aka, ids: s.ids });
   }));
   const sig = JSON.stringify(want);
   if (cache.sig === sig && Date.now() - cache.at < TREE_TTL) return cache.trees;
@@ -63,7 +64,7 @@ export async function studyTrees(Chess, plan, cacheFile, log) {
         const text = await fetchStudy(id);
         for (const g of text.split(/\r?\n\r?\n(?=\[Event )/)) {
           const side = w.color === 'white' ? 'White' : 'Black';
-          if (!isMaster(header(g, side), w.master)) continue;   // только партии мастера цветом дебюта
+          if (!isMaster(header(g, side), w.master, w.aka)) continue;   // только партии мастера цветом дебюта
           const c = new Chess();
           let ply = 0;
           for (const san of pgnMoves(g)) {

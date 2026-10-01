@@ -1284,6 +1284,11 @@
   }
   .f-search:focus { border-color: #818cf8; }
   .f-list { max-height: 260px; overflow-y: auto; margin-top: 6px; }
+  /* «Lichess | Мой план» — какие названия дебютов в списке */
+  .f-seg { display: flex; gap: 2px; margin-top: 6px; padding: 2px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+  .f-seg button { flex: 1; font: 600 11px Inter, sans-serif; color: var(--fg-mute); background: none; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+  .f-seg button:hover { color: var(--fg); }
+  .f-seg button.on { background: var(--bg-card-hover); color: var(--fg); }
   .f-opt {
     display: flex; align-items: center; gap: 8px;
     width: 100%;
@@ -1667,6 +1672,7 @@
           <div class="cf-col">
             <div class="cf-sec">Дебют</div>
             <input class="f-search" type="search" placeholder="Поиск дебюта…" autocomplete="off">
+            <div class="f-seg" role="group" aria-label="Какие названия дебютов"></div>
             <div class="f-list"></div>
           </div>
           <div class="cf-col">
@@ -1758,6 +1764,7 @@
       <button class="f-btn" aria-haspopup="listbox" aria-expanded="false"></button>
       <div class="f-menu">
         <input class="f-search" type="search" placeholder="Поиск дебюта…" autocomplete="off">
+            <div class="f-seg" role="group" aria-label="Какие названия дебютов"></div>
         <div class="f-list" role="listbox" aria-multiselectable="true"></div>
         <div class="f-foot"><button class="f-link" data-act="clear">Сбросить дебюты</button></div>
       </div>
@@ -3107,6 +3114,7 @@ function filterGames(list) {
     if (hasKeys(filt.results) && !filt.results[g.result]) return false;
     if (hasKeys(filt.colors) && !filt.colors[g.color]) return false;
     if (hasKeys(filt.openings) && !filt.openings[g.opening]) return false;
+    if (filt.planOps && hasKeys(filt.planOps) && !filt.planOps[planOpKey(g)]) return false;
     for (var k in filt.ranges) {
       var r = filt.ranges[k], v = g[k];
       if (typeof v !== 'number') return false;   // например, эндшпиля не было
@@ -3164,29 +3172,63 @@ function openingStats() {
   return out.sort(function(a, b) { return (b.n - a.n) || a.name.localeCompare(b.name); });
 }
 
-function renderOpeningList() {
-  var q = $('fOpening').querySelector('.f-search').value.trim().toLowerCase();
-  var items = openingStats().filter(function(o) { return !q || o.name.toLowerCase().indexOf(q) >= 0; });
-  $('fOpening').querySelector('.f-list').innerHTML = items.length ? items.map(function(o) {
-    var on = !!filt.openings[o.name];
-    return '<button class="f-opt' + (on ? ' on' : '') + '" role="option" aria-selected="' + on + '" data-o="' + esc(o.name) + '">' +
-      '<span class="f-box">' + (on ? '✓' : '') + '</span><span class="f-opt-name" title="' + esc(o.name) + '">' + esc(o.name) + '</span>' +
+// «Мой план»: дебют партии по плану — как зелёная приписка в таблице (planOpening): id дебюта, '?' — бот начал необычно, '-' — вне плана
+function planOpKey(g) { var P = planOpening(g); return P.both ? P.both.id : P.plan ? P.plan.id : P.maybe ? '?' : '-'; }
+function planOpLabel(k) {
+  if (k === '?') return 'Не определён (необычный 1-й ход бота)';
+  if (k === '-') return 'Вне плана';
+  var o = (PLAN.openings || []).filter(function(x) { return x.id === k; })[0];
+  return o ? o.name + ' ' + KNIGHT[o.color] : k;
+}
+function planOpStats() {
+  var n = {};
+  games.forEach(function(g) { var k = planOpKey(g); n[k] = (n[k] || 0) + 1; });
+  return (PLAN.openings || []).map(function(o) { return o.id; }).concat(['?', '-'])
+    .filter(function(k) { return n[k]; }).map(function(k) { return {key: k, label: planOpLabel(k), n: n[k]}; });
+}
+// список дебютов в меню фильтра (таблица и график): f.opMode 'lichess' — названия Lichess, 'plan' — дебюты моего плана
+function openingListHtml(f, q) {
+  var plan = f.opMode === 'plan', sel = plan ? (f.planOps || {}) : f.openings;
+  var items = (plan ? planOpStats() : openingStats().map(function(o) { return {key: o.name, label: o.name, n: o.n}; }))
+    .filter(function(o) { return !q || o.label.toLowerCase().indexOf(q) >= 0; });
+  return items.length ? items.map(function(o) {
+    var on = !!sel[o.key];
+    return '<button class="f-opt' + (on ? ' on' : '') + '" role="option" aria-selected="' + on + '" ' + (plan ? 'data-po' : 'data-o') + '="' + esc(o.key) + '">' +
+      '<span class="f-box">' + (on ? '✓' : '') + '</span><span class="f-opt-name" title="' + esc(o.label) + '">' + esc(o.label) + '</span>' +
       '<span class="f-opt-n">' + o.n + '</span></button>';
   }).join('') : '<div class="f-empty">Ничего не найдено</div>';
+}
+function openingSegHtml(f) {
+  var plan = f.opMode === 'plan';
+  return '<button class="' + (plan ? '' : 'on') + '" data-opmode="lichess" title="Названия дебютов, как их определил Lichess">Lichess</button>' +
+    '<button class="' + (plan ? 'on' : '') + '" data-opmode="plan" title="Дебют по твоему плану — как зелёная приписка в таблице: изучаемый дебют белыми, по первому ходу бота чёрными">Мой план</button>';
+}
+// переключить режим списка: выбор в другом режиме сбрасывается
+function setOpMode(f, mode) {
+  if ((f.opMode || 'lichess') === mode) return false;
+  f.opMode = mode; f.openings = {}; f.planOps = {};
+  return true;
+}
+function renderOpeningList() {
+  var el = $('fOpening');
+  el.querySelector('.f-seg').innerHTML = openingSegHtml(filt);
+  el.querySelector('.f-list').innerHTML = openingListHtml(filt, el.querySelector('.f-search').value.trim().toLowerCase());
 }
 
 $('fOpening').querySelector('.f-search').addEventListener('input', renderOpeningList);
 $('fOpening').addEventListener('click', function(e) {
   e.stopPropagation();
   if (e.target.closest('.f-btn')) { toggleDrop('fOpening'); return; }
+  var seg = e.target.closest('[data-opmode]');
+  if (seg) { if (setOpMode(filt, seg.getAttribute('data-opmode'))) { renderOpeningList(); filtersChanged(); } return; }
   var opt = e.target.closest('.f-opt');
   if (opt) {
-    var name = opt.getAttribute('data-o');
-    if (filt.openings[name]) delete filt.openings[name]; else filt.openings[name] = true;
+    if (opt.hasAttribute('data-po')) { filt.planOps = filt.planOps || {}; toggleKey(filt.planOps, opt.getAttribute('data-po')); }
+    else toggleKey(filt.openings, opt.getAttribute('data-o'));
     filtersChanged();
     return;
   }
-  if (e.target.closest('[data-act="clear"]')) { filt.openings = {}; filtersChanged(); }
+  if (e.target.closest('[data-act="clear"]')) { filt.openings = {}; filt.planOps = {}; filtersChanged(); }
 });
 
 /* показатели — от / до */
@@ -3260,7 +3302,7 @@ function renderFilterButtons() {
   var mdb = $('fMode').querySelector('.f-btn');
   mdb.innerHTML = 'Режим' + (mc ? ' · ' + mc : '') + '<span class="caret">▾</span>';
   mdb.classList.toggle('active', mc > 0);
-  var names = Object.keys(filt.openings);
+  var names = Object.keys(filt.openings).concat(Object.keys(filt.planOps || {}).map(function(k) { return 'План: ' + planOpLabel(k); }));
   var ob = $('fOpening').querySelector('.f-btn');
   ob.innerHTML = esc(names.length === 0 ? 'Дебют: все' : names.length === 1 ? names[0] : 'Дебюты: ' + names.length) + '<span class="caret">▾</span>';
   ob.title = names.join('\n');
@@ -3298,6 +3340,7 @@ function filterChart(list) {
     if (hasKeys(cfilt.results) && !cfilt.results[g.result]) return false;
     if (hasKeys(cfilt.colors) && !cfilt.colors[g.color]) return false;
     if (hasKeys(cfilt.openings) && !cfilt.openings[g.opening]) return false;
+    if (cfilt.planOps && hasKeys(cfilt.planOps) && !cfilt.planOps[planOpKey(g)]) return false;
     for (var k in cfilt.ranges) {
       var r = cfilt.ranges[k], v = g[k];
       if (typeof v !== 'number') return false;
@@ -3308,7 +3351,7 @@ function filterChart(list) {
   });
 }
 
-function cfActive() { return modeCount(cfilt.modes) > 0 || hasKeys(cfilt.results) || hasKeys(cfilt.colors) || hasKeys(cfilt.openings) || hasKeys(cfilt.ranges); }
+function cfActive() { return modeCount(cfilt.modes) > 0 || hasKeys(cfilt.results) || hasKeys(cfilt.colors) || hasKeys(cfilt.openings) || hasKeys(cfilt.planOps || {}) || hasKeys(cfilt.ranges); }
 
 function chartFilterChanged() {
   cgAll = filterChart(games);
@@ -3335,14 +3378,8 @@ function renderCfMenu() {
   }).join('');
   el.querySelector('.cf-modes').innerHTML = modeChipsHtml(cfilt.modes, undefined, MODE_COLS[0]);
   el.querySelector('.cf-modes2').innerHTML = modeChipsHtml(cfilt.modes, undefined, MODE_COLS[1]);
-  var q = el.querySelector('.f-search').value.trim().toLowerCase();
-  var items = openingStats().filter(function(o) { return !q || o.name.toLowerCase().indexOf(q) >= 0; });
-  el.querySelector('.f-list').innerHTML = items.length ? items.map(function(o) {
-    var on = !!cfilt.openings[o.name];
-    return '<button class="f-opt' + (on ? ' on' : '') + '" data-o="' + esc(o.name) + '">' +
-      '<span class="f-box">' + (on ? '✓' : '') + '</span><span class="f-opt-name" title="' + esc(o.name) + '">' + esc(o.name) + '</span>' +
-      '<span class="f-opt-n">' + o.n + '</span></button>';
-  }).join('') : '<div class="f-empty">Ничего не найдено</div>';
+  el.querySelector('.f-seg').innerHTML = openingSegHtml(cfilt);
+  el.querySelector('.f-list').innerHTML = openingListHtml(cfilt, el.querySelector('.f-search').value.trim().toLowerCase());
 }
 
 function renderCfInputs() {
@@ -3395,6 +3432,7 @@ function renderChartFilter(keepMenu) {
   ['white', 'black'].forEach(function(c) { if (cfilt.colors[c]) pills.push({t: 'c', k: c, label: KNIGHT[c] + ' ' + COLOR_NAME[c]}); });
   for (var mg in (cfilt.modes || {})) Object.keys(cfilt.modes[mg]).forEach(function(k) { pills.push({t: 'md', k: mg + ':' + k, label: modeLabel(mg, k)}); });
   Object.keys(cfilt.openings).forEach(function(o) { pills.push({t: 'o', k: o, label: o}); });
+  Object.keys(cfilt.planOps || {}).forEach(function(k) { pills.push({t: 'po', k: k, label: 'План: ' + planOpLabel(k)}); });
   Object.keys(cfilt.ranges).forEach(function(k) { pills.push({t: 'm', k: k, label: rangeLabel(k)}); });
   $('cfPills').innerHTML = pills.map(function(p) {
     return '<span class="cf-pill" title="' + esc(p.label) + '"><span class="cf-pill-t">' + esc(p.label) + '</span>' +
@@ -3417,7 +3455,7 @@ $('cfPills').addEventListener('click', function(e) {
     var p = b.getAttribute('data-k').split(':');
     delete cfilt.modes[p[0]][p[1]];
   } else {
-    var map = {r: cfilt.results, c: cfilt.colors, o: cfilt.openings, m: cfilt.ranges}[b.getAttribute('data-t')];
+    var map = {r: cfilt.results, c: cfilt.colors, o: cfilt.openings, po: cfilt.planOps || {}, m: cfilt.ranges}[b.getAttribute('data-t')];
     delete map[b.getAttribute('data-k')];
   }
   renderCfInputs();
@@ -3440,7 +3478,12 @@ $('cf').addEventListener('click', function(e) {
   if ((t = e.target.closest('.md-chip'))) { toggleMode(cfilt, t.getAttribute('data-mg'), t.getAttribute('data-mk')); chartFilterChanged(); return; }
   if ((t = e.target.closest('.f-chip[data-r]'))) { toggleKey(cfilt.results, t.getAttribute('data-r')); chartFilterChanged(); return; }
   if ((t = e.target.closest('.f-chip[data-c]'))) { toggleKey(cfilt.colors, t.getAttribute('data-c')); chartFilterChanged(); return; }
-  if ((t = e.target.closest('.f-opt'))) { toggleKey(cfilt.openings, t.getAttribute('data-o')); chartFilterChanged(); return; }
+  if ((t = e.target.closest('[data-opmode]'))) { if (setOpMode(cfilt, t.getAttribute('data-opmode'))) { renderCfMenu(); chartFilterChanged(); } return; }
+  if ((t = e.target.closest('.f-opt'))) {
+    if (t.hasAttribute('data-po')) { cfilt.planOps = cfilt.planOps || {}; toggleKey(cfilt.planOps, t.getAttribute('data-po')); }
+    else toggleKey(cfilt.openings, t.getAttribute('data-o'));
+    chartFilterChanged(); return;
+  }
   if (e.target.closest('[data-act="clear"]')) { cfilt = {results: {}, colors: {}, openings: {}, ranges: {}}; renderCfInputs(); chartFilterChanged(); }
 });
 document.addEventListener('click', function() { $('cf').classList.remove('open'); });

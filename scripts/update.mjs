@@ -138,7 +138,8 @@ function convert(g) {
 
 function previousIds() {
   if (!existsSync(GAMES_JS)) return new Set();
-  return new Set([...readFileSync(GAMES_JS, 'utf8').matchAll(/"id":"([A-Za-z0-9]{8})"/g)].map((m) => m[1]));
+  const text = readFileSync(GAMES_JS, 'utf8').split('window.RATING_GAMES')[0];   // только партии с анализом, без рейтинговых
+  return new Set([...text.matchAll(/"id":"([A-Za-z0-9]{8})"/g)].map((m) => m[1]));
 }
 
 function writeGamesJs(games, ratings, stamp) {
@@ -542,22 +543,11 @@ const before = previousIds();
 const added = games.filter((g) => !before.has(g.id));
 const stamp = stampFmt.format(new Date()).replace(',', '');
 
-// защита от сбоя Lichess: партии не пропадают — если их стало меньше, данные не трогаем
-if (games.length < before.size) fail(`Lichess вернул ${games.length} партий с анализом, а было ${before.size} — похоже на сбой; данные не изменены.`);
-writeGamesJs(games, ratings, stamp);
-updateProgress(games, planState);
-if (saveGoodPlan(planState, stamp)) console.log('  запасная копия плана обновлена (data/plan-good.js)');
-// заметки Claude (claude/*.md) есть только на ПК; в облаке их нет — пропускаем
-const HAS_NOTES = existsSync(join(ROOT, 'claude'));
-if (HAS_NOTES) writeGameLog(games, pending, stamp);
-
 console.log('Загружаю задачи...');
 const puzzleUser = await (await api(`/api/user/${USER}`, token)).json();
 const activity = await fetchPuzzleActivity(token);
 const opCache = await puzzleOpenings(activity.map((a) => a.puzzle.id), token);
 const puzzles = buildPuzzles(puzzleUser, activity, opCache);
-const puzzlesBefore = existsSync(PUZZLES_JS) ? +((readFileSync(PUZZLES_JS, 'utf8').match(/"total":(\d+)/) || [])[1] || 0) : 0;
-if (puzzles.total < puzzlesBefore) fail(`Lichess вернул ${puzzles.total} задач, а было ${puzzlesBefore} — похоже на сбой; задачи не изменены.`);
 // русские названия тем — из сводки Lichess (язык аккаунта)
 const dash = await (await api('/api/puzzle/dashboard/90', token)).json();
 puzzles.themeNames = Object.fromEntries(Object.entries(dash.themes || {}).map(([k, v]) => [k, v.theme]));
@@ -565,7 +555,25 @@ puzzles.themeNames = Object.fromEntries(Object.entries(dash.themes || {}).map(([
 puzzles.themeStats = Object.fromEntries(Object.entries(dash.themes || {}).map(([k, v]) =>
   [k, { nb: v.results.nb, first: v.results.firstWins, perf: v.results.performance }]));
 puzzles.global = dash.global ? { nb: dash.global.nb, first: dash.global.firstWins, perf: dash.global.performance } : null;
+
+// защита от сбоя Lichess — до любой записи: партий или задач стало заметно меньше (больше 10% или до нуля) — ничего не пишем.
+// Небольшое уменьшение (например, у партии пропал анализ) — только предупреждение, иначе обновление падало бы каждый раз
+function shrinkGuard(what, now, was) {
+  if (now >= was) return;
+  if (now === 0 || now < was * 0.9) fail(`Lichess вернул ${now} ${what}, а было ${was} — похоже на сбой; данные не изменены (следующий запуск попробует снова).`);
+  console.log(`  ! ${what}: было ${was}, стало ${now} — небольшое уменьшение, данные обновлены`);
+}
+const puzzlesBefore = existsSync(PUZZLES_JS) ? +((readFileSync(PUZZLES_JS, 'utf8').match(/"total":(\d+)/) || [])[1] || 0) : 0;
+shrinkGuard('партий с анализом', games.length, before.size);
+shrinkGuard('задач', puzzles.total, puzzlesBefore);
+
+writeGamesJs(games, ratings, stamp);
+updateProgress(games, planState);
+if (saveGoodPlan(planState, stamp)) console.log('  запасная копия плана обновлена (data/plan-good.js)');
 writePuzzlesJs(puzzles, stamp);
+// заметки Claude (claude/*.md) есть только на ПК; в облаке их нет — пропускаем
+const HAS_NOTES = existsSync(join(ROOT, 'claude'));
+if (HAS_NOTES) writeGameLog(games, pending, stamp);
 if (HAS_NOTES) writePuzzleMd(puzzles, stamp);
 
 console.log(`\nВсего партий с анализом: ${games.length}`);

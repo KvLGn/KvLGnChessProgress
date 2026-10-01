@@ -5,6 +5,12 @@ rem 1. забрать то, что обновило облако (GitHub Actions
 git pull --rebase --autostash -q
 rem 2. обновить данные с Lichess (+ заметки claude\*.md на этом ПК)
 node scripts\update.mjs
+if errorlevel 1 (
+  echo.
+  echo Обновление не прошло — на сайт ничего не отправлено. Причина — в строке ОШИБКА выше.
+  pause
+  exit /b 1
+)
 rem 3. отправить данные на сайт
 git add data scripts/cache
 git diff --cached --quiet || git commit -q -m "Обновление данных с ПК"

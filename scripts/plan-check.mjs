@@ -15,27 +15,35 @@ export const PLAN_GOOD_JS = join(DATA, 'plan-good.js');
 export const PROGRESS_JS = join(DATA, 'progress.js');
 const STAGES_JS = join(PROGRESS, 'lib', 'stages.js');
 
-// выполнить браузерный файл вида window.X = … в песочнице; true — без ошибок
+// выполнить браузерный файл вида window.X = … в песочнице; '' — без ошибок, иначе текст ошибки (со строкой)
 function run(file, ctx, tail = '') {
-  if (!existsSync(file)) return false;
-  try { vm.runInContext(readFileSync(file, 'utf8') + tail, ctx, { filename: file }); return true; }
-  catch (e) { console.log(`  ! ${file.split(/[\\/]/).pop()}: ${e.message}`); return false; }
+  if (!existsSync(file)) return 'файла нет';
+  try { vm.runInContext(readFileSync(file, 'utf8') + tail, ctx, { filename: file }); return ''; }
+  catch (e) {
+    const line = ((e.stack || '').match(/\.js:(\d+)/) || [])[1];
+    const msg = (line ? `строка ${line}: ` : '') + e.message;
+    console.log(`  ! ${file.split(/[\\/]/).pop()}: ${msg}`);
+    return msg;
+  }
 }
 
 export function loadPlanState() {
   const ctx = vm.createContext({});
   ctx.window = ctx;
-  run(STAGES_JS, ctx);
+  if (run(STAGES_JS, ctx) || !ctx.STAGES) throw new Error('lib/stages.js не загрузился');
   // «const PLAN = …» вместо «window.PLAN = …» — тоже принимаем (так иногда пишут ИИ), с предупреждением
-  run(PLAN_JS, ctx, '\n;try { if (!window.PLAN && typeof PLAN === "object") { window.PLAN = PLAN; window.PLAN_CONST = true; } } catch (e) {}');
-  const progressOk = !existsSync(PROGRESS_JS) || run(PROGRESS_JS, ctx);
-  run(PLAN_GOOD_JS, ctx);
+  const planErr = run(PLAN_JS, ctx, '\n;try { if (!window.PLAN && typeof PLAN === "object") { window.PLAN = PLAN; window.PLAN_CONST = true; } } catch (e) {}');
+  const progressOk = !existsSync(PROGRESS_JS) || !run(PROGRESS_JS, ctx);
+  if (existsSync(PLAN_GOOD_JS)) run(PLAN_GOOD_JS, ctx);
   const S = ctx.STAGES;
-  if (!S) throw new Error('lib/stages.js не загрузился');
   const progress = ctx.PROGRESS || { stages: [] };
-  const check = S.validatePlan(ctx.PLAN, progress);
+  // ошибка при выполнении plan.js — план не использовать, даже если window.PLAN успел записаться (как на сайте)
+  const check = planErr
+    ? { ok: false, errors: [planErr === 'файла нет' ? 'нет файла data/plan.js'
+        : 'ошибка в plan.js, ' + planErr + ' (лишняя/пропущенная запятая, скобка, кавычка или текст вне кода)'], warnings: [] }
+    : S.validatePlan(ctx.PLAN, progress);
   if (ctx.PLAN_CONST) check.warnings.unshift('в plan.js написано «const PLAN =» — правильно «window.PLAN =» (сайт работает, но лучше исправить)');
-  return { S, plan: ctx.PLAN || null, check, progress, progressOk, good: ctx.PLAN_GOOD || null };
+  return { S, plan: check.ok ? ctx.PLAN : null, check, progress, progressOk, good: ctx.PLAN_GOOD || null };
 }
 
 // запасная копия: обновляется, только когда план исправен и изменился

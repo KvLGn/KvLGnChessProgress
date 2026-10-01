@@ -1975,14 +1975,19 @@
 <button class="scroll-btn" id="scrollBtn" type="button" aria-label="Наверх"></button>
 <script src="data/games.js"></script>
 <script src="data/puzzles.js"></script>
+<!-- ошибка внутри plan.js — запомнить строку и текст для плашки -->
+<script>window.onerror = function(m, src, line) { if (/plan\.js/.test(src || '')) window.PLAN_ERR = 'строка ' + line + ': ' + String(m).replace(/^Uncaught /, ''); };</script>
 <script src="data/plan.js"></script>
 <!-- «const PLAN = …» вместо «window.PLAN = …» (так иногда пишут ИИ) — тоже принимаем, с предупреждением -->
-<script>try { if (!window.PLAN && typeof PLAN === 'object') { window.PLAN = PLAN; window.PLAN_CONST = true; } } catch (e) {}</script>
+<script>window.onerror = null; try { if (!window.PLAN && typeof PLAN === 'object') { window.PLAN = PLAN; window.PLAN_CONST = true; } } catch (e) {}</script>
 <script src="data/plan-good.js"></script>
 <script src="data/progress.js"></script>
 <script src="lib/stages.js"></script>
 <script>
-// весь код сайта — внутри функции: имена из файлов данных (например, «const PLAN» в plan.js) не конфликтуют с его переменными
+// весь код сайта — внутри функции: имена из файлов данных (например, «const PLAN» в plan.js) не конфликтуют с его переменными.
+// Последняя страховка: страница не отрисовалась (план прошёл проверку, но что-то в нём неожиданное) — один раз перезагрузиться
+// на запасной копии плана (флаг planForce в sessionStorage; снимается после удачной отрисовки, поэтому зацикливания нет)
+try {
 (function() {
 /* =====================================================================
    ОГЛАВЛЕНИЕ — ищи разделы по заголовкам «/* ---------- … ---------- *\/»
@@ -2016,12 +2021,13 @@ var games = window.GAMES || [];
 /* ---------- план: этапы и дебюты из data/plan.js — текущий этап считается сам (логика — lib/stages.js) ---------- */
 // проверка plan.js: сломан — берём последнюю рабочую копию и показываем плашку с причиной.
 // Копий две: data/plan-good.js (её сохраняет обновление на GitHub — есть на любом устройстве) и копия в этом браузере; берётся более свежая
-var PLAN_CHECK = STAGES.validatePlan(window.PLAN, window.PROGRESS), PLAN_FALLBACK = null;
+var PLAN_CHECK = STAGES.validatePlan(window.PLAN, window.PROGRESS), PLAN_FALLBACK = null, PLAN_FORCED = null;
 var PLAN = window.PLAN;
+try { PLAN_FORCED = sessionStorage.getItem('planForce'); } catch (e) {}
+if (window.PLAN_ERR) PLAN_CHECK = {ok: false, errors: ['ошибка в plan.js, ' + window.PLAN_ERR + ' (лишняя/пропущенная запятая, скобка, кавычка или текст вне кода)'], warnings: []};
+else if (PLAN_FORCED !== null) PLAN_CHECK = {ok: false, errors: ['сайт не смог отрисоваться с этим plan.js (' + PLAN_FORCED + ') — проверь типы значений: списки в [ ], строки в кавычках, числа без кавычек'], warnings: []};
 if (window.PLAN_CONST) PLAN_CHECK.warnings.unshift('в plan.js написано «const PLAN =» — правильно «window.PLAN =» (сайт работает, но лучше исправить)');
-if (PLAN_CHECK.ok) {
-  try { localStorage.setItem('planGood', JSON.stringify({plan: PLAN, at: new Date().toLocaleString('ru-RU'), ts: Date.now()})); } catch (e) {}
-} else {
+if (!PLAN_CHECK.ok) {
   var fbLocal = null, fbSite = window.PLAN_GOOD || null;
   try { fbLocal = JSON.parse(localStorage.getItem('planGood') || 'null'); } catch (e) {}
   var fbTs = function(f) {   // время копии: в браузере — ts, у plan-good.js — «дд.мм.гггг чч:мм» (МСК)
@@ -2052,6 +2058,7 @@ function gamesToGoal(c) {
 }
 function winsToGoal(c, k) {   // сколько из k следующих партий минимум должны быть победами (остальные — честные поражения); перебор раскладок
   var win = {result: 'win', acc: 100, blunders: 0}, loss = {result: 'lose', acc: 100, blunders: 0}, best = k;
+  if (k > 14) return Math.min(k, Math.ceil(k * RULE.wins / RULE.games));   // перебор 2^k зависнет — оценка по доле побед в пятёрке
   for (var m = 0; m < (1 << k); m++) {
     var w = 0, t = c.rel.slice();
     for (var i = 0; i < k; i++) { var isW = (m >> i) & 1; w += isW; t.push(isW ? win : loss); }
@@ -8719,7 +8726,17 @@ renderGames();
 if (chartMode !== 'metrics') setMode(chartMode);
 applyHush();
 placeChartBtns();
+// отрисовка удалась: план рабочий — запомнить его копию в браузере, снять флаг страховки
+if (PLAN_CHECK.ok && !PLAN_FORCED) { try { localStorage.setItem('planGood', JSON.stringify({plan: PLAN, at: new Date().toLocaleString('ru-RU'), ts: Date.now()})); } catch (e) {} }
+try { sessionStorage.removeItem('planForce'); } catch (e) {}
 })();
+} catch (e) {
+  var planForced = null;
+  try { planForced = sessionStorage.getItem('planForce'); } catch (x) {}
+  if (planForced === null && window.PLAN) {
+    try { sessionStorage.setItem('planForce', String((e && e.message) || e)); location.reload(); } catch (x) { throw e; }
+  } else throw e;
+}
 </script>
 
 </body>

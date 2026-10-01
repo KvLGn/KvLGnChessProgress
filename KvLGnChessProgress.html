@@ -4917,6 +4917,7 @@ function anCaptureMoments(g, P) {
 //   (или сильные игроки Lichess 2000+, если у мастеров позиции почти нет). ✓ мой ход самый частый, ~ встречался, ✗ так не играли.
 //   Ключ мастера — «дебют/мастер» (italian/Carlsen): один мастер бывает в студиях разных дебютов. Новый дебют со студиями (ids) в plan.js подхватывается сам.
 var MASTER_RU = {Carlsen: 'Карлсен', So: 'Со', Kramnik: 'Крамник', Kasparov: 'Каспаров', Kamsky: 'Камский', Korchnoi: 'Корчной', Spassky: 'Спасский'};
+var MASTER_RU_INS = {Carlsen: 'Карлсеном', So: 'Со', Kramnik: 'Крамником', Kasparov: 'Каспаровым', Kamsky: 'Камским', Korchnoi: 'Корчным', Spassky: 'Спасским'};   // «сравнить с …»
 // дебюты партии по плану: точно определён — один, бот начал необычно — все кандидаты («Сицилианская? · Славянская?»)
 function anPlanOps(g) { var P = planOpening(g); return P.both ? [P.both] : P.plan ? [P.plan] : P.maybe || []; }
 // мастера для партии: ключи «дебют/мастер» из студий (с ids) её дебютов по плану — в порядке plan.js
@@ -6671,7 +6672,47 @@ function gsIndex() {
   }
 
 
+  /* --- анализ партий: открыть доску сразу в нужной вкладке (группа «Анализ» — часть «график») --- */
+  var anG = games.filter(function(g) { return g.mv; }), anLast = anG[anG.length - 1];
+  var fresh = games.filter(anFresh), fr = fresh[fresh.length - 1];
+  if (fr) add('Анализ', '❗', 'Новая партия с ошибками: #' + fr.n, fr.date + ' · ' + RESULT[fr.result].label + ' · ' + (fr.bl || []).length + ' ' + plural((fr.bl || []).length, 'зевок', 'зевка', 'зевков') + ' · разбор на доске',
+    'новая свежая партия ошибки зевки разбор анализ', function() { anOpen(fr, undefined, (fr.bl || []).length ? 'bl' : 'mate'); });
+  if (anLast) {
+    add('Анализ', '♞', 'Разбор последней партии: #' + anLast.n, anLast.date + ' · ' + RESULT[anLast.result].label + ' · доска с первого зевка',
+      'разбор последней партии анализ доска', function() { anOpen(anLast, undefined, 'bl'); });
+    [['bl', 'Зевки на доске', 'зевки ошибки доска позиция'], ['mate', 'Маты на доске', 'мат маты доска упущен доведен'],
+     ['ms', 'Сравнить с мастерами', 'мастера сравнить дебют теория']].forEach(function(x) {
+      var g = x[0] === 'bl' ? anG.filter(function(q) { return (q.bl || []).length; }).pop() || anLast : x[0] === 'mate' ? anG.filter(function(q) { return mateSeries(q).length; }).pop() || anLast : anLast;
+      add('Анализ', '♞', x[1], '«Анализ» · партия #' + g.n + ' (последняя подходящая)', x[2], function() { anOpen(g, undefined, x[0]); });
+    });
+  }
+  // мастера из студий плана: последняя партия в их дебюте — во вкладке «Мастера» с этим мастером
+  (PLAN.openings || []).forEach(function(o) {
+    (o.studies || []).forEach(function(st) {
+      if (!st.ids || !st.ids.length) return;
+      var key = o.id + '/' + st.master, g = anG.filter(function(q) { return anMasters(q).indexOf(key) >= 0; }).pop();
+      if (!g) return;
+      add('Анализ', '♟', 'Сравнить с ' + (MASTER_RU_INS[st.master] || st.master) + ' (' + o.name + ')', 'вкладка «Мастера» · партия #' + g.n,
+        'сравнить мастер ' + st.master + ' ' + (MASTER_RU[st.master] || '') + ' ' + o.name, function() {
+          an.master = key; try { localStorage.setItem('anMaster.v2', key); } catch (e) {}
+          anOpen(g, undefined, 'ms');
+        });
+    });
+  });
+
   /* --- быстрые ответы: ответ прямо в строке результата --- */
+  var tLast = games[games.length - 1], tTurn = tLast && tLast.mv && mrTurn(tLast);
+  if (tTurn) add('Ответы', '⚡', 'Перелом последней партии: ход ' + Math.ceil(tTurn.p / 2), '#' + tLast.n + ' · перевес ' + evText(tLast.ev[tTurn.p - 1]) + ' → ' + evText(tLast.ev[tTurn.p]) + ' · на графике отчёта',
+    'перелом последней партии переломный момент', function() {
+      gsOpenGame(tLast);
+      var row = [].filter.call($('gameRows').querySelectorAll('tr.game-row'), function(r) { return r.firstChild.textContent === String(tLast.n); })[0];
+      var d = row && row.nextSibling;
+      if (!d) return;
+      var ib = d.querySelector('.mr-i'), w = d.querySelector('.mr-gwrap');
+      if (ib && !w.classList.contains('info-open')) ib.click();
+      var sec = d.querySelector('.mri-sec[data-sec="turn"]');
+      if (sec && !sec.classList.contains('on')) sec.querySelector('.mri-h').click();
+    });
   var nG = games.length;
   var wrAll = nG ? Math.round(winrate(games)) : null;
   var wrTr = wrDayTrend().replace(/<[^>]+>/g, '');   // «▲ +22% 5 игр» — как в карточке профиля
@@ -6750,6 +6791,17 @@ function gsIndex() {
   preset('Дошли до эндшпиля', 'был эндшпиль', 'эндшпиль дошли', function(f) { f.ranges.end = {min: 0, max: null}; });
   preset('Белыми', 'партии белыми', 'белые цвет', function(f) { f.colors.white = true; });
   preset('Чёрными', 'партии чёрными', 'черные чёрные цвет', function(f) { f.colors.black = true; });
+  [['today', 'Партии за сегодня', 'сегодня'], ['7', 'Партии за 7 дней', 'неделя 7 дней']].forEach(function(x) {
+    var d = dateQuick(x[0]), n = games.filter(function(g) { return dateMatch(g, d); }).length;
+    preset(x[1], n + ' ' + plural(n, 'партия', 'партии', 'партий'), 'даты дата ' + x[2], function(f) { f.dates = dateQuick(x[0]); });
+  });
+  planOpStats().filter(function(o) { return o.key !== '?' && o.key !== '-'; }).forEach(function(o) {
+    preset('Мой дебют: ' + o.label.replace(/ [♞♘]$/, ''), o.n + ' ' + plural(o.n, 'партия', 'партии', 'партий') + ' по плану', 'мой дебют план ' + o.label,
+      function(f) { setOpMode(f, 'plan'); f.planOps = {}; f.planOps[o.key] = true; });
+  });
+  var lostN = 0, lostG = games.filter(function(g) { var k = mateSeries(g).filter(function(m) { return m.lost; }).length; lostN += k; return k; }).length;
+  if (lostG) preset('Упущенные маты: ' + lostN, 'в ' + lostG + ' ' + plural(lostG, 'партии', 'партиях', 'партиях'), 'упущенные маты мат пропущен',
+    function(f) { f.modes = {}; toggleMode(f, 'mate', 'missed'); });
   add('Фильтры', '✕', 'Сбросить все фильтры', 'график и таблица без фильтров', 'сбросить очистить фильтры', function() {
     cfilt = {results: {}, colors: {}, openings: {}, ranges: {}};
     filt = {results: {}, colors: {}, openings: {}, ranges: {}};
@@ -6935,7 +6987,7 @@ function gsSections(it) {
     if (/^Серия/.test(t)) return ['chart'];
     return ['table'];                                   // лучшая / худшая / последняя партия — открываются в таблице
   }
-  if (/^(Виды графика|Сравнения|Активность|Дни)$/.test(g)) return ['chart'];
+  if (/^(Виды графика|Сравнения|Активность|Дни|Анализ)$/.test(g)) return ['chart'];
   if (g === 'Фильтры' || g === 'Режим партии') return ['chart', 'table'];
   if (/^(Задачи|Студии|Итоги|Темы задач)$/.test(g)) return ['head'];
   if (g === 'Дебюты') return /в таблице/.test(it.sub) ? ['table'] : ['head'];

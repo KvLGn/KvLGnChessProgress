@@ -3223,7 +3223,8 @@ function mrHover(e) {
   hint.style.display = 'block';
   var hw = hint.offsetWidth;
   hint.style.left = Math.max(0, Math.min(gr.clientWidth - hw, left - hw / 2)) + 'px';
-  hint.style.top = (sTop - hint.offsetHeight - 6 < 0 ? sTop + box.height + 4 : sTop - hint.offsetHeight - 6) + 'px';
+  // над графиком (может заходить на заголовок блока); вниз — только если упрётся в верх экрана (внизу её обрезает рамка «Анализа»)
+  hint.style.top = (box.top - hint.offsetHeight - 6 < 0 ? sTop + box.height + 4 : sTop - hint.offsetHeight - 6) + 'px';
 }
 function mrLeave(e) {
   var gr = e.target.closest && e.target.closest('.mr-graph');

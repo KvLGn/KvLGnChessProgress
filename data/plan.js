@@ -50,9 +50,9 @@ window.PLAN = {
      studies: [{master: 'Carlsen', id: 'nhubKmIC', parts: 2, ids: ['nhubKmIC', 'kW7SBd3P']},
                {master: 'So', id: 'N67BQubO', parts: 3, ids: ['N67BQubO', 'KOi3OHVa', 'ihEjjoGE']}]},
     {id: 'sicilian', name: 'Сицилианская', color: 'black', vs: 'e4', match: ['Sicilian Defense'],
-     studies: [{master: 'Carlsen', id: 'dax8pRRF', parts: 7}]},
+     studies: [{master: 'Carlsen', id: 'dax8pRRF', parts: 7, ids: ['dax8pRRF', 'aawsj5mM', 'xDOvwI98', 'rIRR9SiY', 'h4nnyKxz', 'YrsKfx4f', 'arekcv83']}]},
     {id: 'slav',     name: 'Славянская',   color: 'black', vs: 'd4', match: ['Slav Defense'],
-     studies: [{master: 'Kramnik', id: '3RYYgqp3', parts: 2}]},
+     studies: [{master: 'Kramnik', id: '3RYYgqp3', parts: 2, ids: ['3RYYgqp3', 'kD1ktlel']}]},
     // в планах (этап не назначен)
     {id: 'london',   name: 'Лондонская',   color: 'white', match: ['London System'],
      studies: [{master: 'Kamsky', id: 'aUBTZkzt', parts: 3}]},

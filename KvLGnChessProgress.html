@@ -1217,6 +1217,7 @@
   .an-m-top i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex-shrink: 0; }
   .an-m-s { font-size: 11px; color: var(--c); padding-left: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .an-mom .an-empty { padding: 6px 8px; }
+  .an-pos .an-info { margin: 0; }   /* «Все ходы»: карточка позиции в колонке «Моменты» */
   .an-m .an-bang { position: absolute; top: 5px; right: 5px; }
   /* колонка 4: доска (сверху отступ под кнопки режимов) */
   .an-board { padding: 54px 16px 12px; display: flex; justify-content: center; }
@@ -4756,7 +4757,7 @@ function anMovesCol(g, P, v, moments) {
         var fr = anFresh(g), bang = fr && fr[x.k] ? anBang('В этой партии (последние сутки) есть ' + (x.k === 'bl' ? 'зевки' : 'мат')) : '';
         return '<button class="win-opt' + (x.k === L.k ? ' on' : '') + '" data-lens="' + x.k + '" title="' + esc(x.hint) + '">' + x.label + bang + '</button>';
       }).join('') + '</div></span>' + (L.k === 'ms' ? anMasterPick(g) : '') + '</div>' +
-    anInfoHtml(g, P, v) + (L.k === 'ms' ? '<div class="an-ms-sum" title="До какого хода сверка шла по каждому источнику">' + esc(anMasterSummary(g, moments)) + '</div>' : '') +
+    (L.k === 'all' ? '' : anInfoHtml(g, P, v)) + (L.k === 'ms' ? '<div class="an-ms-sum" title="До какого хода сверка шла по каждому источнику">' + esc(anMasterSummary(g, moments)) + '</div>' : '') +
     '<div class="an-mvs' + (L.k === 'ms' ? ' ms-t ms-' + (g.color === 'white' ? 'w' : 'b') : '') + '">' + anMovesHtml(g, P, v, moments) + '</div>' +
     '<div class="an-nav">' +
       '<button data-nav="first" title="В начало (Home)"' + (ply ? '' : ' disabled') + '>⏮</button>' +
@@ -4775,8 +4776,10 @@ function anMasterPick(g) {
     opts.map(function(o) { return '<button class="win-opt' + (o[0] === cur ? ' on' : '') + '" data-master="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div></span>';
 }
 // моменты текущей линзы: ход и короткая подпись; клик — позиция перед ходом
-function anMomentsCol(moments) {
+// info — карточка текущей позиции: у «Все ходы» моментов нет, и колонка показывает её вместо списка («Позиция»)
+function anMomentsCol(moments, info) {
   var L = anLens(), fr = anFresh(anGame()), bang = fr && fr[L.k] ? anBang('Новая партия (последние сутки)') : '';
+  if (L.k === 'all') return '<div class="an-mom-in"><div class="an-head">Позиция</div><div class="an-ms an-pos">' + info + '</div></div>';
   return '<div class="an-mom-in"><div class="an-head">Моменты <span>' + moments.length + '</span></div><div class="an-ms">' +
     (moments.length ? moments.map(function(m, i) {
       return '<button class="an-m' + (an.ply === m.at || an.ply === m.p ? ' on' : '') + '" data-i="' + i + '" style="--c:' + m.color + '" title="' + esc(m.short) + '">' +
@@ -4820,7 +4823,7 @@ function anUpdate() {
   var v = anView(P, an.ply, moments);
   col.innerHTML = anMovesCol(g, P, v, moments);
   var mom = box.querySelector('.an-mom');
-  mom.innerHTML = anMomentsCol(moments);
+  mom.innerHTML = anMomentsCol(moments, anInfoHtml(g, P, v));
   box.querySelector('.an-board').innerHTML = anBoardSvg(P.boards[an.ply], {flip: g.color === 'black', last: v.last, arrows: v.arrows});
   anScrollTo(col.querySelector('.an-mvs'), col.querySelector('.an-mv.on, .an-mv.next'));
   anScrollTo(mom.querySelector('.an-ms'), mom.querySelector('.an-m.on'));

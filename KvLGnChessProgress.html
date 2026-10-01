@@ -6793,6 +6793,7 @@ function aiTasks(lang) { var n = aiTaskN(); return n + (lang === 'en' ? ' tasks'
 function aiBreak(lang) { return aiMin() >= 120 ? (lang === 'en' ? 'a 5–10 minute break every hour' : 'перерыв 5–10 минут каждый час') : null; }
 // свежесть данных: партии и задачи подтягиваются раз в час и нерегулярно — без этой строки нейросеть решит, что сегодня ещё ничего не сыграно
 function aiFresh() { var u = window.GAMES_UPDATED; return u ? AL('Данные обновлены ' + u + ' — партии и задачи после этого времени сюда не попали.', 'Data updated ' + u + ' — games and puzzles after that time are not included.') : null; }
+function aiVarNote() { return AL('Название варианта складывается из ходов обеих сторон; ответ соперника выбирает бот — его нельзя «избегать», к нему можно только готовиться.', 'A variation name comes from both sides’ moves; the opponent’s reply is chosen by the bot — it cannot be "avoided", only prepared for.'); }
 function aiCurOps() { var cs = (window.OPENINGS || {}).current || []; return cs.length ? AL('Изучаю дебют: ', 'Studying the opening: ') + cs.map(function(o) { return AL(o.name, opEn(o)); }).join(', ') + '.' : null; }
 var AI_CUR_OP = null;   // дебют пункта, для которого собирается пакет (пункты «Дебюты» — по каждому изучаемому дебюту)
 function aiOp() { return AI_CUR_OP || ((window.OPENINGS || {}).current || [])[0]; }
@@ -7171,7 +7172,7 @@ AI_DATA.plans = function() {
   var st = opStats(o), on = st.board, off = all.filter(function(g) { return on.indexOf(g) < 0; });
   out.push(AL('Миттельшпиль в партиях по плану дебюта «' + o.name + '»: когда дебют получился на доске (' + on.length + ') — ', 'Middlegame in planned ' + opEn(o) + ' games: when it appeared on the board (' + on.length + ') — ') + aiPct(avg(on, 'mid')) +
     (off.length ? AL('; когда бот увёл в другой дебют (' + off.length + ') — ', '; when the bot steered into another opening (' + off.length + ') — ') + aiPct(avg(off, 'mid')) : '') + '.');
-  out.push(AL('Партии с дебютом на доске — от худшего миттельшпиля к лучшему:', 'Games with the opening on the board — from the worst middlegame to the best:'));
+  out.push(aiVarNote(), AL('Партии с дебютом на доске — от худшего миттельшпиля к лучшему:', 'Games with the opening on the board — from the worst middlegame to the best:'));
   if (!on.length) out.push(AL('таких партий пока нет', 'no such games yet'));
   aiSortBy(on.slice(-8), function(g) { return g.mid; }).forEach(function(g) {
     var dv = g.div || {}, mb = (g.bl || []).filter(function(b) { return b.p === 'mid'; });
@@ -7234,7 +7235,11 @@ var AI_COND = {
   checklist: [['ровно 5 пунктов'], ['exactly 5 points']],
   review:    [['не больше 6 шагов'], ['at most 6 steps']],
   opening:   [['не больше 5 пунктов'], ['at most 5 points']],
-  plans:     [['не больше 5 пунктов'], ['at most 5 points']],
+  plans:     function() {
+    var o = aiOp() || {name: '—', color: 'white'}, w = o.color === 'black', n = o.name;
+    return [['2–3 типичные идеи ' + (w ? 'чёрных' : 'белых') + ' в дебюте «' + n + '» из общих шахматных знаний, с пометкой «обычно в этом дебюте»', 'к каждой идее — пример из моих партий, если он есть в данных', 'не больше 5 пунктов'],
+            ['2–3 typical ideas for ' + (w ? 'Black' : 'White') + ' in the ' + opEn(o) + ' from general chess knowledge, marked "usually in this opening"', 'for each idea, an example from my games if the data has one', 'at most 5 points']];
+  },
   opLines:   [['не больше 5 пунктов', 'по порядку: что учить первым'], ['at most 5 points', 'in order: what to learn first']],
   opAway:    [['одна главная проблема схемы', '2–3 действия'], ['one main problem of the setup', '2–3 actions']],
   goal:      [['сначала «да» или «нет»', 'не больше 3 действий'], ['first "yes" or "no"', 'at most 3 actions']]
@@ -7272,10 +7277,16 @@ AI_SIMPLE_TPL.today = function() {
   for (var i = 2; i <= aiTaskN(); i++) { ru.push(i + ') …'); en.push(i + ') …'); }
   return [ru.concat('Всего минут: …'), en.concat('Total minutes: …')];
 };
+AI_SIMPLE_TPL.plans = function() {   // идеи — из знаний модели, примеры и слабые места — из данных
+  var o = aiOp() || {name: '—', color: 'white'}, w = o.color === 'black';
+  var ru = 'Идея ' + (w ? 'чёрных' : 'белых') + ' (обычно в этом дебюте): какой ход или план и зачем → пример из моих партий (#партия), если есть', en = 'Idea for ' + (w ? 'Black' : 'White') + ' (usually in this opening): which move or plan and why → an example from my games (#game), if any';
+  return [['1) ' + ru, '2) …', '3) …', '4) Где у меня ломалось: #партия — что случилось (из данных)', '5) Что отработать: …'],
+          ['1) ' + en, '2) …', '3) …', '4) Where it broke down for me: #game — what happened (from the data)', '5) What to practise: …']];
+};
 AI_SIMPLE_TPL.steps = [['Шаг 1: …', 'Шаг 2: …', '… не больше 6 шагов'], ['Step 1: …', 'Step 2: …', '… at most 6 steps']];
 AI_SIMPLE_TPL.progress = [['Стало лучше: … (было → стало)', 'Не изменилось или хуже: … (было → стало)', 'Дальше смотреть на: …'], ['Improved: … (before → now)', 'Unchanged or worse: … (before → now)', 'Watch next: …']];
 var AI_SIMPLE_KIND = {opLines: 'list5', opAway: 'advice', lastgame: 'game', weak: 'advice', typical: 'advice', opp: 'advice', losses: 'advice', phase: 'advice', winloss: 'advice', deviate: 'advice', themes: 'advice',
-  goal: 'goal', checklist: 'list5', opening: 'list5', plans: 'list5', week: 'days', today: 'today', review: 'steps', weekcmp: 'progress', progress: 'progress'};
+  goal: 'goal', checklist: 'list5', opening: 'list5', plans: 'plans', week: 'days', today: 'today', review: 'steps', weekcmp: 'progress', progress: 'progress'};
 // помощники лёгкого пакета: одна строка — одна партия / один зевок, с подписью
 function aiSGame(g) {   // «#2 28.09 — ПОРАЖЕНИЕ: точность 71%, миттельшпиль 68%, зевков 6, до эндшпиля НЕ дошли»
   return aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + AL(': точность ', ': accuracy ') + g.acc + AL('%, миттельшпиль ', '%, middlegame ') + aiPct(g.mid) +
@@ -7472,9 +7483,9 @@ var AI_SIMPLE = {
     if (!o) return [AL('Изучаемый дебют не задан.', 'No opening being studied.')];
     if (!gl.length) return [AL('Партий в изучаемом дебюте пока нет.', 'No games in the studied opening yet.')];
     var st = opStats(o), on = st.board, off = all.filter(function(g) { return on.indexOf(g) < 0; });
-    out.push(AL('Миттельшпиль: когда «' + o.name + '» получилась на доске (' + on.length + ' партий) — ', 'Middlegame: when the ' + opEn(o) + ' appeared on the board (' + on.length + ' games) — ') + aiPct(avg(on, 'mid')) +
+    out.push(AL('Миттельшпиль: когда «' + o.name + '» получилась на доске (' + on.length + ' ' + plural(on.length, 'партия', 'партии', 'партий') + ') — ', 'Middlegame: when the ' + opEn(o) + ' appeared on the board (' + on.length + ' games) — ') + aiPct(avg(on, 'mid')) +
       (off.length ? AL('; когда бот увёл в другой дебют (' + off.length + ') — ', '; when the bot steered into another opening (' + off.length + ') — ') + aiPct(avg(off, 'mid')) : '') + '.');
-    out.push(AL('Партии с дебютом на доске — от худшего миттельшпиля к лучшему:', 'Games with the opening on the board — from the worst middlegame to the best:'));
+    out.push(aiVarNote(), AL('Партии с дебютом на доске — от худшего миттельшпиля к лучшему:', 'Games with the opening on the board — from the worst middlegame to the best:'));
     aiSortBy(on.slice(-5), function(g) { return g.mid; }).forEach(function(g) { out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + ', ' + g.opening + AL(': миттельшпиль ', ': middlegame ') + aiPct(g.mid) + AL(', зевков в нём ', ', blunders in it ') + (g.bl || []).filter(function(b) { return b.p === 'mid'; }).length); });
     return out;
   },

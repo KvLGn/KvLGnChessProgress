@@ -2818,6 +2818,19 @@ function mrInfoFit(w, mode) {
   var dy = w.getBoundingClientRect().top - head.getBoundingClientRect().top;   // от начала отчёта до графика
   w.style.paddingTop = Math.max(0, pnl.offsetHeight + 8 - dy) + 'px';
   pnl.style.transform = 'translateY(' + (-dy) + 'px)';
+  pnl.setAttribute('data-dy', dy);
+}
+// закрыть панель «i»: из верхнего положения она уезжает вправо на своей высоте, и только потом график встаёт на место
+function mrInfoClose(w) {
+  var pnl = w.querySelector('.mr-info');
+  if (pnl && w.classList.contains('info-up')) {
+    pnl.style.transform = 'translate(102%, ' + (-(+pnl.getAttribute('data-dy') || 0)) + 'px)';
+    w.classList.remove('info-open');
+    setTimeout(function() { if (!w.classList.contains('info-open')) { w.classList.remove('info-up'); mrInfoFit(w, 'off'); var ud = w.querySelector('.mri-ud'); if (ud) ud.textContent = '▲'; } }, 320);
+    return;
+  }
+  w.classList.remove('info-open', 'info-up');
+  mrInfoFit(w, 'off');
 }
 function mrCount(label, v, color, delta, extra) {
   return '<div class="mr-cnt">' + (extra || '') + '<b style="color:' + color + '">' + v + '</b><span>' + label + '</span>' + (delta || '') + '</div>';
@@ -3731,17 +3744,18 @@ function renderGames() {
     if (iBtn) iBtn.addEventListener('click', function(e) {
       e.stopPropagation();
       var w = detail.querySelector('.mr-gwrap'), on = !w.classList.contains('info-open');
+      iBtn.classList.toggle('on', on);
+      if (!on) { mrInfoClose(w); return; }
       w.classList.remove('info-up');
       var ud0 = w.querySelector('.mri-ud'); if (ud0) ud0.textContent = '▲';
-      mrInfoFit(w, on ? 'cover' : 'off');
-      w.classList.toggle('info-open', on);
-      iBtn.classList.toggle('on', on);
+      mrInfoFit(w, 'cover');
+      w.classList.add('info-open');
     });
     var info = detail.querySelector('.mr-info');
     if (info) info.addEventListener('click', function(e) {
       e.stopPropagation();
       var w = detail.querySelector('.mr-gwrap');
-      if (e.target.closest('.mri-x')) { w.classList.remove('info-open', 'info-up'); mrInfoFit(w, 'off'); if (iBtn) iBtn.classList.remove('on'); return; }
+      if (e.target.closest('.mri-x')) { mrInfoClose(w); if (iBtn) iBtn.classList.remove('on'); return; }
       var ud = e.target.closest('.mri-ud');
       if (ud) {   // ▲ — панель над графиком (график открыт), ▼ — обратно поверх графика
         var up = w.classList.toggle('info-up');

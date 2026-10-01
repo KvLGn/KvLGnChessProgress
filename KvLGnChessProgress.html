@@ -8448,6 +8448,7 @@ function gsSections(it) {
   if (g === 'Дебюты') return /в таблице/.test(it.sub) ? ['table'] : ['head'];
   if (g === 'Партии') return ['table'];
   if (g === 'Lichess') return /^Анализ/.test(t) ? ['table'] : /^(Задачи по|Сыграть|Слабая тема)/.test(t) ? ['head'] : /^Слабая фаза/.test(t) ? ['chart'] : [];
+  if (it.expand) return ['head'];   // «Если сайт сломался» (Инструкция, Помощь ИИ) — вместе с шапкой
   return [];
 }
 

@@ -898,14 +898,16 @@
   .ai-dd-menu button.ai-c-tech { color: #fcd34d; }
   .ai-info { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%; border: 1px solid rgba(148,163,184,0.45);
     font: 700 11px Georgia, serif; font-style: italic; color: var(--fg-mute); cursor: help; flex: none; }
-  .ai-info:hover, .ai-info.open { color: var(--fg); border-color: var(--fg-dim); }
+  .ai-info:hover { color: var(--fg); border-color: var(--fg-dim); }
   .ai-info-tip p { margin: 0; } .ai-info-tip .ai-tip-h { color: var(--fg); font-weight: 600; margin-top: 8px; } .ai-info-tip .ai-tip-h:first-child { margin-top: 0; }
   .ai-info-tip .ai-tip-i { padding-left: 10px; margin-top: 3px; } .ai-info-tip b.ai-c-adv { color: #86efac; } .ai-info-tip b.ai-c-tech { color: #fcd34d; } .ai-info-tip .ai-tip-f { margin-top: 9px; color: var(--fg-mute); }
   .ai-info-tip { display: none; position: absolute; top: calc(100% + 6px); left: -8px; z-index: 6; width: 300px; max-width: calc(100vw - 48px); padding: 8px 10px; font: 400 11.5px/1.45 Inter, sans-serif; font-style: normal;
     color: var(--fg-dim); text-align: left; background: #111815; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); cursor: default; }
   .ai-info-tip b { color: var(--fg); font-weight: 600; font-style: normal; font-size: inherit; }   /* перебивает .ai-head b (заголовок «Справка») */
   @media (max-width: 700px) { .ai-box { position: relative; height: auto; } .ai-head .ai-close { position: absolute; top: 10px; right: 10px; } .ai-ctl { flex: 1 1 100%; justify-content: flex-start; margin-left: 0; } .ai-info-tip { left: -4px; } }
-  .ai-info:hover .ai-info-tip, .ai-info.open .ai-info-tip, .ai-info:focus .ai-info-tip { display: block; }
+  .ai-info-tip { pointer-events: none; }   /* блок виден только пока курсор на самом ⓘ — наведение на сам блок его не держит */
+  .ai-info:hover .ai-info-tip { display: block; }
+  @media (hover: none) { .ai-info.open .ai-info-tip { display: block; } }   /* на телефоне наведения нет — открывается нажатием */
   .ai-c-adv { color: #86efac; } .ai-c-tech { color: #fcd34d; }
   .ai-box.tech { border-color: rgba(251,191,36,0.3); }
   .ai-list { overflow-y: auto; min-height: 0; flex: 1 1 auto; padding-right: 4px; overscroll-behavior: contain; }

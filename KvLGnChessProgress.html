@@ -2049,8 +2049,8 @@ function toGoalText(c, lang) {
     : 'Чтобы выполнить цель: минимум ещё ' + k + ' ' + plural(k, 'партия', 'партии', 'партий') + ' против этого бота; из них не меньше ' + w + ' ' + plural(w, 'победы', 'побед', 'побед') + (w < k ? ', остальные — только честные поражения (точность ≥ ' + RULE.lossMinAcc + '% и не больше ' + RULE.lossMaxBlunders + ' зевков), и в каждой пятёрке не больше ' + (RULE.games - RULE.wins) + ' ' + plural(RULE.games - RULE.wins, 'поражения', 'поражений', 'поражений') : '') +
       '; медиана точности в каждой пятёрке ≥ ' + RULE.medianAcc + '%. Лимиты по зевкам и точности — только для поражений (ничья считается так же, как поражение): победа засчитывается при любом числе зевков. Слабое поражение не даёт выполнить цель, пока оно среди последних ' + N + ' партий, идущих в цель.';
 }
-var SPEED_RU = {correspondence: 'без часов (переписка)', classical: 'классика', rapid: 'рапид', blitz: 'блиц', bullet: 'пуля', ultraBullet: 'ультрапуля'};
-var SPEED_EN = {correspondence: 'no clock (correspondence)', classical: 'classical', rapid: 'rapid', blitz: 'blitz', bullet: 'bullet', ultraBullet: 'ultrabullet'};
+var SPEED_RU = {correspondence: 'без ограничения времени (на Lichess записаны как «переписка», против компьютера — без часов)', classical: 'классика', rapid: 'рапид', blitz: 'блиц', bullet: 'пуля', ultraBullet: 'ультрапуля'};
+var SPEED_EN = {correspondence: 'with no time limit (Lichess files them as «correspondence»; vs the computer there is no clock)', classical: 'classical', rapid: 'rapid', blitz: 'blitz', bullet: 'bullet', ultraBullet: 'ultrabullet'};
 function speedLine(lang) {   // «все партии без часов (переписка)» — чтобы ИИ не придумывал цейтнот
   var by = {};
   games.forEach(function(g) { var k = g.speed || '?'; by[k] = (by[k] || 0) + 1; });
@@ -7280,14 +7280,18 @@ AI_DATA.plans = function() {
 AI_DATA.nextstage = function() {
   var out = [stageDesc() + '.'];
   CUR.colors.forEach(function(c) {
+    var gw = !c.done && aiGoalWin(c); if (gw) out.push(gw);
     out.push((CUR.colors.length > 1 ? AL(COLOR_WORD[c.color] + ': ', 'as ' + COLOR_EN[c.color] + ': ') : '') + (c.done ? AL('цель выполнена ', 'goal done ') + c.doneGame.date : c.blocks.map(function(b, i) { return AL('пятёрка ', 'set ') + (i + 1) + ' — ' + blockDesc(b); }).join('; ')));
   });
   var first = games.length ? games[0].day : null, days = first ? daysBetween(fromIso(first), gameToday()) + 1 : 0, act = {};
   games.forEach(function(g) { act[g.day] = 1; });
-  out.push(AL('Темп: занимаюсь ' + days + ' дн., из них с партиями ' + Object.keys(act).length + ', партий в среднем ' + aiR1(days ? games.length / days : 0) + ' в день; за последние 7 дней — ',
-              'Pace: ' + days + ' days since start, ' + Object.keys(act).length + ' with games, ' + aiR1(days ? games.length / days : 0) + ' games a day on average; last 7 days — ') +
-    games.filter(function(g) { return g.day >= isoDay(addDays(gameToday(), -6)); }).length + '.');
-  out.push(AL('Этапы плана: ', 'Plan stages: ') + PLAN.stages.map(function(S, i) { return (i + 1) + ') ' + S.name + (i === CUR.idx ? AL(' ← сейчас', ' ← now') : ''); }).join('; '));
+  var nAct = Object.keys(act).length;
+  out.push(AL('Темп: занимаюсь ' + days + ' дн. (с первой партии), из них с партиями ' + nAct + '; партий в среднем ' + aiR1(days ? games.length / days : 0) + ' на календарный день и ' + aiR1(nAct ? games.length / nAct : 0) + ' на день с партиями. ',
+              'Pace: ' + days + ' days since the first game, ' + nAct + ' with games; on average ' + aiR1(days ? games.length / days : 0) + ' games per calendar day and ' + aiR1(nAct ? games.length / nAct : 0) + ' per day with games. ') + aiGoalPace().replace(/^(Темп|Pace): /, '') + '.');
+  out.push(AL('Этапы плана: ', 'Plan stages: ') + PLAN.stages.map(function(S, i) { return (i + 1) + ') ' + S.name + ' — Stockfish ' + S.engine + ', ' + (S.colors.length > 1 ? AL('оба цвета', 'both colours') : AL(COLOR_WORD[S.colors[0]], 'as ' + COLOR_EN[S.colors[0]])) + (i === CUR.idx ? AL(' ← сейчас', ' ← now') : ''); }).join('; '));
+  var free = ((window.OPENINGS || {}).planned || []);
+  out.push(AL('Дебюты без этапа (их можно поставить в новый этап, в его openings): ', 'Openings without a stage (can go into a new stage\'s openings): ') +
+    (free.length ? free.map(function(o) { return o.name + ' (' + AL(COLOR_WORD[o.color], COLOR_EN[o.color]) + ', id ' + o.id + ')'; }).join(', ') : AL('нет', 'none')) + '.');
   return out.concat(AI_DATA.progress());
 };
 // 21. смена дебюта: результаты по дебютам, мой дебют подробно, дебюты плана
@@ -7673,8 +7677,8 @@ function aiTextSimple(ask, dataKey) {
 /* ---------- текст для человека: совет — письмо (верх годится как пост в чат), план — задание программисту по шагам ---------- */
 function ruleSharedNote() {   // «правило одно на все этапы: на этапе 2 — отдельно белыми и чёрными» — из плана, не вписано руками
   var i = CUR.stage ? CUR.idx + 1 : -1, S = (PLAN.stages || [])[i];
-  var nxt = S ? AL(' — на этапе ' + (i + 1) + ' (Stockfish ' + S.engine + ') его нужно выполнить ' + (S.colors.length > 1 ? 'отдельно белыми и отдельно чёрными' : COLOR_WORD[S.colors[0]]),
-                   ' — at stage ' + (i + 1) + ' (Stockfish ' + S.engine + ') it must be met ' + (S.colors.length > 1 ? 'separately as White and as Black' : 'as ' + COLOR_EN[S.colors[0]])) : '';
+  var nxt = S ? AL(' — например, на этапе ' + (i + 1) + ' (Stockfish ' + S.engine + ') его нужно выполнить ' + (S.colors.length > 1 ? 'отдельно белыми и отдельно чёрными' : COLOR_WORD[S.colors[0]]) + '; на каждом этапе с двумя цветами — так же',
+                   ' — e.g. at stage ' + (i + 1) + ' (Stockfish ' + S.engine + ') it must be met ' + (S.colors.length > 1 ? 'separately as White and as Black' : 'as ' + COLOR_EN[S.colors[0]]) + '; the same on every two-colour stage') : '';
   return AL('• Правило rule одно на все этапы: если его поменять, оно будет действовать и дальше' + nxt + ' (все этапы — в plan.js ниже).',
             '• The rule is shared by all stages: a change also applies later' + nxt + ' (all stages — in plan.js below).');
 }
@@ -7716,8 +7720,8 @@ function humanTextInner(ask, isPlan, dataKey, item) {
     ruleSharedNote(),
     AL('• Термины: «точность» — оценка Lichess по компьютерному анализу партии (0–100%); «зевок» — грубая ошибка (blunder), «ошибка» — средняя (mistake); в правиле считаются только зевки. Поражение «слабое», если нарушено хотя бы одно из двух условий: точность ниже ' + RULE.lossMinAcc + '% или зевков больше ' + RULE.lossMaxBlunders + '.',
        '• Terms: «точность» (accuracy) is Lichess\'s score from the computer analysis (0–100%); «зевок» is a blunder, «ошибка» a mistake; the rule counts only blunders. A loss is «weak» if either condition fails: accuracy below ' + RULE.lossMinAcc + '% or more than ' + RULE.lossMaxBlunders + ' blunders.'),
-    AL('• Любая правка правила или текущего этапа (rule, engine, colors) пересчитывается сразу: если по новым условиям этап уже был выполнен в прошлых партиях, сайт засчитает его задним числом, и при ближайшем автообновлении это навсегда запишется в data/progress.js — откатить нельзя. Поэтому смягчать правило — только осознанно.',
-       '• Any change to the rule or the current stage (rule, engine, colors) is recalculated at once: if the stage would already have been completed under the new conditions, the site counts it retroactively, and the next automatic update records it in data/progress.js for good — it cannot be undone. So relax the rule only deliberately.'),
+    AL('• Любая правка правила или текущего этапа (rule, engine, colors) пересчитывается сразу: если по новым условиям этап уже был выполнен в прошлых партиях, сайт засчитает его задним числом, и при ближайшем автообновлении это навсегда запишется в data/progress.js — откатить нельзя. Поэтому смягчать правило — только осознанно. Добавление нового этапа в конец плана текущий этап не меняет — к нему этот риск не относится.',
+       '• Any change to the rule or the current stage (rule, engine, colors) is recalculated at once: if the stage would already have been completed under the new conditions, the site counts it retroactively, and the next automatic update records it in data/progress.js for good — it cannot be undone. So relax the rule only deliberately. Adding a new stage at the end does not change the current one — this risk does not apply to it.'),
     AL('• data/plan.js — это код на JavaScript: одна лишняя или пропущенная запятая, скобка или кавычка ломает файл. Сайт тогда покажет красную плашку с причиной; рабочая копия плана есть только в браузере, где сайт уже открывали, — у остальных этапы и дебюты пропадут, пока файл не исправят.',
        '• data/plan.js is JavaScript code: one extra or missing comma, bracket or quote breaks the file. The site then shows a red banner with the reason; a working copy of the plan exists only in a browser that opened the site before — for everyone else stages and openings disappear until the file is fixed.'),
     '', AL('Если у тебя нет доступа на запись в мой репозиторий — не страшно: пришли мне целиком новый текст data/plan.js, я вставлю его сам (шаги 1–3 тогда сделаю я).',
@@ -7731,7 +7735,7 @@ function humanTextInner(ask, isPlan, dataKey, item) {
     AL('   – rule: все шесть полей (games, blocks, wins, medianAcc, lossMinAcc, lossMaxBlunders) — числа, wins не больше games;', '   – rule: all six fields (games, blocks, wins, medianAcc, lossMinAcc, lossMaxBlunders) are numbers, wins not greater than games;'),
     AL('   – у каждого дебюта обязательны id, name и color (\'white\' или \'black\'); без match партии в нём не будут узнаваться;', '   – every opening needs id, name and color (\'white\' or \'black\'); without match its games will not be recognised;'),
     AL('   – id дебюта — латиница без пробелов, уникальный; match — английское название дебюта как на Lichess (например \'Italian Game\');', '   – opening id: Latin, no spaces, unique; match: English opening name as on Lichess (e.g. \'Italian Game\');'),
-    AL('   – для чёрных vs — первый ход бота, на который играется дебют (\'e4\' или \'d4\'); студии — id из адреса lichess.org/study/<id> (8 символов), ids — id всех частей (первая = id, их число = parts), студия открыта хотя бы по ссылке;', '   – for black, vs is the bot\'s first move the opening answers (\'e4\' or \'d4\'); studies: id from lichess.org/study/<id> (8 chars), ids — all parts (first = id, count = parts), study must be at least unlisted;'),
+    AL('   – для чёрных vs — первый ход бота, на который играется дебют (\'e4\', \'d4\', \'c4\', \'Nf3\'…); студии — id из адреса lichess.org/study/<id> (8 символов), ids — id всех частей (первая = id, их число = parts), студия открыта хотя бы по ссылке;', '   – for black, vs is the bot\'s first move the opening answers (\'e4\', \'d4\', \'c4\', \'Nf3\'…); studies: id from lichess.org/study/<id> (8 chars), ids — all parts (first = id, count = parts), study must be at least unlisted;'),
     AL('   – длина: название этапа ≤ ' + STAGES.LIMITS.stageName + ' символов, дебюта ≤ ' + STAGES.LIMITS.openingName + ', имя мастера ≤ ' + STAGES.LIMITS.master + '. Названия пишутся по-русски.', '   – length: stage name ≤ ' + STAGES.LIMITS.stageName + ' chars, opening ≤ ' + STAGES.LIMITS.openingName + ', master ≤ ' + STAGES.LIMITS.master + '. Names are written in Russian.'),
     AL('3. Внизу нажать «Commit changes» (в ветку main).', '3. Click "Commit changes" at the bottom (to the main branch).'),
     AL('4. Через ~1 минуту открыть ' + site + ' и проверить: «Итоги» → название этапа, карточка «Дебюты».', '4. After ~1 minute open ' + site + ' and check: «Итоги» → stage name, «Дебюты» card.'),

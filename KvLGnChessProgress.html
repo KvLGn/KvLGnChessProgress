@@ -7125,13 +7125,12 @@ AI_DATA.opAway = function() {
   var o = aiOp(); if (!o) return [AL('Изучаемый дебют не задан', 'No opening being studied')];
   var A = aiAwayGroups(o, 20), out = [];
   if (!A.away.length) return [AL('Бот всегда отвечал по дебюту «' + o.name + '» — уходов не было.', 'The bot always followed the ' + opEn(o) + ' — no deviations.')];
-  out.push(AL('Последние ' + A.away.length + ' партий по плану «' + o.name + '», где бот ответил иначе и дебюта на доске не было. По ответам бота, от частого к редкому:',
-              'The last ' + A.away.length + ' planned ' + opEn(o) + ' games where the bot replied differently and the opening never appeared. By the bot\'s reply, most frequent first:'));
+  out.push(AL('Последние ' + A.away.length + ' партий по плану «' + o.name + '», где бот ответил иначе и дебюта на доске не было.', 'The last ' + A.away.length + ' planned ' + opEn(o) + ' games where the bot replied differently and the opening never appeared.'),
+    aiAwaySummary(o, A), AL('По ответам бота, от частого к редкому:', 'By the bot\'s reply, most frequent first:'));
   A.keys.forEach(function(k) {
     var gl = A.grp[k], dev = aiAwayDev(gl);
     out.push('– ' + k + ': ' + gl.length + ' (' + aiWL(gl) + AL('), миттельшпиль ', '), middlegame ') + aiPct(avg(gl, 'mid')) + AL('; партии ', '; games ') + gl.map(aiGid).join(', ') + (dev ? AL('; мой отход: ', '; my deviation: ') + dev : ''));
   });
-  out.splice(1, 0, aiAwaySummary(o, A));
   return out;
 };
 // 15. планы после дебюта: что происходит в миттельшпиле моих партий этого дебюта

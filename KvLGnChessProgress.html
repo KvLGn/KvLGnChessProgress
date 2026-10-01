@@ -864,7 +864,7 @@
   .ai-head { flex-wrap: wrap; row-gap: 8px; min-width: 0; }
   .ai-own-btns { flex-wrap: wrap; }
   @media (max-width: 700px) { .ai-menu { padding: 8px; align-items: stretch; } .ai-box { width: 100%; max-height: none; padding: 12px; } .ai-own-btns button { flex: 1 1 auto; } }
-  .ai-box { width: 600px; max-width: 100%; max-height: 86vh; display: flex; flex-direction: column; background: linear-gradient(180deg, #14201a 0%, #111815 100%);
+  .ai-box { width: 600px; max-width: 100%; height: min(86vh, 760px); display: flex; flex-direction: column; background: linear-gradient(180deg, #14201a 0%, #111815 100%);
     border: 1px solid rgba(74,222,128,0.3); border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.5); padding: 14px 16px 12px; }
   .ai-head { display: flex; align-items: center; gap: 12px; }
   .ai-head b { font-size: 14px; color: #bbf7d0; }
@@ -878,7 +878,9 @@
   .ai-ctl { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
   .ai-lang button:disabled { opacity: 0.35; cursor: default; }
   .ai-dd { position: relative; }
-  .ai-dd-btn { font: 600 11px Inter, sans-serif; background: none; border: 1px solid; border-radius: 6px; padding: 3px 8px; cursor: pointer; white-space: nowrap; }
+  .ai-dd-btn { font: 600 11px Inter, sans-serif; background: none; border: 1px solid; border-radius: 6px; padding: 0 8px; cursor: pointer; white-space: nowrap; }
+  .ai-head .ai-lang button, .ai-dd-btn { box-sizing: border-box; height: 26px; display: inline-flex; align-items: center; line-height: 1; }   /* все кнопки шапки одной высоты */
+  .ai-head { gap: 8px; } .ai-head > b { margin-right: 4px; }
   .ai-dd-btn.ai-c-who { color: #86efac; border-color: rgba(74,222,128,0.5); }
   .ai-dd-btn.ai-c-adv { color: #86efac; border-color: rgba(74,222,128,0.5); }
   .ai-dd-btn.ai-c-tech { color: #fcd34d; border-color: rgba(251,191,36,0.5); }
@@ -894,14 +896,15 @@
   .ai-info { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%; border: 1px solid rgba(148,163,184,0.45);
     font: 700 11px Georgia, serif; font-style: italic; color: var(--fg-mute); cursor: help; flex: none; }
   .ai-info:hover, .ai-info.open { color: var(--fg); border-color: var(--fg-dim); }
+  .ai-info-tip p { margin: 0 0 7px; } .ai-info-tip p:last-child { margin: 0; }
   .ai-info-tip { display: none; position: absolute; top: calc(100% + 6px); left: -8px; z-index: 6; width: 300px; max-width: calc(100vw - 48px); padding: 8px 10px; font: 400 11.5px/1.45 Inter, sans-serif; font-style: normal;
     color: var(--fg-dim); text-align: left; background: #111815; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); cursor: default; }
   .ai-info-tip b { color: var(--fg); font-weight: 600; font-style: normal; font-size: inherit; }   /* перебивает .ai-head b (заголовок «Справка») */
-  @media (max-width: 700px) { .ai-box { position: relative; } .ai-head .ai-close { position: absolute; top: 10px; right: 10px; } .ai-ctl { flex: 1 1 100%; justify-content: flex-start; margin-left: 0; } .ai-info-tip { left: -4px; } }
+  @media (max-width: 700px) { .ai-box { position: relative; height: auto; } .ai-head .ai-close { position: absolute; top: 10px; right: 10px; } .ai-ctl { flex: 1 1 100%; justify-content: flex-start; margin-left: 0; } .ai-info-tip { left: -4px; } }
   .ai-info:hover .ai-info-tip, .ai-info.open .ai-info-tip, .ai-info:focus .ai-info-tip { display: block; }
   .ai-c-adv { color: #86efac; } .ai-c-tech { color: #fcd34d; }
   .ai-box.tech { border-color: rgba(251,191,36,0.3); }
-  .ai-list { overflow-y: auto; min-height: 0; padding-right: 4px; overscroll-behavior: contain; }
+  .ai-list { overflow-y: auto; min-height: 0; flex: 1 1 auto; padding-right: 4px; overscroll-behavior: contain; }
   .ai-box, .ai-own textarea { overscroll-behavior: contain; }
   .ai-group { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #4ade80; margin: 10px 0 4px; }
   .ai-group.plan { color: #fbbf24; }
@@ -7025,53 +7028,63 @@ function aiText(ask, isPlan, dataKey) {
    Алиса путала окна (75% за 5 партий / 60% за 10) и подписи соседних чисел. Здесь: только данные под вопрос,
    у каждой метрики одно окно, ключевые моменты отобраны заранее, 4 правила и шаблон ответа (Яндекс и Сбер советуют задавать формат). ---------- */
 var AI_SIMPLE_TPL = {
-  advice: ['Проблема: …', 'Почему: … (2–3 числа из данных, с подписью)', 'Что делать: 1) … 2) …', 'Как проверить: …'],
-  game:   ['Момент 1 (ход …): что было → что советовал движок → чему учит', 'Момент 2 (ход …): …', 'Момент 3 (ход …): …', 'Главный урок: …']
+  advice: [['Проблема: …', 'Почему: … (2–3 числа из данных, с подписью)', 'Что делать: 1) … 2) …', 'Как проверить: …'],
+           ['Problem: …', 'Why: … (2–3 numbers from the data, with their labels)', 'What to do: 1) … 2) …', 'How to check: …']],
+  game:   [['Момент 1 (ход …): что было → что советовал движок → чему учит', 'Момент 2 (ход …): …', 'Момент 3 (ход …): …', 'Главный урок: …'],
+           ['Moment 1 (move …): what happened → what the engine suggested → what it teaches', 'Moment 2 (move …): …', 'Moment 3 (move …): …', 'Main lesson: …']]
 };
 var AI_SIMPLE_KIND = {lastgame: 'game', weak: 'advice', typical: 'advice', opp: 'advice', losses: 'advice', phase: 'advice', winloss: 'advice', deviate: 'advice', goal: 'advice'};
 var AI_SIMPLE = {
   // «Главная слабость»: фазы, зевки, поражения по одному в строке, одна тема задач, цель — всё за последние 10 партий
   weak: function() {
     var last = games.slice(-10), L = last.filter(function(g) { return g.result === 'lose'; }), P = window.PUZZLES || {}, out = [];
-    var ph = [['дебют', avg(last, 'debut')], ['миттельшпиль', avg(last, 'mid')], ['эндшпиль', avg(last, 'end')]].filter(function(x) { return x[1] !== null; });
+    var ph = [[aiPhase('debut'), avg(last, 'debut')], [aiPhase('mid'), avg(last, 'mid')], [aiPhase('end'), avg(last, 'end')]].filter(function(x) { return x[1] !== null; });
     var weakest = ph.slice().sort(function(a, b) { return a[1] - b[1]; })[0];
-    out.push('Все числа ниже — за последние 10 партий (' + aiWL(last) + ').');
-    out.push('Точность по фазам: ' + ph.map(function(x) { return x[0] + ' ' + aiPct(x[1]); }).join(', ') + '. Самая слабая фаза — ' + weakest[0] + ' (' + aiPct(weakest[1]) + ').');
-    out.push('Зевков за партию в среднем: ' + aiR1(avg(last, 'blunders')) + '. Чаще всего: ' + aiBlTypes(last) + '.');
-    out.push('Поражения:');
-    L.forEach(function(g) { out.push('- ' + aiGid(g) + ': зевков ' + g.blunders + ', точность миттельшпиля ' + aiPct(g.mid) + ', ' + (hasEnd(g) ? 'до эндшпиля дошли' : 'до эндшпиля НЕ дошли')); });
-    out.push('Ошибки бота: ' + aiOppStat(last) + '.');
-    var wt = aiWeakThemes(1); if (wt.length) out.push('Самая слабая тема задач: ' + wt[0].replace(/^1\) /, '').replace(' — самая слабая', '') + ' (общий перфоманс ' + (P.global ? P.global.perf : '—') + ').');
-    if (CUR.stage) out.push('Цель этапа: 2 пятёрки подряд против Stockfish ' + CUR.stage.engine + '; в каждой 4+ побед из 5, медиана общей точности не ниже ' + RULE.medianAcc + '%, поражения — с точностью не ниже ' + RULE.lossMinAcc + '% и не больше ' + RULE.lossMaxBlunders + ' зевков. Выполнено пятёрок: ' + CUR.colors.map(function(c) { return c.blocks.filter(function(b) { return b.ok; }).length; }).join(', ') + ' из ' + RULE.blocks + '.');
+    out.push(AL('Все числа ниже — за последние 10 партий (', 'All numbers below are for the last 10 games (') + aiWL(last) + ').');
+    out.push(AL('Точность по фазам: ', 'Accuracy by phase: ') + ph.map(function(x) { return x[0] + ' ' + aiPct(x[1]); }).join(', ') + AL('. Самая слабая фаза — ', '. The weakest phase is the ') + weakest[0] + ' (' + aiPct(weakest[1]) + ').');
+    out.push(AL('Зевков за партию в среднем: ', 'Blunders per game on average: ') + aiR1(avg(last, 'blunders')) + AL('. Чаще всего: ', '. Most often: ') + aiBlTypes(last) + '.');
+    out.push(AL('Поражения:', 'Losses:'));
+    L.forEach(function(g) { out.push('- ' + aiGid(g) + AL(': зевков ', ': blunders ') + g.blunders + AL(', точность миттельшпиля ', ', middlegame accuracy ') + aiPct(g.mid) + ', ' + (hasEnd(g) ? AL('до эндшпиля дошли', 'reached the endgame') : AL('до эндшпиля НЕ дошли', 'did NOT reach the endgame'))); });
+    out.push(AL('Ошибки бота: ', 'Bot blunders: ') + aiOppStat(last) + '.');
+    var wt = aiWeakThemes(1); if (wt.length) out.push(AL('Самая слабая тема задач: ', 'The weakest puzzle theme: ') + wt[0].replace(/^1\) /, '').replace(AL(' — самая слабая', ' — the weakest'), '') + AL(' (общий перфоманс ', ' (overall performance ') + (P.global ? P.global.perf : '—') + ').');
+    if (CUR.stage) out.push(AL('Цель этапа: 2 пятёрки подряд против Stockfish ' + CUR.stage.engine + '; в каждой 4+ побед из 5, медиана общей точности не ниже ' + RULE.medianAcc + '%, поражения — с точностью не ниже ' + RULE.lossMinAcc + '% и не больше ' + RULE.lossMaxBlunders + ' зевков. Выполнено пятёрок: ',
+      'Stage goal: 2 sets of 5 games in a row vs Stockfish ' + CUR.stage.engine + '; each needs 4+ wins of 5, median overall accuracy of at least ' + RULE.medianAcc + '%, losses with accuracy of at least ' + RULE.lossMinAcc + '% and at most ' + RULE.lossMaxBlunders + ' blunders. Sets done: ') +
+      CUR.colors.map(function(c) { return c.blocks.filter(function(b) { return b.ok; }).length; }).join(', ') + AL(' из ', ' of ') + RULE.blocks + '.');
     return out;
   },
   // «Разбор последней партии»: 3 момента уже отобраны (перелом, упущенный мат, самый дорогой зевок), каждый — одной строкой
   lastgame: function() {
     var g = games[games.length - 1];
-    if (!g) return ['Партий пока нет'];
+    if (!g) return [AL('Партий пока нет', 'No games yet')];
     var o = aiOp(), out = [], moments = [], t = mrTurn(g), sans = aiSans(g);
-    out.push('Партия ' + aiGid(g) + ': ' + RESULT[g.result].label.toUpperCase() + (g.how ? ' (' + (HOW_RU[g.how] || g.how) + ')' : '') + ', белыми против ' + g.engine + (CUR.stage && !aiInGoal(g) ? ' — в цель этапа НЕ идёт' : '') + '.');
-    out.push('Дебют: ' + g.opening + (o && !(g.color === o.color && opMatch(o, g.opening)) ? ' (не мой изучаемый дебют «' + o.name + '»)' : '') + '.');
-    out.push('Точность: общая ' + g.acc + '%, дебют ' + aiPct(g.debut) + ', миттельшпиль ' + aiPct(g.mid) + ', эндшпиль ' + (hasEnd(g) ? g.end + '%' : 'не дошли') + '.');
-    if (t) moments.push('перелом: ' + (anMine(g, t.p) ? 'мой ход ' + aiMove(g, t.p) : 'ход бота ' + aiMove(g, t.p) + ' был его ошибкой') + '; оценка ' + aiEv(g.ev[t.p - 1] || 0) + ' → ' + aiEv(g.ev[t.p] || 0) + (t.d > 0 ? ', в мою пользу' : ', в пользу бота') + (!anMine(g, t.p) && sans[t.p] ? '; я ответил ' + aiMove(g, t.p + 1) : '') + '.');
-    mateSeries(g).filter(function(m) { return m.lost; }).slice(0, 1).forEach(function(m) { moments.push('упущенный мат: на ходу ' + Math.ceil(m.lost / 2) + ' был мат в ' + m.N2 + ', а сыграно ' + aiMove(g, m.lost) + (mateSeries(g).some(function(x) { return x.mated; }) ? '; позже мат всё равно поставлен' : '') + '.'); });
-    (g.bl || []).slice().sort(function(a, b) { return (b.d || 99) - (a.d || 99); }).slice(0, Math.max(1, 3 - moments.length)).forEach(function(b) { moments.push('мой зевок: ' + aiBl(g, b) + '.'); });
-    out.push('Главные моменты (уже отобраны):');
+    out.push(AL('Партия ', 'Game ') + aiGid(g) + ': ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + (g.how ? ' (' + AL(HOW_RU[g.how] || g.how, HOW_EN[g.how] || g.how) + ')' : '') + AL(', белыми против ', ', as white vs ').replace(AL('белыми', 'white'), AL(COLOR_WORD[g.color], COLOR_EN[g.color])) + g.engine +
+      (CUR.stage && !aiInGoal(g) ? AL(' — в цель этапа НЕ идёт', ' — does NOT count towards the stage goal') : '') + '.');
+    out.push(AL('Дебют: ', 'Opening: ') + g.opening + (o && !(g.color === o.color && opMatch(o, g.opening)) ? AL(' (не мой изучаемый дебют «' + o.name + '»)', ' (not the opening I am studying, the ' + opEn(o) + ')') : '') + '.');
+    out.push(AL('Точность: общая ', 'Accuracy: overall ') + g.acc + AL('%, дебют ', '%, opening ') + aiPct(g.debut) + AL(', миттельшпиль ', ', middlegame ') + aiPct(g.mid) + AL(', эндшпиль ', ', endgame ') + (hasEnd(g) ? g.end + '%' : AL('не дошли', 'not reached')) + '.');
+    if (t) moments.push(AL('перелом: ', 'turning point: ') + (anMine(g, t.p) ? AL('мой ход ', 'my move ') + aiMove(g, t.p) : AL('ход бота ', 'the bot\'s move ') + aiMove(g, t.p) + AL(' был его ошибкой', ' was its mistake')) +
+      AL('; оценка ', '; evaluation ') + aiEv(g.ev[t.p - 1] || 0) + ' → ' + aiEv(g.ev[t.p] || 0) + (t.d > 0 ? AL(', в мою пользу', ', in my favour') : AL(', в пользу бота', ', in the bot\'s favour')) +
+      (!anMine(g, t.p) && sans[t.p] ? AL('; я ответил ', '; I replied ') + aiMove(g, t.p + 1) : '') + '.');
+    mateSeries(g).filter(function(m) { return m.lost; }).slice(0, 1).forEach(function(m) {
+      moments.push(AL('упущенный мат: на ходу ' + Math.ceil(m.lost / 2) + ' был мат в ' + m.N2 + ', а сыграно ', 'missed mate: at move ' + Math.ceil(m.lost / 2) + ' there was mate in ' + m.N2 + ', but I played ') + aiMove(g, m.lost) +
+        (mateSeries(g).some(function(x) { return x.mated; }) ? AL('; позже мат всё равно поставлен', '; the mate was delivered later anyway') : '') + '.');
+    });
+    (g.bl || []).slice().sort(function(a, b) { return (b.d || 99) - (a.d || 99); }).slice(0, Math.max(1, 3 - moments.length)).forEach(function(b) { moments.push(AL('мой зевок: ', 'my blunder: ') + aiBl(g, b) + '.'); });
+    out.push(AL('Главные моменты (уже отобраны):', 'Key moments (already selected):'));
     moments.slice(0, 3).forEach(function(m, i) { out.push((i + 1) + ') ' + m); });
     var M = (g.jd || []).filter(function(j) { return j[1] === 'M' && anMine(g, j[0]); }).slice(0, 3);
-    if (M.length) out.push('Ещё мои ошибки (слабее зевка): ' + M.map(function(j) { return aiMove(g, j[0]) + ((j[2] || '') ? ' — движок советовал ' + j[2].split(' ')[0] : ''); }).join('; ') + '.');
+    if (M.length) out.push(AL('Ещё мои ошибки (слабее зевка): ', 'My other mistakes (less than a blunder): ') + M.map(function(j) { return aiMove(g, j[0]) + ((j[2] || '') ? AL(' — движок советовал ', ' — the engine suggested ') + j[2].split(' ')[0] : ''); }).join('; ') + '.');
     return out;
   }
 };
 function aiTextSimple(ask, dataKey) {
   var data = AI_SIMPLE[dataKey] ? AI_SIMPLE[dataKey]() : dataKey && AI_DATA[dataKey] ? AI_DATA[dataKey](aiCtx()) : [], tpl = AI_SIMPLE_TPL[AI_SIMPLE_KIND[dataKey]];
-  var out = ['Задача: ' + ask, '', 'Ты помогаешь шахматисту-новичку. Правила:',
-    '- Используй только данные ниже.',
-    '- Числа переписывай точно так, как они написаны, вместе с их подписью.',
-    '- Если чего-то нет в данных — напиши «в данных нет».',
-    '- Пиши по-русски, коротко.'];
-  if (tpl) out = out.concat(['', 'Ответь по шаблону:'], tpl);
-  out.push('', '<данные>', data.join('\n'), '</данные>', '', 'Вопрос: ' + ask);
+  var out = [AL('Задача: ', 'Task: ') + ask, '', AL('Ты помогаешь шахматисту-новичку. Правила:', 'You help a beginner chess player. Rules:'),
+    AL('- Используй только данные ниже.', '- Use only the data below.'),
+    AL('- Числа переписывай точно так, как они написаны, вместе с их подписью.', '- Copy numbers exactly as written, together with their labels.'),
+    AL('- Если чего-то нет в данных — напиши «в данных нет».', '- If something is not in the data, write "not in the data".'),
+    AL('- Пиши по-русски, коротко.', '- Write in English, briefly.')];
+  if (tpl) out = out.concat(['', AL('Ответь по шаблону:', 'Answer using this template:')], tpl[aiLang === 'en' ? 1 : 0]);
+  out.push('', AL('<данные>', '<data>'), data.join('\n'), AL('</данные>', '</data>'), '', AL('Вопрос: ', 'Question: ') + ask);
   return out.join('\n');
 }
 /* ---------- текст для человека: совет — письмо (верх годится как пост в чат), план — задание программисту по шагам ---------- */
@@ -7122,10 +7135,10 @@ function humanTextInner(ask, isPlan, dataKey, item) {
     '', AL('Текущий data/plan.js:', 'Current data/plan.js:'), planSource());
   return out.join('\n');
 }
-// простой режим — только для русского и не для правки плана (новый plan.js простой модели не доверяем)
+// простой режим — не для правки плана (новый plan.js простой модели не доверяем)
 function helpText(ask, isPlan, dataKey, item) {
   if (aiMode === 'human') return humanText(ask, isPlan, dataKey, item);
-  return aiModel === 'simple' && !isPlan && aiLang === 'ru' ? aiTextSimple(ask, dataKey) : aiText(ask, isPlan, dataKey);
+  return aiModel === 'simple' && !isPlan ? aiTextSimple(ask, dataKey) : aiText(ask, isPlan, dataKey);
 }
 
 /* ---------- окно «Справка» ---------- */
@@ -7136,23 +7149,24 @@ function renderAiMenu() {
     return '<span class="ai-dd' + (aiDd === key ? ' open' : '') + '"><button class="ai-dd-btn ' + cls + '" data-dd="' + key + '">' + label + ' ▾</button>' +
       '<span class="ai-dd-menu">' + opts + '</span></span>';
   }
-  var info = AL('<b>Для кого</b> — <b>ИИ</b>: копирует готовый запрос для нейросети; <b>человек</b>: письмо тренеру или в чат шахматистов (совет) либо пошаговое задание программисту (план).<br>' +
-      '<b>Сильная / Простая</b> — какой нейросети отдаёте: сильная (DeepSeek, ChatGPT, Claude, Gemini) получает полный запрос со сводкой, простая (Алиса, GigaChat, мини-версии) — короткий с готовыми выводами.<br>' +
-      '<b>Суть вопроса</b> — <span class="ai-c-adv">совет</span>: вопросы об игре и тренировках; <span class="ai-c-tech">техническая</span>: правка плана обучения (этапы, правило перехода, дебюты) в data/plan.js.<br>Нажми на пункт — запрос скопируется, вставь его в чат.',
-    '<b>For whom</b> — <b>AI</b>: copies a ready request for an AI chat; <b>person</b>: a message for a coach or a chess chat (advice) or a step-by-step task for a programmer (plan).<br>' +
-      '<b>Strong / Simple</b> — which AI: strong (DeepSeek, ChatGPT, Claude, Gemini) gets the full request with the summary, simple (Alice, GigaChat, mini versions) a short one with ready conclusions.<br>' +
-      '<b>Topic</b> — <span class="ai-c-adv">advice</span>: questions about play and training; <span class="ai-c-tech">technical</span>: changing the training plan (stages, rule, openings) in data/plan.js.<br>Click an item — the request is copied, paste it into the chat.');
+  var info = AL('<p><b>Для кого</b> — <b>ИИ</b>: копирует готовый запрос для нейросети; <b>человек</b>: письмо тренеру или в чат шахматистов (совет) либо пошаговое задание программисту (план).</p>' +
+      '<p><b>Сильная / Простая</b> — какой нейросети отдаёте: сильная (DeepSeek, ChatGPT, Claude, Gemini) получает полный запрос со сводкой, простая (Алиса, GigaChat, мини-версии) — короткий с готовыми выводами.</p>' +
+      '<p><b>Суть вопроса</b> — <span class="ai-c-adv">совет</span>: вопросы об игре и тренировках; <span class="ai-c-tech">техническая</span>: правка плана обучения (этапы, правило перехода, дебюты) в data/plan.js.</p>' +
+      '<p>Нажми на пункт — запрос скопируется, вставь его в чат.</p>',
+    '<p><b>For whom</b> — <b>AI</b>: copies a ready request for an AI chat; <b>person</b>: a message for a coach or a chess chat (advice) or a step-by-step task for a programmer (plan).</p>' +
+      '<p><b>Strong / Simple</b> — which AI: strong (DeepSeek, ChatGPT, Claude, Gemini) gets the full request with the summary, simple (Alice, GigaChat, mini versions) a short one with ready conclusions.</p>' +
+      '<p><b>Topic</b> — <span class="ai-c-adv">advice</span>: questions about play and training; <span class="ai-c-tech">technical</span>: changing the training plan (stages, rule, openings) in data/plan.js.</p>' +
+      '<p>Click an item — the request is copied, paste it into the chat.</p>');
   var who = dd('who', H ? AL('Для человека', 'For a person') : AL('Для ИИ', 'For AI'), 'ai-c-who',
     '<button data-mode="ai" class="' + (H ? '' : 'on') + '">' + AL('Для ИИ', 'For AI') + '</button><button data-mode="human" class="' + (H ? 'on' : '') + '">' + AL('Для человека', 'For a person') + '</button>');
-  var model = H || aiLang !== 'ru' ? '' : '<span class="ai-lang"><button data-model="strong" class="' + (aiModel === 'strong' || T ? 'on' : '') + '" title="DeepSeek, ChatGPT, Claude, Gemini — полный запрос со сводкой">Сильная</button>' +
-    '<button data-model="simple" class="' + (aiModel === 'simple' && !T ? 'on' : '') + '"' + (T ? ' disabled title="Правка плана — всегда полный запрос"' : ' title="Алиса, GigaChat, мини-версии — короткий запрос с готовыми выводами"') + '>Простая</button></span>';
+  var model = H ? '' : '<span class="ai-lang"><button data-model="strong" class="' + (aiModel === 'strong' || T ? 'on' : '') + '" title="' + AL('DeepSeek, ChatGPT, Claude, Gemini — полный запрос со сводкой', 'DeepSeek, ChatGPT, Claude, Gemini — the full request with the summary') + '">' + AL('Сильная', 'Strong') + '</button>' +
+    '<button data-model="simple" class="' + (aiModel === 'simple' && !T ? 'on' : '') + '"' + (T ? ' disabled title="' + AL('Правка плана — всегда полный запрос', 'Plan changes always use the full request') + '"' : ' title="' + AL('Алиса, GigaChat, мини-версии — короткий запрос с готовыми выводами', 'Alice, GigaChat, mini versions — a short request with ready conclusions') + '"') + '>' + AL('Простая', 'Simple') + '</button></span>';
   var kind = dd('kind', T ? AL('Техническая', 'Technical') : AL('Совет', 'Advice'), T ? 'ai-c-tech' : 'ai-c-adv',
     '<button data-kind="advice" class="ai-c-adv' + (T ? '' : ' on') + '">' + AL('Совет', 'Advice') + '<i>' + AL('вопросы об игре и тренировках', 'questions about play and training') + '</i></button>' +
     '<button data-kind="tech" class="ai-c-tech' + (T ? ' on' : '') + '">' + AL('Техническая', 'Technical') + '<i>' + AL('правка плана: этапы, правило, дебюты', 'plan changes: stages, rule, openings') + '</i></button>');
   $('aiMenu').innerHTML = '<div class="ai-box' + (T ? ' tech' : '') + '" role="dialog" aria-label="' + AL('Справка', 'Help') + '">' +
-    '<div class="ai-head"><b>📋 ' + AL('Справка', 'Help') + '</b>' +
-      '<span class="ai-ctl"><span class="ai-info" tabindex="0" aria-label="' + AL('Что здесь для чего', 'What is what') + '">i<span class="ai-info-tip">' + info + '</span></span>' +
-        who + model + kind +
+    '<div class="ai-head"><span class="ai-info" tabindex="0" aria-label="' + AL('Что здесь для чего', 'What is what') + '">i<span class="ai-info-tip">' + info + '</span></span><b>📋 ' + AL('Справка', 'Help') + '</b>' +
+      '<span class="ai-ctl">' + who + model + kind +
         '<span class="ai-lang"><button data-lang="ru" class="' + (aiLang === 'ru' ? 'on' : '') + '">RU</button><button data-lang="en" class="' + (aiLang === 'en' ? 'on' : '') + '">EN</button></span></span>' +
       '<button class="pzd-close ai-close" aria-label="' + AL('Закрыть', 'Close') + '">×</button></div>' +
     '<div class="ai-note">' + (H

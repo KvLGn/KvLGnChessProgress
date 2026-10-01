@@ -6589,7 +6589,7 @@ var AI_ASKS = [
   ]},
   {g: 'План (вернёт новый plan.js)', gEn: 'Plan (returns a new plan.js)', plan: true, items: [
     {t: 'Пора ли менять правило перехода', tEn: 'Should the transition rule change', d: 'goal', ru: 'Не слишком ли жёсткое или мягкое правило перехода для моих цифр? Если нужно — поправь rule.', en: 'Is the stage transition rule too strict or too easy for my numbers? Adjust rule if needed.'},
-    {t: 'Добавить следующий этап', tEn: 'Add the next stage', d: 'nextstage', ru: function(c) { return 'Добавь следующий этап после последнего (например, оба цвета против Stockfish ' + c.nextEngine + ').'; }, en: function(c) { return 'Add the next stage after the last one (e.g. both colours vs Stockfish ' + c.nextEngine + ').'; }},
+    {t: 'Добавить следующий этап', tEn: 'Add the next stage', d: 'nextstage', ru: function(c) { return 'Добавь следующий этап после последнего: например, оба цвета против Stockfish ' + c.nextEngine + ', без новых дебютов (если нужны дебюты — допишу какие).'; }, en: function(c) { return 'Add the next stage after the last one: e.g. both colours vs Stockfish ' + c.nextEngine + ', with no new openings (if openings are needed, I will add which).'; }},
     {t: 'Сменить или добавить дебют', tEn: 'Change or add an opening', d: 'openings', ru: 'Помоги сменить или добавить дебют в план. Какой дебют, каким цветом и вместо какого (если меняю): [впиши перед отправкой]', en: 'Help me change or add an opening in the plan. Which opening, which colour and instead of which (if replacing): [fill in before sending]'},
     {t: 'Пересобрать дорожную карту', tEn: 'Rebuild the roadmap', d: 'roadmap', ru: 'Предложи этапы после текущей дорожной карты с учётом моего темпа.', en: 'Propose stages after the current roadmap, considering my pace.'}
   ]}
@@ -6858,8 +6858,9 @@ function aiGoalWin(c) {
   var gl = [].concat.apply([], c.blocks.map(function(b) { return b.games; }));
   if (!gl.length) return null;
   var a = '#' + (games.indexOf(gl[0]) + 1), z = '#' + (games.indexOf(gl[gl.length - 1]) + 1), N = RULE.blocks * RULE.games;
-  return AL('Пятёрки собираются из последних ' + N + ' партий, идущих в цель (сейчас ' + a + '–' + z + '); каждая новая такая партия сдвигает окно на одну.',
-            'The sets are built from the last ' + N + ' games counting towards the goal (now ' + a + '–' + z + '); each new such game shifts the window by one.');
+  var sets = c.blocks.filter(function(b) { return b.games.length; }).map(function(b, i) { return AL('пятёрка ', 'set ') + (i + 1) + ' — #' + (games.indexOf(b.games[0]) + 1) + '–#' + (games.indexOf(b.games[b.games.length - 1]) + 1); }).join(', ');
+  return AL('Пятёрки собираются из 10 последних партий, идущих в цель (сейчас ' + a + '–' + z + ': ' + sets + '); каждая новая такая партия сдвигает окно на одну.',
+            'The sets are built from the last ' + N + ' games counting towards the goal (now ' + a + '–' + z + ': ' + sets + '); each new such game shifts the window by one.');
 }
 function aiGoalCond(c) {   // «Условия (белыми): медиана точности — выполнена (71%, 86%); победы — 5 из 10 … — не выполнено; поражения — …»
   var B = c.blocks.filter(function(b) { return b.games.length; });
@@ -6946,8 +6947,8 @@ function aiAbout() {
     });
     var S = CUR.stage, inGoal = last.filter(aiInGoal).length, outG = last.filter(function(g) { return !aiInGoal(g); });
     var outTxt = outG.map(function(g) { return '#' + (games.indexOf(g) + 1) + ' — ' + AL(COLOR_WORD[g.color], 'as ' + COLOR_EN[g.color]) + ' vs ' + (g.engine || g.section || '?'); }).join('; ');
-    out.push(AL('В цель этапа идут только партии ' + (S.colors.length > 1 ? 'обоими цветами' : COLOR_WORD[S.colors[0]]) + ' против Stockfish ' + S.engine + ' — любым дебютом, название этапа его не ограничивает; из последних 10 партий (' + aiRange(last) + ') таких ' + inGoal + (outG.length ? ', не идут: ' + outTxt : '') + '.',
-                'Only games ' + (S.colors.length > 1 ? 'with both colours' : 'as ' + COLOR_EN[S.colors[0]]) + ' vs Stockfish ' + S.engine + ' count towards the goal — with any opening, the stage name does not restrict it; ' + inGoal + ' of the last 10 games (' + aiRange(last) + ') are such' + (outG.length ? ', not counting: ' + outTxt : '') + '.'));
+    out.push(AL('В цель этапа идут только партии ' + (S.colors.length > 1 ? 'обоими цветами' : COLOR_WORD[S.colors[0]]) + ' против Stockfish ' + S.engine + ' — любым дебютом, название этапа его не ограничивает. Номера партий — по порядку (#1 — самая первая). Из 10 последних партий вообще (' + aiRange(last) + ') в цель идут ' + inGoal + (outG.length ? '; не идёт ' + outTxt.replace(/ — /g, ' (').replace(/(; |$)/g, ')$1') : '') + '.',
+                'Only games ' + (S.colors.length > 1 ? 'with both colours' : 'as ' + COLOR_EN[S.colors[0]]) + ' vs Stockfish ' + S.engine + ' count towards the goal — with any opening, the stage name does not restrict it. Games are numbered in order (#1 is the very first). Of the last 10 games overall (' + aiRange(last) + ') ' + inGoal + ' count' + (outG.length ? '; not counting: ' + outTxt.replace(/ — /g, ' (').replace(/(; |$)/g, ')$1') : '') + '.'));
   }
   out.push(speedLine(aiLang));
   if (games.length) {
@@ -7287,7 +7288,7 @@ AI_DATA.nextstage = function() {
   games.forEach(function(g) { act[g.day] = 1; });
   var nAct = Object.keys(act).length;
   out.push(AL('Темп: занимаюсь ' + days + ' дн. (с первой партии), из них с партиями ' + nAct + '; партий в среднем ' + aiR1(days ? games.length / days : 0) + ' на календарный день и ' + aiR1(nAct ? games.length / nAct : 0) + ' на день с партиями. ',
-              'Pace: ' + days + ' days since the first game, ' + nAct + ' with games; on average ' + aiR1(days ? games.length / days : 0) + ' games per calendar day and ' + aiR1(nAct ? games.length / nAct : 0) + ' per day with games. ') + aiGoalPace().replace(/^(Темп|Pace): /, '') + '.');
+              'Pace: ' + days + ' days since the first game, ' + nAct + ' with games; on average ' + aiR1(days ? games.length / days : 0) + ' games per calendar day and ' + aiR1(nAct ? games.length / nAct : 0) + ' per day with games. ') + aiGoalPace().replace(/^Темп: п/, 'П').replace(/^Pace: g/, 'G') + '.');
   out.push(AL('Этапы плана: ', 'Plan stages: ') + PLAN.stages.map(function(S, i) { return (i + 1) + ') ' + S.name + ' — Stockfish ' + S.engine + ', ' + (S.colors.length > 1 ? AL('оба цвета', 'both colours') : AL(COLOR_WORD[S.colors[0]], 'as ' + COLOR_EN[S.colors[0]])) + (i === CUR.idx ? AL(' ← сейчас', ' ← now') : ''); }).join('; '));
   var free = ((window.OPENINGS || {}).planned || []);
   out.push(AL('Дебюты без этапа (их можно поставить в новый этап, в его openings): ', 'Openings without a stage (can go into a new stage\'s openings): ') +
@@ -7722,8 +7723,8 @@ function humanTextInner(ask, isPlan, dataKey, item) {
        '• Terms: «точность» (accuracy) is Lichess\'s score from the computer analysis (0–100%); «зевок» is a blunder, «ошибка» a mistake; the rule counts only blunders. A loss is «weak» if either condition fails: accuracy below ' + RULE.lossMinAcc + '% or more than ' + RULE.lossMaxBlunders + ' blunders.'),
     AL('• Любая правка правила или текущего этапа (rule, engine, colors) пересчитывается сразу: если по новым условиям этап уже был выполнен в прошлых партиях, сайт засчитает его задним числом, и при ближайшем автообновлении это навсегда запишется в data/progress.js — откатить нельзя. Поэтому смягчать правило — только осознанно. Добавление нового этапа в конец плана текущий этап не меняет — к нему этот риск не относится.',
        '• Any change to the rule or the current stage (rule, engine, colors) is recalculated at once: if the stage would already have been completed under the new conditions, the site counts it retroactively, and the next automatic update records it in data/progress.js for good — it cannot be undone. So relax the rule only deliberately. Adding a new stage at the end does not change the current one — this risk does not apply to it.'),
-    AL('• data/plan.js — это код на JavaScript: одна лишняя или пропущенная запятая, скобка или кавычка ломает файл. Сайт тогда покажет красную плашку с причиной; рабочая копия плана есть только в браузере, где сайт уже открывали, — у остальных этапы и дебюты пропадут, пока файл не исправят.',
-       '• data/plan.js is JavaScript code: one extra or missing comma, bracket or quote breaks the file. The site then shows a red banner with the reason; a working copy of the plan exists only in a browser that opened the site before — for everyone else stages and openings disappear until the file is fixed.'),
+    AL('• data/plan.js — это код на JavaScript: одна лишняя или пропущенная запятая, скобка или кавычка ломает файл. Сайт тогда покажет красную плашку с причиной; сайт сам запоминает последний исправный план, но только в браузере, где его уже открывали, — у остальных этапы и дебюты пропадут, пока файл не исправят.',
+       '• data/plan.js is JavaScript code: one extra or missing comma, bracket or quote breaks the file. The site then shows a red banner with the reason; the site remembers the last working plan, but only in a browser that opened it before — for everyone else stages and openings disappear until the file is fixed.'),
     '', AL('Если у тебя нет доступа на запись в мой репозиторий — не страшно: пришли мне целиком новый текст data/plan.js, я вставлю его сам (шаги 1–3 тогда сделаю я).',
            'If you have no write access to my repository — no problem: send me the whole new text of data/plan.js and I will paste it myself (then I do steps 1–3).'),
     '', AL('Шаги:', 'Steps:'),

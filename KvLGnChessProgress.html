@@ -7002,7 +7002,7 @@ function gsRender() {
   var q = gsNorm($('gsInput').value.trim());
   var words = q.split(/\s+/).filter(Boolean);
   var res = words.length ? gsItems.filter(function(it) { return words.every(function(w) { return it.keys.indexOf(w) >= 0; }); })
-                         : gsItems.filter(function(it) { return it.group === 'Разделы' || it.group === 'Ответы'; });
+                         : gsItems.filter(function(it) { return it.group === 'Разделы' || it.group === 'Анализ' || it.group === 'Ответы'; });   // без запроса — разделы, анализ и ответы
   // не больше 6 в группе, чтобы список был обозримым
   var per = {}, LIMIT = words.length ? 6 : 20;
   gsShown = res.filter(function(it) { per[it.group] = (per[it.group] || 0) + 1; return per[it.group] <= LIMIT; });

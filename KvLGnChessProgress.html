@@ -6381,8 +6381,8 @@ function aiOf(t) {
 function copyText(t) {
   function old() {
     var a = document.createElement('textarea');
-    a.value = t; a.style.position = 'fixed'; a.style.opacity = '0';
-    document.body.appendChild(a); a.select();
+    a.value = t; a.style.position = 'fixed'; a.style.top = '0'; a.style.left = '0'; a.style.opacity = '0';
+    document.body.appendChild(a); a.focus({preventScroll: true}); a.select();   // без прокрутки страницы к временному полю
     try { document.execCommand('copy'); } catch (e) {}
     a.remove();
   }
@@ -7564,6 +7564,7 @@ function helpText(ask, isPlan, dataKey, item) {
 
 /* ---------- окно «Справка» ---------- */
 function renderAiMenu() {
+  var prevList = $('aiMenu').querySelector('.ai-list'), keepScroll = prevList ? prevList.scrollTop : 0, prevKind = $('aiMenu').getAttribute('data-kind');   // перерисовка не должна сбрасывать прокрутку
   var c = aiCtx(), H = aiMode === 'human', T = aiKind === 'tech';
   function v(x) { return typeof x === 'function' ? x(c) : x; }
   function dd(key, label, cls, opts) {   // выпадающий список: кнопка с выбранным + меню
@@ -7616,6 +7617,9 @@ function renderAiMenu() {
         : (H ? AL('письмо человеку с вашим вопросом и данными', 'a message to a person with your question and data') : AL('ответ словами по вашим данным', 'an answer in words based on your data'))) + '</span>' +
       '<div class="ai-own-btns">' + (T ? '<button data-own="plan">' + AL('✏️ Изменить план', '✏️ Change plan') + '</button>' : '<button data-own="advice">' + AL('💬 Спросить совет', '💬 Ask for advice') + '</button>') + '</div></div></div>' +
   '</div>';
+  var list = $('aiMenu').querySelector('.ai-list');
+  if (list && prevKind === aiKind) list.scrollTop = keepScroll;   // при смене сути список другой — тогда с начала
+  $('aiMenu').setAttribute('data-kind', aiKind);
 }
 function openAiMenu() { renderAiMenu(); $('aiMenu').classList.add('open'); if (AI_FEN) anNeedChess(function() {}); }   // chess.js — для FEN и PGN в пакетах
 function closeAiMenu() { $('aiMenu').classList.remove('open'); }

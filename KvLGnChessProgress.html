@@ -6447,6 +6447,7 @@ var AI_PROMPT = {
       'Не удаляй и не переставляй прошедшие этапы (новые — только после текущего). id дебютов — латиница, уникальные.',
       'Лимиты: stages[].name ≤ 50 символов, openings[].name ≤ 22, studies[].master ≤ 12. match — точная часть английского названия у Lichess.',
       'Не выдумывай id студий Lichess — если не знаешь, оставь studies: [] и скажи, что студию нужно найти.',
+      'Смена дебюта: заменяемый дебют перенеси в закомментированный список в конце файла (не удаляй); если название этапа упоминает дебют — поменяй и его; match — точно как у Lichess, с буквами вроде ü; на одном этапе за чёрных — один дебют на каждый первый ход бота (vs). Правка будущих этапов задним числом ничего не засчитывает.',
       'Если у студии есть ids (id всех частей, первая = id) — сохрани список как есть: по нему сайт сверяет ходы с мастером.',
       'Правило rule меняй только по просьбе или если цифры явно показывают, что оно недостижимо/слишком лёгкое, — объясни на цифрах.',
       'Проверка сайта: в rule все шесть полей — числа и wins ≤ games; у дебюта обязательны id, name, color (\'white\' | \'black\'); число ids студии = parts; engine 1–8.',
@@ -6480,6 +6481,7 @@ var AI_PROMPT = {
       'Answer: return the WHOLE new data/plan.js in one code block (keep comments), then 2–4 lines: what changed and why.',
       'Never delete or reorder completed stages (add new ones after the current). Opening ids: unique, Latin. Names stay in Russian.',
       'Limits: stages[].name ≤ 50 chars, openings[].name ≤ 22, studies[].master ≤ 12. match = exact part of the Lichess English name.',
+      'Changing an opening: move the replaced one to the commented list at the end of the file (do not delete); if a stage name mentions it, rename the stage; match exactly as Lichess writes it, with letters like ü; at one stage as black — one opening per bot first move (vs). Editing future stages counts nothing retroactively.',
       'Never invent Lichess study ids — if unknown, use studies: [] and say a study is needed. Keep ids (all study parts, first = id) as they are. Change rule only on request or when numbers clearly demand it.',
       'Site checks: all six rule fields are numbers and wins ≤ games; every opening needs id, name, color (\'white\' | \'black\'); a study\'s ids count = parts; engine 1–8.',
       'It is JavaScript: check commas, brackets and quotes — the site rejects a broken file. An opening becomes «Изучаю» only if its id is in a stage\'s openings.',
@@ -7686,7 +7688,7 @@ function humanText(ask, isPlan, dataKey, item) {
   PLAIN = !isPlan;
   try { return humanTextInner(ask, isPlan, dataKey, item); } finally { PLAIN = false; }
 }
-function humanTextInner(ask, isPlan, dataKey, item) {
+function humanTextInner(ask, isPlan, dataKey, item) {   // пустые строки (null) из списков ниже отфильтровываются в конце
   AI_REFS = [];
   var data = dataKey && AI_DATA[dataKey] ? AI_DATA[dataKey](aiCtx()) : [], out = [];
   if (!isPlan) {
@@ -7718,6 +7720,8 @@ function humanTextInner(ask, isPlan, dataKey, item) {
     AL('• Дебют становится «Изучаю», когда начинается этап, в openings которого стоит его id; дебют без этапа — «В планах». Ходы мастеров по новым студиям сайт подтянет сам при следующем автообновлении данных (обычно в течение часа, но не всегда сразу).',
        '• An opening becomes «Изучаю» (studying) when the stage that lists its id in openings starts; an opening without a stage is «В планах» (planned). Master moves for new studies are fetched by the next automatic data update (usually within an hour, not always right away).'),
     ruleSharedNote(),
+    dataKey === 'openings' ? AL('• Как менять дебют: (1) заменяемый дебют не удалять, а перенести в закомментированный список в конце plan.js — так его легко вернуть; если это дебют текущего или пройденного этапа, сначала спроси меня; (2) если название этапа упоминает дебют — поменять и название; (3) готовые строки для нескольких дебютов уже лежат в том же списке в конце файла; для нового: name — по-русски, color, для чёрных vs — первый ход бота, match — название ТОЧНО как Lichess пишет его в партии, с буквами вроде ü (сравнивается часть названия, без учёта регистра), студия — где мастер играет этим цветом; нет студии — studies: [] и скажи мне; (4) на одном этапе за чёрных — один дебют на каждый первый ход бота (например, против e4 и против d4); (5) статусы: этап идёт — «Изучаю», этап следующий — «Далее», без этапа — «В планах». Правка будущих этапов и дебютов задним числом ничего не засчитывает.',
+        '• How to change an opening: (1) do not delete the replaced opening, move it to the commented list at the end of plan.js — easy to bring back; if it belongs to the current or a completed stage, ask me first; (2) if the stage name mentions the opening, rename the stage too; (3) ready lines for several openings are already in that list at the end of the file; for a new one: name in Russian, color, for black vs = the bot\'s first move, match = the name EXACTLY as Lichess writes it in a game, with letters like ü (a part of the name is compared, case-insensitive), a study where the master plays that colour; no study — studies: [] and tell me; (4) at one stage as black — one opening per bot first move (e.g. vs e4 and vs d4); (5) statuses: stage running — «Изучаю», next stage — «Далее», no stage — «В планах». Editing future stages and openings counts nothing retroactively.') : null,
     AL('• Термины: «точность» — оценка Lichess по компьютерному анализу партии (0–100%); «зевок» — грубая ошибка (blunder), «ошибка» — средняя (mistake); в правиле считаются только зевки. Поражение «слабое», если нарушено хотя бы одно из двух условий: точность ниже ' + RULE.lossMinAcc + '% или зевков больше ' + RULE.lossMaxBlunders + '.',
        '• Terms: «точность» (accuracy) is Lichess\'s score from the computer analysis (0–100%); «зевок» is a blunder, «ошибка» a mistake; the rule counts only blunders. A loss is «weak» if either condition fails: accuracy below ' + RULE.lossMinAcc + '% or more than ' + RULE.lossMaxBlunders + ' blunders.'),
     AL('• Любая правка правила или текущего этапа (rule, engine, colors) пересчитывается сразу: если по новым условиям этап уже был выполнен в прошлых партиях, сайт засчитает его задним числом, и при ближайшем автообновлении это навсегда запишется в data/progress.js — откатить нельзя. Поэтому смягчать правило — только осознанно. Добавление нового этапа в конец плана текущий этап не меняет — к нему этот риск не относится.',

@@ -6656,6 +6656,21 @@ function aiRatingPath(P) {
   if (h.length <= 11) return h.map(function(x) { return x.date + ' ' + x.rating; }).join(', ');
   return h[0].date + ' ' + h[0].rating + ' … ' + h.slice(-10).map(function(x) { return x.date + ' ' + x.rating; }).join(', ');
 }
+// до какого хода партия шла как у мастеров (−1 — данных нет)
+function aiMsDepth(g) {
+  var rows = msCompare(g, anMasters(g)[0] || 'all');
+  if (!rows.length) return -1;
+  var off = rows.filter(function(c) { return c.st !== 'top'; })[0], ok = off ? rows.filter(function(c) { return c.p < off.p; }) : rows;
+  return ok.length ? Math.ceil(ok[ok.length - 1].p / 2) : 0;
+}
+// список по главному числу; где числа нет — в конец. Порядок всегда подписывается в данных словами
+function aiSortBy(list, key, desc) {
+  return list.slice().sort(function(a, b) {
+    var x = key(a), y = key(b), nx = x === null || x === undefined || x < 0, ny = y === null || y === undefined || y < 0;
+    if (nx || ny) return nx - ny;
+    return desc ? y - x : x - y;
+  });
+}
 function aiEarlyLosses(list) {
   var L = list.filter(function(g) { return g.result === 'lose'; }), E = L.filter(function(g) { return !hasEnd(g); });
   return E.length + AL(' из ', ' of ') + L.length + (E.length ? ' — ' + E.map(function(g) { return PLAIN ? g.date + ' (' + aiLink(g) + ')' : aiGid(g); }).join(', ') : '');
@@ -6825,8 +6840,8 @@ var AI_DATA = {
   },
   phase: function(c) {
     var k = c.phase.k || 'mid', last = games.slice(-10), ex = [];
-    var out = [AL('Фаза «' + c.phase.ru + '» по последним 10 партиям (партия: точность фазы / результат / зевков в фазе):', c.phase.en + ' in the last 10 games (game: phase accuracy / result / blunders in the phase):')]
-      .concat(last.map(function(g) {
+    var out = [AL('Фаза «' + c.phase.ru + '» по последним 10 партиям, от худшей точности фазы к лучшей (партия: точность фазы / результат / зевков в фазе):', c.phase.en + ' in the last 10 games, from the worst phase accuracy to the best (game: phase accuracy / result / blunders in the phase):')]
+      .concat(aiSortBy(last, function(g) { return g[k]; }).map(function(g) {
         aiRef(g);
         var dv = g.div || {}, from = k === 'debut' ? 1 : dv[k] ? Math.ceil(dv[k] / 2) : 0, to = k === 'debut' ? (dv.mid ? Math.ceil(dv.mid / 2) - 1 : g.moves) : k === 'mid' ? (dv.end ? Math.ceil(dv.end / 2) - 1 : g.moves) : g.moves;
         return aiGid(g) + ': ' + aiPct(g[k]) + ' / ' + AL(RESULT[g.result].label, RES_EN[g.result]) + ' / ' + (g.bl || []).filter(function(b) { return b.p === k; }).length +
@@ -6921,14 +6936,15 @@ var AI_DATA = {
     var from = isoDay(addDays(gameToday(), -13)), pz = att.filter(function(a) { return a.day >= from && opMatch(o, a.op); });
     var out = [AL('Партии в дебюте «' + o.name + '»: всего ' + gl.length + (gl.length > 8 ? ', ниже последние 8' : '') + ':', 'Games in the ' + opEn(o) + ': ' + gl.length + ' in total' + (gl.length > 8 ? ', the last 8 below' : '') + ':')];
     if (!gl.length) out.push(AL('партий пока нет', 'no games yet'));
-    gl.slice(-8).forEach(function(g) { out.push(aiGame(g)); var ms = aiMs(g); if (ms) out.push('  ' + ms); });
+    if (gl.length > 1) out.push(AL('Порядок ниже — по тому, как долго партия шла как у мастеров: сначала дольше всего.', 'Order below — by how long the game followed the masters: longest first.'));
+    aiSortBy(gl.slice(-8), aiMsDepth, true).forEach(function(g) { out.push(aiGame(g)); var ms = aiMs(g); if (ms) out.push('  ' + ms); });
     return out.concat([AL('Задачи из этого дебюта за 14 дней: ', 'Puzzles from this opening over 14 days: ') + pz.length + AL(', решено ', ', solved ') + pz.filter(function(a) { return a.win; }).length +
       ((o.studies || []).length ? AL('; студии мастеров: ', '; master studies: ') + o.studies.map(function(s) { return s.master + ' (lichess.org/study/' + s.id + ')'; }).join(', ') : '')]);
   },
   // где я отхожу от мастеров: по последним 10 партиям и самые частые отходы
   deviate: function() {
-    var last = games.slice(-10), out = [AL('Дебют против мастеров в последних 10 партиях:', 'Opening vs masters in the last 10 games:')], cnt = {};
-    last.forEach(function(g) {
+    var last = games.slice(-10), out = [AL('Дебют против мастеров в последних 10 партиях, от самого раннего отхода к самому позднему:', 'Opening vs masters in the last 10 games, from the earliest deviation to the latest:')], cnt = {};
+    aiSortBy(last, aiMsDepth).forEach(function(g) {
       var ms = aiMs(g);
       if (!ms) return;
       aiRef(g); out.push('- ' + aiGid(g) + ' ' + AL(COLOR_WORD[g.color], 'as ' + COLOR_EN[g.color]) + ', ' + g.opening + ': ' + ms.replace(/^[^:]+: /, ''));
@@ -6975,7 +6991,8 @@ AI_DATA.plans = function() {
   if (!gl.length) return [AL('Партий в дебюте «' + o.name + '» пока нет', 'No games in the ' + opEn(o) + ' yet')];
   out.push(AL('Миттельшпиль в моих партиях дебюта «' + o.name + '» (последние ' + gl.length + '): точность ', 'Middlegame in my ' + opEn(o) + ' games (last ' + gl.length + '): accuracy ') + aiPct(avg(gl, 'mid')) +
     AL('; в других дебютах (из последних 20 партий): ', '; in other openings (of the last 20 games): ') + aiPct(avg(other, 'mid')) + '.');
-  gl.forEach(function(g) {
+  out.push(AL('Партии ниже — от худшего миттельшпиля к лучшему:', 'Games below — from the worst middlegame to the best:'));
+  aiSortBy(gl, function(g) { return g.mid; }).forEach(function(g) {
     var dv = g.div || {}, mb = (g.bl || []).filter(function(b) { return b.p === 'mid'; });
     out.push(aiGame(g));
     out.push('  ' + AL('миттельшпиль с хода ', 'middlegame from move ') + (dv.mid ? Math.ceil(dv.mid / 2) : '—') + AL(', зевков в нём ', ', blunders in it ') + mb.length + (mb.length && !PLAIN ? ': ' + mb.slice(0, 3).map(function(b) { return aiBl(g, b); }).join('; ') : ''));
@@ -7150,8 +7167,8 @@ var AI_SIMPLE = {
   phase: function(c) {
     var k = c.phase.k || 'mid', last = games.slice(-10), ex = [], out = [aiSWindow(10, last)];
     out.push(AL('Точность по фазам: ', 'Accuracy by phase: ') + aiSPhases(last) + '.');
-    out.push(AL('Фаза «' + aiPhase(k) + '» по партиям:', 'The ' + aiPhase(k) + ' by game:'));
-    last.forEach(function(g) { out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + ': ' + aiPhase(k) + ' ' + aiPct(g[k]) + AL(', зевков в этой фазе ', ', blunders in this phase ') + (g.bl || []).filter(function(b) { return b.p === k; }).length); });
+    out.push(AL('Фаза «' + aiPhase(k) + '» по партиям, от худшей точности к лучшей:', 'The ' + aiPhase(k) + ' by game, from the worst accuracy to the best:'));
+    aiSortBy(last, function(g) { return g[k]; }).forEach(function(g) { out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + ': ' + aiPhase(k) + ' ' + aiPct(g[k]) + AL(', зевков в этой фазе ', ', blunders in this phase ') + (g.bl || []).filter(function(b) { return b.p === k; }).length); });
     last.forEach(function(g) { (g.bl || []).forEach(function(b) { if (b.p === k) ex.push({g: g, b: b}); }); });
     if (ex.length) {
       out.push(AL('Зевки в этой фазе по типам:', 'Blunders in this phase by type:'));
@@ -7221,14 +7238,15 @@ var AI_SIMPLE = {
     var o = aiOp(), gl = aiOpGames(), att = (window.PUZZLES || {}).attempts || [], out = [];
     if (!o) return [AL('Изучаемый дебют не задан.', 'No opening being studied.')];
     out.push(AL('Изучаю: «' + o.name + '» (' + COLOR_WORD[o.color] + '). Партий в нём: ', 'Studying: the ' + opEn(o) + ' (as ' + COLOR_EN[o.color] + '). Games in it: ') + gl.length + (gl.length ? ' (' + aiWL(gl) + AL('), точность дебюта ', '), opening accuracy ') + aiPct(avg(gl, 'debut')) : '') + '.');
-    gl.slice(-5).forEach(function(g) { var ms = aiMs(g); out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + ', ' + g.opening + (ms ? '; ' + ms.replace(/^[^:]+: /, '') : '')); });
+    if (gl.length > 1) out.push(AL('Партии ниже — по тому, как долго шли как у мастеров: сначала дольше всего.', 'Games below — by how long they followed the masters: longest first.'));
+    aiSortBy(gl.slice(-5), aiMsDepth, true).forEach(function(g) { var ms = aiMs(g); out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + ', ' + g.opening + (ms ? '; ' + ms.replace(/^[^:]+: /, '') : '')); });
     var from = isoDay(addDays(gameToday(), -13)), pz = att.filter(function(a) { return a.day >= from && opMatch(o, a.op); });
     if (pz.length) out.push(AL('Задачи из этого дебюта за 14 дней: ', 'Puzzles from this opening over 14 days: ') + pz.length + AL(', решено ', ', solved ') + pz.filter(function(a) { return a.win; }).length + ' (' + Math.round(pz.filter(function(a) { return a.win; }).length / pz.length * 100) + '%).');
     return out;
   },
   deviate: function() {
-    var last = games.slice(-10), out = [AL('Дебют против мастеров, последние 10 партий:', 'Opening vs masters, last 10 games:')], cnt = {};
-    last.forEach(function(g) {
+    var last = games.slice(-10), out = [AL('Дебют против мастеров, последние 10 партий, от самого раннего отхода к самому позднему:', 'Opening vs masters, last 10 games, from the earliest deviation to the latest:')], cnt = {};
+    aiSortBy(last, aiMsDepth).forEach(function(g) {
       var ms = aiMs(g); if (!ms) return;
       out.push('- ' + aiGid(g) + ', ' + g.opening + ': ' + ms.replace(/^[^:]+: /, ''));
       var off = msCompare(g, anMasters(g)[0] || 'all').filter(function(c) { return c.st !== 'top'; })[0];
@@ -7243,7 +7261,8 @@ var AI_SIMPLE = {
     if (!o) return [AL('Изучаемый дебют не задан.', 'No opening being studied.')];
     if (!gl.length) return [AL('Партий в изучаемом дебюте пока нет.', 'No games in the studied opening yet.')];
     out.push(AL('Миттельшпиль в партиях дебюта «' + o.name + '»: ', 'Middlegame in my ' + opEn(o) + ' games: ') + aiPct(avg(gl, 'mid')) + AL('; в других дебютах (последние 20 партий): ', '; in other openings (last 20 games): ') + aiPct(avg(other, 'mid')) + '.');
-    gl.forEach(function(g) { out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + ', ' + g.opening + AL(': миттельшпиль ', ': middlegame ') + aiPct(g.mid) + AL(', зевков в нём ', ', blunders in it ') + (g.bl || []).filter(function(b) { return b.p === 'mid'; }).length); });
+    out.push(AL('Партии — от худшего миттельшпиля к лучшему:', 'Games — from the worst middlegame to the best:'));
+    aiSortBy(gl, function(g) { return g.mid; }).forEach(function(g) { out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + ', ' + g.opening + AL(': миттельшпиль ', ': middlegame ') + aiPct(g.mid) + AL(', зевков в нём ', ', blunders in it ') + (g.bl || []).filter(function(b) { return b.p === 'mid'; }).length); });
     return out;
   },
   weekcmp: function() {

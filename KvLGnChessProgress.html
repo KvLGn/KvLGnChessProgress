@@ -6620,6 +6620,10 @@ function aiRatingPath(P) {
   if (h.length <= 11) return h.map(function(x) { return x.date + ' ' + x.rating; }).join(', ');
   return h[0].date + ' ' + h[0].rating + ' … ' + h.slice(-10).map(function(x) { return x.date + ' ' + x.rating; }).join(', ');
 }
+function aiEarlyLosses(list) {
+  var L = list.filter(function(g) { return g.result === 'lose'; }), E = L.filter(function(g) { return !hasEnd(g); });
+  return E.length + AL(' из ', ' of ') + L.length + (E.length ? ' — ' + E.map(function(g) { return PLAIN ? g.date + ' (' + aiLink(g) + ')' : aiGid(g); }).join(', ') : '');
+}
 function aiMateStat(list) {   // по партиям: в скольких был форсированный мат, в скольких поставлен; упущенные — разы (мат мог найтись снова позже)
   var had = 0, done = 0, lost = 0;
   list.forEach(function(g) {
@@ -6736,8 +6740,7 @@ var AI_DATA = {
     out.push(AL('Зевки за эти 10 партий по типам: ', 'Blunders in these 10 games by type: ') + aiBlTypes(last));
     out.push(AL('Ошибки бота: ', 'Bot blunders: ') + aiOppStat(last));
     var ms = aiMateStat(last); if (ms) out.push(AL('Маты: ', 'Mates: ') + ms);
-    var early = last.filter(function(g) { return g.result === 'lose' && !hasEnd(g); }).length;
-    if (early) out.push(AL('Поражений до эндшпиля: ', 'Losses before the endgame: ') + early);
+    if (last.some(function(g) { return g.result === 'lose' && !hasEnd(g); })) out.push(AL('Поражения, где до эндшпиля не дошли: ', 'Losses that never reached the endgame: ') + aiEarlyLosses(last));
     return out;
   },
   // все зевки последних 10 партий, сгруппированные по типу, с примерами ходов
@@ -6809,7 +6812,7 @@ var AI_DATA = {
     return [AL('Последние ' + last.length + ' партий.', 'Last ' + last.length + ' games.'),
       AL('Победы — ', 'Wins — ') + aiAvgLine(W), AL('  зевки по типам: ', '  blunders by type: ') + aiBlTypes(W) + '; ' + aiOppStat(W),
       AL('Поражения — ', 'Losses — ') + aiAvgLine(L), AL('  зевки по типам: ', '  blunders by type: ') + aiBlTypes(L) + '; ' + aiOppStat(L),
-      AL('Поражений до эндшпиля: ', 'Losses before the endgame: ') + L.filter(function(g) { return !hasEnd(g); }).length + AL(' из ', ' of ') + L.length,
+      AL('Поражений до эндшпиля: ', 'Losses before the endgame: ') + aiEarlyLosses(last),
       AL('По дебютам (название Lichess):', 'By opening (Lichess name):')].concat(aiFamilies(last));
   },
   today: function() {
@@ -6862,7 +6865,7 @@ var AI_DATA = {
   },
   checklist: function() {
     var last = games.slice(-10), early = last.filter(function(g) { return g.result === 'lose' && !hasEnd(g); }).length, ex = [];
-    var out = [AL('Последние 10 партий: зевков по партиям ', 'Last 10 games: blunders per game ') + last.map(function(g) { return g.blunders; }).join(', ') + AL('; поражений до эндшпиля ', '; losses before the endgame ') + early + '.',
+    var out = [AL('Последние 10 партий: зевков по партиям ', 'Last 10 games: blunders per game ') + last.map(function(g) { return g.blunders; }).join(', ') + AL('; поражений до эндшпиля ', '; losses before the endgame ') + aiEarlyLosses(last) + '.',
       AL('Зевки по типам: ', 'Blunders by type: ') + aiBlTypes(last) + '.', AL('Ошибки бота: ', 'Bot blunders: ') + aiOppStat(last) + '.'];
     var m = aiMateStat(last); if (m) out.push(AL('Маты: ', 'Mates: ') + m + '.');
     last.forEach(function(g) { (g.bl || []).forEach(function(b) { ex.push({g: g, b: b}); }); });

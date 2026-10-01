@@ -7311,12 +7311,13 @@ function aiTextSimple(ask, dataKey) {
     AL('- Используй только данные ниже.', '- Use only the data below.'),
     AL('- Числа переписывай точно так, как они написаны, вместе с их подписью.', '- Copy numbers exactly as written, together with their labels.'),
     AL('- Если чего-то нет в данных — напиши «в данных нет».', '- If something is not in the data, write "not in the data".'),
-    AL('- Пиши по-русски, коротко.', '- Write in English, briefly.')];
+    AL('- Пиши по-русски, коротко.', '- Write in English, briefly.'),
+    AL('- Каждый пункт шаблона — с новой строки, между пунктами пустая строка.', '- Put every template item on its own line, with a blank line between items.')];
   // порядок: данные → условия → шаблон с самопроверкой → вопрос: всё, что модель должна выполнить, — у самого места ответа
   out.push('', AL('<данные>', '<data>'), [speedLine(aiLang)].concat(data).join('\n'), AL('</данные>', '</data>'));
   var cond = aiCond(dataKey);
   if (cond) out = out.concat(['', AL('Условия ответа:', 'Answer conditions:')], cond.map(function(c) { return '- ' + c; }));
-  if (tpl) out = out.concat(['', AL('Ответь по шаблону:', 'Answer using this template:')], tpl[aiLang === 'en' ? 1 : 0]);
+  if (tpl) out = out.concat(['', AL('Ответь по шаблону:', 'Answer using this template:')], [].concat.apply([], tpl[aiLang === 'en' ? 1 : 0].map(function(x) { return [x, '']; })));
   if (cond) out.push(AL('Проверка условий: ', 'Conditions check: ') + cond.map(function(c) { return c + AL(' — да / нет', ' — yes / no'); }).join('; ') + AL(' (если «нет» — исправь ответ)', ' (if "no", fix the answer)'));
   out.push('', AL('Вопрос: ', 'Question: ') + ask);
   return out.join('\n');

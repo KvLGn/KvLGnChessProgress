@@ -943,7 +943,10 @@
 
   /* меню (☰) вместо поиска: слева группы, справа подгруппы и пункты; на телефоне — одной колонкой */
   .mn { position: relative; }
-  #eyeHead { margin-left: auto; }   /* глаз шапки и меню — вместе у правого края */
+  /* глаз шапки и меню — вместе у правого края; в скрытом режиме глаза нет — меню само у края */
+  .mn { margin-left: auto; }
+  #eyeHead { margin-left: auto; }
+  #eyeHead:not([style*="none"]) + .mn { margin-left: 0; }
   /* свой класс, не .sect-eye: глазам частей скрипт подменяет картинку и вешает скрытие */
   .mn-btn { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; padding: 0; display: inline-flex; align-items: center; justify-content: center;
     background: transparent; border: 1px solid var(--border); color: var(--fg-dim); cursor: pointer; transition: color 0.15s, border-color 0.15s; }

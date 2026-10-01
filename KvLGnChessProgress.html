@@ -6951,7 +6951,7 @@ function plainStudy() {   // «Сейчас учу дебют: Итальянс�
   if (b.length) parts.push(b.join(AL(' и ', ' and ')) + AL(' (за чёрных)', ' (as black)'));
   var vs = S ? AL('Играю ' + (S.colors.length > 1 ? 'обоими цветами' : COLOR_WORD[S.colors[0]]) + ' против Stockfish ' + S.engine + ' (компьютер на Lichess, уровень ' + S.engine + ' из 8).',
                   'I play ' + (S.colors.length > 1 ? 'with both colours' : 'as ' + COLOR_EN[S.colors[0]]) + ' against Stockfish ' + S.engine + ' (Lichess computer, level ' + S.engine + ' of 8).') : '';
-  var opp = {}; games.forEach(function(g) { var k = g.engine || g.section || '?'; (opp[k] = opp[k] || []).push('#' + (games.indexOf(g) + 1)); });
+  var opp = {}; games.forEach(function(g) { var k = g.engine || g.section || '?'; (opp[k] = opp[k] || []).push(PLAIN ? g.date : '#' + (games.indexOf(g) + 1)); });   // в письме-совете партии по датам
   var ks = Object.keys(opp).sort(function(a, b) { return opp[b].length - opp[a].length; });
   var oppLine = ks.length > 1 ? AL('Соперники по всем партиям: ', 'Opponents over all games: ') + ks.map(function(k) { return k + ' — ' + opp[k].length + (opp[k].length <= 3 ? ' (' + opp[k].join(', ') + ')' : ''); }).join('; ') + '.' : '';
   return [AL('Сейчас учу дебют: ', 'Currently learning the opening: ') + (parts.join('; ') || '—') + '.', vs, oppLine].filter(Boolean);

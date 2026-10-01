@@ -899,7 +899,8 @@
   .ai-info { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%; border: 1px solid rgba(148,163,184,0.45);
     font: 700 11px Georgia, serif; font-style: italic; color: var(--fg-mute); cursor: help; flex: none; }
   .ai-info:hover, .ai-info.open { color: var(--fg); border-color: var(--fg-dim); }
-  .ai-info-tip p { margin: 0 0 7px; } .ai-info-tip p:last-child { margin: 0; }
+  .ai-info-tip p { margin: 0; } .ai-info-tip .ai-tip-h { color: var(--fg); font-weight: 600; margin-top: 8px; } .ai-info-tip .ai-tip-h:first-child { margin-top: 0; }
+  .ai-info-tip .ai-tip-i { padding-left: 10px; margin-top: 3px; } .ai-info-tip b.ai-c-adv { color: #86efac; } .ai-info-tip b.ai-c-tech { color: #fcd34d; } .ai-info-tip .ai-tip-f { margin-top: 9px; color: var(--fg-mute); }
   .ai-info-tip { display: none; position: absolute; top: calc(100% + 6px); left: -8px; z-index: 6; width: 300px; max-width: calc(100vw - 48px); padding: 8px 10px; font: 400 11.5px/1.45 Inter, sans-serif; font-style: normal;
     color: var(--fg-dim); text-align: left; background: #111815; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); cursor: default; }
   .ai-info-tip b { color: var(--fg); font-weight: 600; font-style: normal; font-size: inherit; }   /* перебивает .ai-head b (заголовок «Справка») */
@@ -7152,14 +7153,17 @@ function renderAiMenu() {
     return '<span class="ai-dd' + (aiDd === key ? ' open' : '') + '"><button class="ai-dd-btn ' + cls + '" data-dd="' + key + '">' + label + ' ▾</button>' +
       '<span class="ai-dd-menu">' + opts + '</span></span>';
   }
-  var info = AL('<p><b>Для кого</b> — <b>ИИ</b>: копирует готовый запрос для нейросети; <b>человек</b>: письмо тренеру или в чат шахматистов (совет) либо пошаговое задание программисту (план).</p>' +
-      '<p><b>Сильная / Простая</b> — какой нейросети отдаёте: сильная (DeepSeek, ChatGPT, Claude, Gemini) получает полный запрос со сводкой, простая (Алиса, GigaChat, мини-версии) — короткий с готовыми выводами.</p>' +
-      '<p><b>Суть вопроса</b> — <span class="ai-c-adv">совет</span>: вопросы об игре и тренировках; <span class="ai-c-tech">техническая</span>: правка плана обучения (этапы, правило перехода, дебюты) в data/plan.js.</p>' +
-      '<p>Нажми на пункт — запрос скопируется, вставь его в чат.</p>',
-    '<p><b>For whom</b> — <b>AI</b>: copies a ready request for an AI chat; <b>person</b>: a message for a coach or a chess chat (advice) or a step-by-step task for a programmer (plan).</p>' +
-      '<p><b>Strong / Simple</b> — which AI: strong (DeepSeek, ChatGPT, Claude, Gemini) gets the full request with the summary, simple (Alice, GigaChat, mini versions) a short one with ready conclusions.</p>' +
-      '<p><b>Topic</b> — <span class="ai-c-adv">advice</span>: questions about play and training; <span class="ai-c-tech">technical</span>: changing the training plan (stages, rule, openings) in data/plan.js.</p>' +
-      '<p>Click an item — the request is copied, paste it into the chat.</p>');
+  // подсказка ⓘ: в порядке кнопок шапки — для кого → суть → уровень модели; каждый вариант отдельным абзацем
+  function tip(head, rows) { return '<p class="ai-tip-h">' + head + '</p>' + rows.map(function(r) { return '<p class="ai-tip-i">' + r + '</p>'; }).join(''); }
+  var info = AL(
+    tip('Для кого', ['<b>ИИ</b> — копирует готовый запрос для нейросети.', '<b>Человек</b> — письмо тренеру или в чат шахматистов (совет) либо пошаговое задание программисту (план).']) +
+    tip('Суть вопроса', ['<b class="ai-c-adv">Совет</b> — вопросы об игре и тренировках.', '<b class="ai-c-tech">Техническая</b> — правка плана обучения (этапы, правило перехода, дебюты) в data/plan.js.']) +
+    tip('Уровень нейросети', ['<b>Сильная</b> — DeepSeek, ChatGPT, Claude, Gemini: полный запрос со сводкой.', '<b>Простая</b> — Алиса, GigaChat, мини-версии: короткий запрос с готовыми выводами.']) +
+    '<p class="ai-tip-f">Нажми на пункт — запрос скопируется, вставь его в чат.</p>',
+    tip('For whom', ['<b>AI</b> — copies a ready request for an AI chat.', '<b>Person</b> — a message for a coach or a chess chat (advice) or a step-by-step task for a programmer (plan).']) +
+    tip('Topic', ['<b class="ai-c-adv">Advice</b> — questions about play and training.', '<b class="ai-c-tech">Technical</b> — changing the training plan (stages, transition rule, openings) in data/plan.js.']) +
+    tip('AI level', ['<b>Strong</b> — DeepSeek, ChatGPT, Claude, Gemini: the full request with the summary.', '<b>Simple</b> — Alice, GigaChat, mini versions: a short request with ready conclusions.']) +
+    '<p class="ai-tip-f">Click an item — the request is copied, paste it into the chat.</p>');
   var who = dd('who', H ? AL('Для человека', 'For a person') : AL('Для ИИ', 'For AI'), 'ai-c-who',
     '<button data-mode="ai" class="' + (H ? '' : 'on') + '">' + AL('Для ИИ', 'For AI') + '</button><button data-mode="human" class="' + (H ? 'on' : '') + '">' + AL('Для человека', 'For a person') + '</button>');
   var model = '<span class="ai-lang' + (H ? ' ai-hide' : '') + '"><button data-model="strong" class="' + (aiModel === 'strong' || T ? 'on' : '') + '" title="' + AL('DeepSeek, ChatGPT, Claude, Gemini — полный запрос со сводкой', 'DeepSeek, ChatGPT, Claude, Gemini — the full request with the summary') + '">' + AL('Сильная', 'Strong') + '</button>' +

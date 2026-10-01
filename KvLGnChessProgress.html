@@ -7456,8 +7456,8 @@ var AI_SIMPLE = {
     L.forEach(function(g) { out.push('- ' + aiGid(g) + AL(': зевков ', ': blunders ') + g.blunders + AL(', точность миттельшпиля ', ', middlegame accuracy ') + aiPct(g.mid) + ', ' + (hasEnd(g) ? AL('до эндшпиля дошли', 'reached the endgame') : AL('до эндшпиля НЕ дошли', 'did NOT reach the endgame'))); });
     out.push(AL('Ошибки бота: ', 'Bot blunders: ') + aiOppStat(last) + '.');
     var wt = aiWeakThemes(1); if (wt.length) out.push(AL('Самая слабая тема задач: ', 'The weakest puzzle theme: ') + wt[0].replace(/^1\) /, '').replace(AL(' — самая слабая', ' — the weakest'), '') + AL(' (общий перфоманс ', ' (overall performance ') + (P.global ? P.global.perf : '—') + ').');
-    if (CUR.stage) out.push(AL('Цель этапа: 2 пятёрки подряд против Stockfish ' + CUR.stage.engine + '; в каждой 4+ побед из 5, медиана общей точности не ниже ' + RULE.medianAcc + '%, поражения — с точностью не ниже ' + RULE.lossMinAcc + '% и не больше ' + RULE.lossMaxBlunders + ' зевков. Выполнено пятёрок: ',
-      'Stage goal: 2 sets of 5 games in a row vs Stockfish ' + CUR.stage.engine + '; each needs 4+ wins of 5, median overall accuracy of at least ' + RULE.medianAcc + '%, losses with accuracy of at least ' + RULE.lossMinAcc + '% and at most ' + RULE.lossMaxBlunders + ' blunders. Sets done: ') +
+    if (CUR.stage) out.push(AL('Цель этапа: ' + RULE.blocks + ' ' + plural(RULE.blocks, 'пятёрка', 'пятёрки', 'пятёрок') + ' подряд против Stockfish ' + CUR.stage.engine + '; в каждой ' + RULE.wins + '+ побед из ' + RULE.games + ', медиана общей точности не ниже ' + RULE.medianAcc + '%, поражения — с точностью не ниже ' + RULE.lossMinAcc + '% и не больше ' + RULE.lossMaxBlunders + ' зевков. Выполнено пятёрок: ',
+      'Stage goal: ' + RULE.blocks + ' sets of ' + RULE.games + ' games in a row vs Stockfish ' + CUR.stage.engine + '; each needs ' + RULE.wins + '+ wins of ' + RULE.games + ', median overall accuracy of at least ' + RULE.medianAcc + '%, losses with accuracy of at least ' + RULE.lossMinAcc + '% and at most ' + RULE.lossMaxBlunders + ' blunders. Sets done: ') +
       CUR.colors.map(function(c) { return c.blocks.filter(function(b) { return b.ok; }).length; }).join(', ') + AL(' из ', ' of ') + RULE.blocks + '.');
     return out;
   },
@@ -7640,8 +7640,8 @@ var AI_SIMPLE = {
   },
   goal: function() {
     if (!CUR.stage) return [stageDesc()];
-    var out = [AL('Цель этапа: 2 пятёрки подряд против Stockfish ' + CUR.stage.engine + '; в каждой 4+ побед из 5, медиана общей точности не ниже ' + RULE.medianAcc + '%, поражения — с точностью не ниже ' + RULE.lossMinAcc + '% и не больше ' + RULE.lossMaxBlunders + ' зевков.',
-      'Stage goal: 2 sets of 5 in a row vs Stockfish ' + CUR.stage.engine + '; each needs 4+ wins of 5, median overall accuracy of at least ' + RULE.medianAcc + '%, losses with accuracy of at least ' + RULE.lossMinAcc + '% and at most ' + RULE.lossMaxBlunders + ' blunders.')];
+    var out = [AL('Цель этапа: ' + RULE.blocks + ' ' + plural(RULE.blocks, 'пятёрка', 'пятёрки', 'пятёрок') + ' подряд против Stockfish ' + CUR.stage.engine + '; в каждой ' + RULE.wins + '+ побед из ' + RULE.games + ', медиана общей точности не ниже ' + RULE.medianAcc + '%, поражения — с точностью не ниже ' + RULE.lossMinAcc + '% и не больше ' + RULE.lossMaxBlunders + ' зевков.',
+      'Stage goal: ' + RULE.blocks + ' sets of ' + RULE.games + ' in a row vs Stockfish ' + CUR.stage.engine + '; each needs ' + RULE.wins + '+ wins of ' + RULE.games + ', median overall accuracy of at least ' + RULE.medianAcc + '%, losses with accuracy of at least ' + RULE.lossMinAcc + '% and at most ' + RULE.lossMaxBlunders + ' blunders.')];
     CUR.colors.forEach(function(c) {
       c.blocks.forEach(function(b, i) { out.push(AL('Пятёрка ', 'Set ') + (i + 1) + ': ' + blockDesc(b)); });
       if (!c.done) { var gc = aiGoalCond(c); if (gc) out.push(gc); out.push(toGoalText(c, aiLang)); }

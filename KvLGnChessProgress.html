@@ -179,18 +179,12 @@
   #eyeHead svg { width: 18px; height: 18px; }
   .links { gap: 8px; padding-right: 14px; }
   .links .link { padding-right: 10px; }   /* место для глаза шапки, чтобы поиск не обрезался */
-  .links .gs-box { padding: 0 10px; gap: 6px; }
-  #eyeHead + .gs { margin-left: 0; }
   .tbl-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
   .tbl-head .chart-title { margin: 0; }
   .hush-q { color: var(--fg-mute) !important; letter-spacing: 2px; }
   body.hush-head .vd-card { cursor: default; }
   body.hush-head .vd-card:hover { background: linear-gradient(90deg, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.03) 100%); }
   body.hush-head .vd-go { visibility: hidden; }
-  body.hush-all .gs-box { opacity: 0.6; cursor: not-allowed; }
-  body.hush-all .gs-box:hover { border-color: var(--border); }
-  body.hush-all #gsInput { cursor: not-allowed; }
-  body.hush-all .gs-kbd { display: none; }
   body.hush-chart .records-btn, body.hush-chart #cf .f-btn { opacity: 0.45; cursor: not-allowed; }
   body.hush-chart .records-btn:hover { background: none; }
   body.hush-chart .legend-item, body.hush-chart .stat.toggle { pointer-events: none; }
@@ -939,53 +933,35 @@
   .side-row.vd-open .pz-card, .side-row.vd-open .op-card, .side-row.vd-open .vd-card,
   .side-row.op-open .vd-card, .side-row.open .vd-card { opacity: 0; pointer-events: none; }
 
-  /* глобальный поиск в полосе ссылок */
-  .gs { position: relative; flex: 1; min-width: 200px; margin-left: 8px; }
-  .gs-box {
-    display: flex; align-items: center; gap: 8px;
-    height: 44px; padding: 0 12px;
-    background: rgba(0,0,0,0.25);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-  .gs.open .gs-box, .gs-box:hover { border-color: #818cf8; }
-  .gs.open .gs-box { box-shadow: 0 0 0 3px rgba(129,140,248,0.15); }
-  .gs-box .gs-lens { color: var(--fg-mute); font-size: 14px; }
-  #gsInput { flex: 1; min-width: 0; font: 14px Inter, sans-serif; color: var(--fg); background: none; border: none; outline: none; }
-  #gsInput::placeholder { color: var(--fg-mute); }
-  .gs-kbd { font: 600 10px Inter, sans-serif; color: var(--fg-mute); border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; white-space: nowrap; }
-  .gs.open .gs-kbd { display: none; }
-  .gs-drop {
-    display: none;
-    position: absolute; top: calc(100% + 6px); right: 0; width: 440px; z-index: 40;
-    max-height: 420px; overflow-y: auto;
-    padding: 6px;
-    background: var(--bg-card);
-    border: 1px solid #3a3d4a;
-    border-radius: 10px;
-    box-shadow: 0 12px 32px rgba(0,0,0,0.55);
-  }
-  .gs.open .gs-drop { display: block; }
-  .gs-group { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); padding: 8px 8px 4px; }
-  .gs-group span { font-weight: 400; letter-spacing: 0; text-transform: none; margin-left: 6px; }
-  .gs-item {
-    display: flex; align-items: center; gap: 10px; width: 100%;
-    padding: 6px 8px; border: none; border-radius: 6px; background: none;
-    text-align: left; cursor: pointer; color: var(--fg);
-  }
-  .gs-item.on, .gs-item:hover { background: var(--bg-card-hover); }
-  .gs-item.on { box-shadow: inset 2px 0 0 #818cf8; }
-  .gs-ic { width: 20px; text-align: center; font-size: 14px; flex-shrink: 0; }
-  .gs-parent .gs-ic { transition: transform 0.15s; }
-  .gs-parent.open .gs-ic { transform: rotate(180deg); }
-  .gs-child { padding-left: 30px; }
-  .gs-child .gs-ic { font-size: 12px; }
-  .gs-item.off { opacity: 0.45; cursor: default; }
-  .gs-tx { min-width: 0; display: flex; flex-direction: column; }
-  .gs-title { font: 13px Inter, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .gs-sub { font: 11px Inter, sans-serif; color: var(--fg-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .gs-empty { font-size: 13px; color: var(--fg-mute); padding: 14px 10px; }
+  /* меню (☰) вместо поиска: слева группы, справа подгруппы и пункты; на телефоне — одной колонкой */
+  .mn { position: relative; }
+  #eyeHead { margin-left: auto; }   /* глаз шапки и меню — вместе у правого края */
+  /* свой класс, не .sect-eye: глазам частей скрипт подменяет картинку и вешает скрытие */
+  .mn-btn { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid var(--border); color: var(--fg-dim); cursor: pointer; transition: color 0.15s, border-color 0.15s; }
+  .mn-btn:hover, .mn-btn.open { color: var(--fg); border-color: #818cf8; }
+  .mn-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .mn-panel { display: none; position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; width: 660px; height: 470px;
+    grid-template-columns: 190px minmax(0, 1fr); background: var(--bg-card); border: 1px solid #3a3d4a; border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.55); overflow: hidden; }
+  .mn.open .mn-panel { display: grid; }
+  .mn-groups { border-right: 1px solid var(--border); padding: 6px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+  .mn-g { display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 10px; border: none; border-radius: 7px; background: none;
+    font: 13px Inter, sans-serif; color: var(--fg-dim); text-align: left; cursor: pointer; }
+  .mn-g:hover { color: var(--fg); background: rgba(255,255,255,0.04); }
+  .mn-g.on { color: var(--fg); background: var(--bg-card-hover); box-shadow: inset 2px 0 0 #818cf8; }
+  .mn-g i { font-style: normal; width: 18px; text-align: center; }
+  .mn-g span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mn-g small { font-size: 11px; color: var(--fg-mute); }
+  .mn-body { padding: 8px 10px 12px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+  .mn-sub { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); padding: 10px 8px 4px; }
+  .mn-sub:first-child { padding-top: 4px; }
+  .mn-it { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 8px; border: none; border-radius: 6px; background: none; text-align: left; cursor: pointer; color: var(--fg); }
+  .mn-it:hover { background: var(--bg-card-hover); }
+  .mn-it.off { opacity: 0.45; cursor: default; }
+  .mn-it .gs-ic { width: 20px; text-align: center; font-size: 14px; flex-shrink: 0; }
+  .mn-it .gs-tx { min-width: 0; display: flex; flex-direction: column; }
+  .mn-it .gs-title { font: 13px Inter, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mn-it .gs-sub { font: 11px Inter, sans-serif; color: var(--fg-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   /* подсветка найденного */
   .gs-flash { animation: gsFlash 1.4s ease; }
   @keyframes gsFlash { 0%, 40% { box-shadow: inset 0 0 0 1px rgba(129,140,248,0.7); } 100% { box-shadow: inset 0 0 0 1px transparent; } }
@@ -1571,7 +1547,11 @@
     .profile-side { margin-right: 0; }
     .links { border-radius: 0 0 12px 12px; flex-wrap: wrap; gap: 12px; padding: 10px 12px; justify-content: space-around; }
     .link-sep { display: none; }
-    .gs { flex-basis: 100%; margin-left: 0; }
+    .mn { position: static; }
+    .mn-panel { left: 8px; right: 8px; width: auto; top: auto; height: auto; max-height: 70vh; grid-template-columns: 1fr; }
+    .mn-groups { display: flex; flex-wrap: wrap; gap: 4px; border-right: none; border-bottom: 1px solid var(--border); }
+    .mn-g { width: auto; padding: 6px 9px; }
+    .mn-g small { display: none; }
     .side-row { flex-direction: column; margin: 12px 0 4px; }
     .pz-card { flex-basis: auto; }
     .pz-detail { display: none; grid-template-columns: 1fr; gap: 10px; }
@@ -1641,7 +1621,7 @@
     .vd-detail.vdx.show { display: flex; }
     .pz-card, .op-card, .vd-card { width: auto !important; min-height: 120px; }
     /* поиск — выпадающий список по ширине экрана */
-    .gs-drop { width: auto; left: 0; right: 0; }
+    .links { position: relative; }
     /* таблица */
     .filters { gap: 6px; }
     .f-menu, .f-menu.f-menu-mode { width: min(320px, calc(100vw - 40px)); }
@@ -1706,12 +1686,11 @@
         <div><div class="link-name">PGN Mentor</div><div class="link-sub">партии мастеров</div></div><span class="link-go">↗</span>
       </a>
       <button class="sect-eye" id="eyeHead" type="button" data-sec="head"></button>
-      <div class="gs" id="gs">
-        <label class="gs-box"><span class="gs-lens">🔍</span>
-          <input id="gsInput" type="search" autocomplete="off" placeholder="Поиск по всему…" title="Партии, дебюты, разделы, темы задач, итоги" aria-label="Поиск по дашборду">
-          <span class="gs-kbd">Ctrl K</span>
-        </label>
-        <div class="gs-drop" id="gsList" role="listbox"></div>
+      <div class="mn" id="mn">
+        <button class="mn-btn" id="menuBtn" type="button" title="Меню (Ctrl+K)" aria-label="Меню" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <div class="mn-panel" id="mnPanel" role="menu"></div>
       </div>
     </div>
     <div class="side-row" id="sideRow">
@@ -6995,89 +6974,114 @@ function gsSections(it) {
   return [];
 }
 
-var gsItems = [], gsSel = 0, gsShown = [];
-function gsRender() {
-  var q = gsNorm($('gsInput').value.trim());
-  var words = q.split(/\s+/).filter(Boolean);
-  var res = words.length ? gsItems.filter(function(it) { return words.every(function(w) { return it.keys.indexOf(w) >= 0; }); })
-                         : gsItems.filter(function(it) { return it.group === 'Разделы' || it.group === 'Анализ' || it.group === 'Ответы'; });   // без запроса — разделы, анализ и ответы
-  // не больше 6 в группе, чтобы список был обозримым
-  var per = {}, LIMIT = words.length ? 6 : 20;
-  gsShown = res.filter(function(it) { per[it.group] = (per[it.group] || 0) + 1; return per[it.group] <= LIMIT; });
-  gsShown = [].concat.apply([], gsShown.map(function(it) {
-    return it.children && gsOpenKey === it.title
-      ? [it].concat(it.children.map(function(c) { return {group: it.group, icon: c.icon, title: c.title, sub: c.sub, run: c.run, child: true, off: !c.run}; }))
-      : [it];
-  }));
-  gsSel = Math.min(gsSel, Math.max(gsShown.length - 1, 0));
-  var html = '', lastGroup = '';
-  gsShown.forEach(function(it, i) {
-    if (it.group !== lastGroup) {
-      html += '<div class="gs-group">' + it.group + (per[it.group] > LIMIT ? ' <span>ещё ' + (per[it.group] - LIMIT) + ' — уточни запрос</span>' : '') + '</div>';
-      lastGroup = it.group;
-    }
-    html += '<button class="gs-item' + (i === gsSel ? ' on' : '') + (it.children ? ' gs-parent' + (gsOpenKey === it.title ? ' open' : '') : '') + (it.child ? ' gs-child' : '') + (it.off ? ' off' : '') +
-      '" data-i="' + i + '"><span class="gs-ic">' + it.icon + '</span>' +
-      '<span class="gs-tx"><span class="gs-title">' + esc(it.title) + '</span><span class="gs-sub">' + esc(it.sub) + '</span></span></button>';
-  });
-  $('gsList').innerHTML = html || '<div class="gs-empty">Ничего не найдено</div>';
-  var cur = $('gsList').querySelector('.gs-item.on');
-  if (cur) cur.scrollIntoView({block: 'nearest'});
-}
-var gsOpenKey = null;   // какой пункт с вариантами раскрыт
-function gsOpen() {
-  if (hushAll()) { $('gsInput').blur(); return; }
-  gsItems = gsIndex();
-  gsOpenKey = null;
-  $('gs').classList.add('open');
-  gsRender();
-}
-function gsClose() { $('gs').classList.remove('open'); }
-function gsRun(i) {
-  var it = gsShown[i];
-  if (!it) return;
-  if (it.children) {   // пункт с вариантами — раскрыть / свернуть, поиск остаётся открытым
-    gsOpenKey = gsOpenKey === it.title ? null : it.title;
-    gsSel = gsOpenKey ? i + 1 : i;
-    gsRender();
-    return;
+/* ---------- меню (☰): все действия сайта по группам и подгруппам (пункты — из gsIndex; скрытые части страницы туда не попадают) ---------- */
+var MN_GROUPS = [
+  {k: 'an', icon: '♞', name: 'Анализ партий'}, {k: 'ch', icon: '📈', name: 'Графики'}, {k: 'fl', icon: GS_FUNNEL, name: 'Фильтры'},
+  {k: 'gm', icon: '📋', name: 'Партии'}, {k: 'st', icon: '📊', name: 'Статистика'}, {k: 'pz', icon: '🧩', name: 'Задачи'},
+  {k: 'op', icon: '📖', name: 'Дебюты'}, {k: 'vd', icon: '🎯', name: 'Итоги'}, {k: 'li', icon: '↗', name: 'Lichess'}, {k: 'sv', icon: '⚙', name: 'Сервис'}
+];
+// куда положить пункт: [группа меню, подгруппа]. Новый пункт в gsIndex попадёт сюда по своей группе
+function mnPlace(it) {
+  var g = it.group, t = it.title, sub = it.sub || '';
+  if (g === 'Анализ') return ['an', /^(Новая|Разбор)/.test(t) ? 'Быстро' : /^Сравнить с /.test(t) && !/мастерами$/.test(t) ? 'Мастера' : 'Вкладки'];
+  if (g === 'Разделы') {
+    if (t === 'Анализ партий') return ['an', 'Быстро'];
+    if (/^(График показателей|Рекорды партий)$/.test(t)) return ['ch', 'Показатели'];
+    if (/^(Активность|Рекорды активности)$/.test(t)) return ['ch', 'Активность'];
+    if (t === 'Сравнение партий') return ['ch', 'Сравнения'];
+    if (t === 'Задачи') return ['pz', 'Открыть'];
+    if (t === 'Дебюты') return ['op', 'Открыть'];
+    if (t === 'Итоги') return ['vd', 'Открыть'];
+    if (t === 'Фильтр графика') return ['fl', 'Открыть'];
+    return ['gm', 'Таблица'];
   }
-  if (!it.run) return;   // недоступный вариант
-  gsClose();
-  $('gsInput').blur();
-  it.run();
+  if (g === 'Виды графика') return ['ch', /^Активность/.test(t) ? 'Активность' : /^Средние/.test(t) ? 'Показатели' : 'Линии'];
+  if (g === 'Сравнения') return ['ch', 'Сравнения'];
+  if (g === 'Активность') return ['ch', 'Активность'];
+  if (g === 'Дни') return ['ch', 'Дни'];
+  if (g === 'Фильтры') return ['fl', /^Партии за/.test(t) ? 'Даты' : /^Мой дебют/.test(t) ? 'Мой дебют' : /^(Мои поражения|Мои победы|Белыми|Чёрными)$/.test(t) ? 'Результат и цвет' : /^Сбросить/.test(t) ? 'Сброс' : 'Зевки и маты'];
+  if (g === 'Режим партии') return ['fl', 'Режим партии'];
+  if (g === 'Ответы') return ['st', /^(Винрейт|ELO|Рейтинг|Серия)/.test(t) ? 'Цифры' : 'Партии'];
+  if (g === 'Партии') return ['gm', 'Все партии'];
+  if (g === 'Задачи') return ['pz', 'Тренировки'];
+  if (g === 'Темы задач') return ['pz', 'Темы'];
+  if (g === 'Студии') return ['op', 'Студии мастеров'];
+  if (g === 'Дебюты') return ['op', /в таблице/.test(sub) ? 'Сыгранные' : 'По плану'];
+  if (g === 'Итоги') return ['vd', sub === 'проседает' ? 'Проседает' : sub === 'хорошо' ? 'Хорошо' : 'Что делать'];
+  if (g === 'Lichess') return ['li', 'Lichess'];
+  if (g === 'Сервис') return ['sv', /Наверх|К таблице/.test(t) ? 'Навигация' : 'Сервис'];
+  return ['sv', 'Другое'];
 }
-
-$('gsInput').addEventListener('focus', gsOpen);
-$('gsInput').addEventListener('input', function() { gsSel = 0; gsRender(); });
-$('gsInput').addEventListener('keydown', function(e) {
-  if (e.key === 'ArrowDown') { e.preventDefault(); gsSel = Math.min(gsSel + 1, gsShown.length - 1); gsRender(); }
-  else if (e.key === 'ArrowUp') { e.preventDefault(); gsSel = Math.max(gsSel - 1, 0); gsRender(); }
-  else if (e.key === 'Enter') { e.preventDefault(); gsRun(gsSel); }
-  else if (e.key === 'Escape') { gsClose(); $('gsInput').blur(); }
+// порядок подгрупп внутри групп (не названные — в конце, как пришли)
+var MN_SUB_ORDER = ['Быстро', 'Вкладки', 'Мастера', 'Показатели', 'Линии', 'Активность', 'Дни', 'Сравнения',
+  'Открыть', 'Результат и цвет', 'Даты', 'Мой дебют', 'Режим партии', 'Зевки и маты', 'Сброс',
+  'Таблица', 'Все партии', 'Цифры', 'Партии', 'Тренировки', 'Темы', 'По плану', 'Студии мастеров', 'Сыгранные',
+  'Проседает', 'Хорошо', 'Что делать', 'Lichess', 'Сервис', 'Навигация'];
+var mn = {g: null, items: [], tree: {}};
+// дерево меню из текущих данных (пересобирается при каждом открытии — новые партии и скрытие учитываются сами)
+function mnBuild() {
+  var tree = {};
+  mn.items = [];
+  gsIndex().forEach(function(it) {
+    var list = it.children ? it.children.map(function(c) { return {group: it.group, icon: c.icon, title: c.title, sub: c.sub, run: c.run}; }) : [it];
+    list.forEach(function(x) {
+      var pl = mnPlace(it), G = tree[pl[0]] = tree[pl[0]] || {subs: [], items: {}, n: 0};
+      if (!G.items[pl[1]]) { G.items[pl[1]] = []; G.subs.push(pl[1]); }
+      G.items[pl[1]].push(mn.items.length); G.n++;
+      mn.items.push(x);
+    });
+  });
+  Object.keys(tree).forEach(function(k) {
+    tree[k].subs.sort(function(a, b) { var ia = MN_SUB_ORDER.indexOf(a), ib = MN_SUB_ORDER.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
+  });
+  mn.tree = tree;
+  if (!mn.g || !tree[mn.g]) mn.g = (MN_GROUPS.filter(function(G) { return tree[G.k]; })[0] || {}).k || null;
+}
+function mnRender() {
+  var groups = MN_GROUPS.filter(function(G) { return mn.tree[G.k]; });
+  var G = mn.tree[mn.g];
+  $('mnPanel').innerHTML = '<div class="mn-groups">' + groups.map(function(x) {
+      return '<button class="mn-g' + (x.k === mn.g ? ' on' : '') + '" data-g="' + x.k + '"><i>' + x.icon + '</i><span>' + x.name + '</span><small>' + mn.tree[x.k].n + '</small></button>';
+    }).join('') + '</div>' +
+    '<div class="mn-body">' + (G ? G.subs.map(function(sb) {
+      return '<div class="mn-sub">' + esc(sb) + '</div>' + G.items[sb].map(function(i) {
+        var it = mn.items[i];
+        return '<button class="mn-it' + (it.run ? '' : ' off') + '" data-i="' + i + '"><span class="gs-ic">' + it.icon + '</span>' +
+          '<span class="gs-tx"><span class="gs-title">' + esc(it.title) + '</span><span class="gs-sub">' + esc(it.sub || '') + '</span></span></button>';
+      }).join('');
+    }).join('') : '<div class="mn-sub">Пусто</div>') + '</div>';
+}
+function mnOpen() {
+  if (hushAll()) return;
+  mnBuild(); mnRender();
+  $('mn').classList.add('open'); $('menuBtn').classList.add('open'); $('menuBtn').setAttribute('aria-expanded', 'true');
+}
+function mnClose() { $('mn').classList.remove('open'); $('menuBtn').classList.remove('open'); $('menuBtn').setAttribute('aria-expanded', 'false'); }
+$('menuBtn').addEventListener('click', function(e) { e.stopPropagation(); if ($('mn').classList.contains('open')) mnClose(); else mnOpen(); });
+// наведение на группу (компьютер) и клик (телефон) — её содержимое справа
+$('mnPanel').addEventListener('mouseover', function(e) {
+  var b = e.target.closest('.mn-g');
+  if (b && b.getAttribute('data-g') !== mn.g && matchMedia('(hover: hover)').matches) { mn.g = b.getAttribute('data-g'); mnRender(); }
 });
-$('gs').addEventListener('mousedown', function(e) {
-  var b = e.target.closest('.gs-item');
-  if (!b) return;
-  e.preventDefault();
-  if (gsShown[+b.getAttribute('data-i')] && gsShown[+b.getAttribute('data-i')].children) { gsRun(+b.getAttribute('data-i')); return; }
-  // клик, который завершит это нажатие, не должен считаться «кликом мимо» и закрывать только что открытую панель
-  function swallow(ev) { if (!ev.isTrusted) return; ev.stopPropagation(); document.removeEventListener('click', swallow, true); }
-  document.addEventListener('click', swallow, true);
-  setTimeout(function() { document.removeEventListener('click', swallow, true); }, 600);
-  gsRun(+b.getAttribute('data-i'));
+$('mnPanel').addEventListener('click', function(e) {
+  e.stopPropagation();   // клик внутри меню — не «клик мимо» для открытых панелей
+  var b = e.target.closest('.mn-g');
+  if (b) { mn.g = b.getAttribute('data-g'); mnRender(); return; }
+  var it = e.target.closest('.mn-it');
+  if (!it) return;
+  var x = mn.items[+it.getAttribute('data-i')];
+  if (!x || !x.run) return;
+  mnClose();
+  x.run();
 });
-$('gs').addEventListener('click', function(e) { e.stopPropagation(); });
-document.addEventListener('click', gsClose);
-// Ctrl+K или «/» — к поиску
+document.addEventListener('click', mnClose);
+// Ctrl+K или «/» — открыть меню, Esc — закрыть
 document.addEventListener('keydown', function(e) {
   var typing = /INPUT|TEXTAREA/.test(document.activeElement.tagName);
   if ((e.key === 'k' || e.key === 'K' || e.key === 'л' || e.key === 'Л') && (e.ctrlKey || e.metaKey) || (e.key === '/' && !typing)) {
     e.preventDefault();
-    if (hushAll()) return;
-    $('gsInput').focus();
-    $('gsInput').select();
-  }
+    if ($('mn').classList.contains('open')) mnClose(); else mnOpen();
+  } else if (e.key === 'Escape') mnClose();
 });
 
 /* ---------- скрытый режим: клик по аватарке → глаз; глаз закрыт — данные спрятаны ---------- */
@@ -7124,11 +7128,10 @@ function applyHush() {
     b.title = (on ? 'Показать ' : 'Скрыть ') + SECT_NAME[b.getAttribute('data-sec')];
     b.setAttribute('aria-label', b.title);
   });
-  var inp = $('gsInput');
-  inp.disabled = hushAll();
-  inp.placeholder = hushAll() ? 'Поиск недоступен' : 'Поиск по всему…';
-  if (hushAll()) { gsClose(); inp.value = ''; }
-  else if ($('gs').classList.contains('open')) gsOpen();   // список пересобрать без скрытых частей
+  $('menuBtn').disabled = hushAll();   // всё скрыто — меню недоступно
+  $('menuBtn').title = hushAll() ? 'Меню недоступно — всё скрыто' : 'Меню (Ctrl+K)';
+  if (hushAll()) mnClose();
+  else if ($('mn').classList.contains('open')) { mnBuild(); mnRender(); }   // меню без скрытых частей
   if (hush.head) gsCloseSide();
   if (hush.chart) {
     if (showRecords) setRecords(false);

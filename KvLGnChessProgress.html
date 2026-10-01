@@ -3223,8 +3223,11 @@ function mrHover(e) {
   hint.style.display = 'block';
   var hw = hint.offsetWidth;
   hint.style.left = Math.max(0, Math.min(gr.clientWidth - hw, left - hw / 2)) + 'px';
-  // над графиком (может заходить на заголовок блока); вниз — только если упрётся в верх экрана (внизу её обрезает рамка «Анализа»)
-  hint.style.top = (box.top - hint.offsetHeight - 6 < 0 ? sTop + box.height + 4 : sTop - hint.offsetHeight - 6) + 'px';
+  // над графиком, если хватает места в его блоке, иначе под ним. В «Анализе» — всегда над (может зайти на заголовок):
+  // внизу её обрезает рамка блока; вниз — только если упрётся в верх экрана. В отчёте о партии над графиком бывает
+  // поднятая панель «i» — там прежнее правило, иначе подсказка уходит под панель
+  var hh = hint.offsetHeight, up = gr.closest('.an-graph') ? box.top - hh - 6 >= 0 : sTop - hh - 6 >= 0;
+  hint.style.top = (up ? sTop - hh - 6 : sTop + box.height + 4) + 'px';
 }
 function mrLeave(e) {
   var gr = e.target.closest && e.target.closest('.mr-graph');

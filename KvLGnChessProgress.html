@@ -1441,16 +1441,16 @@
   .mr-cnt { position: relative; }
   /* свой класс, не .bl-info: на .bl-info висит обработчик режима зевков графика */
   .mr-cnt .mr-i { position: absolute; top: -34px; left: 50%; transform: translateX(-50%); width: 20px; height: 20px; border-radius: 50%; padding: 0; line-height: 1;
-    font: 700 12px Georgia, serif; font-style: italic; color: #f87171; background: #0b0d13; border: none; cursor: pointer; }   /* тёмная, без обводки */
-  .mr-cnt .mr-i:hover { color: #fca5a5; background: #151826; }
-  .mr-cnt .mr-i.on { color: #11131a; background: #f87171; border-color: #f87171; }
+    font: 700 12px Georgia, serif; font-style: italic; color: #cbd5e1; background: #0b0d13; border: none; cursor: pointer; }   /* тёмная, нейтральная */
+  .mr-cnt .mr-i:hover { color: #fff; background: #151826; }
+  .mr-cnt .mr-i.on { color: #11131a; background: #e4e4e7; }
   .mr-gwrap { position: relative; overflow-x: clip; overflow-y: visible; }   /* прячем панель справа, но подсказка графика может выходить вниз */
   /* высота — по содержимому (не по блоку): при подъёме над графиком панель не сжимается */
   .mr-info { position: absolute; top: 0; left: 0; right: 0; min-height: 100%; z-index: 6; display: grid; grid-template-columns: 1.35fr 1fr 1fr 1fr; gap: 0 18px; padding: 10px 56px 10px 14px;
     background: #171a25; border: 1px solid #2d3143; border-radius: 8px; overflow: hidden; white-space: normal;   /* строка таблицы — nowrap, здесь текст переносится */
     transform: translateX(102%); transition: transform 0.3s ease; }
   .mr-gwrap.info-open .mr-info { transform: none; }
-  .mr-gwrap.info-open.info-up .mr-info { transform: translateY(calc(-100% - 8px)); }   /* над графиком: накрывает верх отчёта, график открыт */
+  /* над графиком: сдвиг вверх ставит mrInfoFit (верх панели = начало отчёта, график ниже панели) */
   .mri-ud { position: absolute; top: 6px; right: 30px; width: 22px; height: 20px; font-size: 10px; line-height: 1; color: var(--fg-mute); background: rgba(255,255,255,0.04);
     border: 1px solid var(--border); border-radius: 5px; cursor: pointer; }
   .mri-ud:hover { color: var(--fg); border-color: var(--fg-mute); }
@@ -2805,8 +2805,18 @@ function mrBar(label, v, color, delta) {
   return '<div class="mr-ph"><div class="mr-ph-top"><span style="color:' + color + '">' + label + '</span><b>' + (has ? v + '%' : '—') + '</b>' + (delta || '') + '</div>' +
     '<div class="mr-ph-bar"><i style="width:' + (has ? v : 0) + '%;background:' + color + '"></i></div></div>';
 }
-// панель «i» поверх графика: блок графика вытягивается по высоте панели (cover = true), иначе — обычная высота графика
-function mrInfoFit(w, cover) { var pnl = w.querySelector('.mr-info'); w.style.minHeight = cover && pnl ? pnl.offsetHeight + 'px' : ''; }
+// положение панели «i»: 'cover' — поверх графика (блок вытягивается по высоте панели), 'up' — над графиком: верх панели
+// на уровне начала отчёта, а если места над графиком мало — график сдвигается вниз на недостающее; 'off' — закрыта
+function mrInfoFit(w, mode) {
+  var pnl = w.querySelector('.mr-info');
+  w.style.minHeight = ''; w.style.paddingTop = ''; if (pnl) pnl.style.transform = '';
+  if (!pnl || mode === 'off') return;
+  if (mode === 'cover') { w.style.minHeight = pnl.offsetHeight + 'px'; return; }
+  var head = w.closest('.mr').querySelector('.mr-head');
+  var dy = w.getBoundingClientRect().top - head.getBoundingClientRect().top;   // от начала отчёта до графика
+  w.style.paddingTop = Math.max(0, pnl.offsetHeight + 8 - dy) + 'px';
+  pnl.style.transform = 'translateY(' + (-dy) + 'px)';
+}
 function mrCount(label, v, color, delta, extra) {
   return '<div class="mr-cnt">' + (extra || '') + '<b style="color:' + color + '">' + v + '</b><span>' + label + '</span>' + (delta || '') + '</div>';
 }
@@ -3720,7 +3730,8 @@ function renderGames() {
       e.stopPropagation();
       var w = detail.querySelector('.mr-gwrap'), on = !w.classList.contains('info-open');
       w.classList.remove('info-up');
-      mrInfoFit(w, on);
+      var ud0 = w.querySelector('.mri-ud'); if (ud0) ud0.textContent = '▲';
+      mrInfoFit(w, on ? 'cover' : 'off');
       w.classList.toggle('info-open', on);
       iBtn.classList.toggle('on', on);
     });
@@ -3728,11 +3739,11 @@ function renderGames() {
     if (info) info.addEventListener('click', function(e) {
       e.stopPropagation();
       var w = detail.querySelector('.mr-gwrap');
-      if (e.target.closest('.mri-x')) { w.classList.remove('info-open', 'info-up'); mrInfoFit(w, false); if (iBtn) iBtn.classList.remove('on'); return; }
+      if (e.target.closest('.mri-x')) { w.classList.remove('info-open', 'info-up'); mrInfoFit(w, 'off'); if (iBtn) iBtn.classList.remove('on'); return; }
       var ud = e.target.closest('.mri-ud');
       if (ud) {   // ▲ — панель над графиком (график открыт), ▼ — обратно поверх графика
         var up = w.classList.toggle('info-up');
-        mrInfoFit(w, !up);
+        mrInfoFit(w, up ? 'up' : 'cover');
         ud.textContent = up ? '▼' : '▲';
         ud.title = up ? 'Вернуть панель на график' : 'Поднять панель над графиком — график откроется';
         return;

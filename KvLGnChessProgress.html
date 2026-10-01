@@ -6213,8 +6213,9 @@ var AI_PROMPT = {
       'Опирайся только на данные ниже и называй цифры, ходы и партии, на которые опираешься.',
       'Никаких общих фраз вроде «больше тренируйся» или «будь внимательнее» — только конкретные действия: что делать, сколько, как понять, что получилось.',
       'Прежде чем сослаться на партию, сверь её результат и цифры с данными; не обобщай, если это верно не для всех партий.',
-      'Чего нет в данных — так и скажи или пометь словом «возможно». Если данных мало — скажи об этом.',
-      'Обращайся на «ты» и не указывай мой пол (не «ты сделал/сделала», а «у тебя получилось»).',
+      'Если данных мало — скажи об этом.',
+      'Не придумывай того, чего нет в данных: сравнений, причин, тем задач, минут, рейтингов. Темы задач называй только из данных. Если делаешь вывод сам — начни его со слова «возможно».',
+      'Мой пол не указан: обращайся на «ты», но НЕ ставь рядом с «ты» глаголы прошедшего времени («ты сыграл», «упустил», «показал», «выработал»). Пиши так: «твой ход 9. cxd6», «у тебя 86%», «здесь упущен выигрыш», «тебе стоит».',
       'Пиши по-русски, просто, без вступлений.'
     ],
     plan: [
@@ -6242,7 +6243,8 @@ var AI_PROMPT = {
       'Use only the data below and name the numbers, moves and games you rely on.',
       'No generic phrases like "train more" or "be more careful" — only concrete actions: what to do, how much, how to tell it worked.',
       'Before citing a game, check its result and numbers against the data; do not generalise unless it is true for all games.',
-      'If something is not in the data, say so or mark it with "possibly". If there is too little data, say so.',
+      'If there is too little data, say so.',
+      'Do not invent anything that is not in the data: comparisons, causes, puzzle themes, minutes, ratings. Name puzzle themes only from the data. If you draw your own conclusion, start it with "possibly".',
       'Do not assume my gender — keep the wording neutral.',
       'Answer in English, simply, without introductions.'
     ],
@@ -6284,8 +6286,8 @@ var AI_FMT = {
            en: 'group my mistakes by cause (at most 3 groups). For each: what I do wrong (with moves from the data) → how to notice it during the game → an exercise to unlearn it. Finish with one rule to check before every move.'},
   days:   {ru: 'план по дням: день → что делать → сколько минут или задач. Всё конкретно: темы задач, сколько партий и против кого. В конце — как через неделю понять, что план сработал.',
            en: 'a day-by-day plan: day → what to do → how many minutes or puzzles. Be concrete: puzzle themes, how many games and against whom. Finish with how to tell after a week that it worked.'},
-  today:  {ru: '3–4 дела на сегодня по порядку, всего на 30–60 минут: что делать → сколько → зачем (цифра из данных). Самое важное — первым.',
-           en: '3–4 tasks for today in order, 30–60 minutes in total: what to do → how much → why (a number from the data). Most important first.'},
+  today:  {ru: '3–4 дела на сегодня по порядку: что делать → сколько минут → зачем (цифра из данных). Самое важное — первым. Сумма минут всех дел — от 30 до 60: проверь сложение и напиши итог в конце.',
+           en: '3–4 tasks for today in order: what to do → how many minutes → why (a number from the data). Most important first. The minutes must add up to 30–60 in total: check the sum and state it at the end.'},
   list5:  {ru: '5 коротких пунктов простыми словами; в каждом — одна мысль и, если есть, пример из моих партий.',
            en: '5 short points in simple words; each — one idea and, if possible, an example from my games.'},
   steps:  {ru: 'шаги по порядку (не больше 7), каждый — что сделать и зачем.', en: 'steps in order (at most 7), each — what to do and why.'},
@@ -6442,7 +6444,10 @@ function aiOpp(g) {
 }
 function aiMates(g) {
   return mateSeries(g).map(function(m) {
-    return m.lost ? AL('мат в ' + m.N2 + ' упущен на ходу ', 'mate in ' + m.N2 + ' missed at ') + aiMove(g, m.lost) : AL('мат в ' + m.N + ' доведён', 'mate in ' + m.N + ' delivered');
+    if (!m.lost) return AL('мат в ' + m.N + ' доведён до конца', 'mate in ' + m.N + ' delivered');
+    var j = (g.jd || []).filter(function(x) { return x[0] === m.lost; })[0], best = j ? (j[2] || '').split(' ')[0] : '';
+    return AL('на ходу ' + Math.ceil(m.lost / 2) + ' у меня был мат в ' + m.N2 + ', а сыграно ' + aiMove(g, m.lost) + ' — мат упущен (ошибка)', 'at move ' + Math.ceil(m.lost / 2) + ' I had mate in ' + m.N2 + ', but played ' + aiMove(g, m.lost) + ' — mate missed (a mistake)') +
+      (best ? AL(', лучше ', ', better ') + best : '');
   });
 }
 // дебют против мастеров: до какого хода как у мастеров и первый отход
@@ -6492,7 +6497,9 @@ function themeName(k) { var P = window.PUZZLES || {}; return AL((P.themeNames ||
 function aiWeakThemes(n) {
   var P = window.PUZZLES;
   return P && P.themeStats ? Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k] && P.themeStats[k].nb >= PZ_MIN_THEME; })
-    .sort(function(a, b) { return P.themeStats[a].perf - P.themeStats[b].perf; }).slice(0, n).map(function(k) { return themeName(k) + ' ' + P.themeStats[k].perf; }) : [];
+    .sort(function(a, b) { return P.themeStats[a].perf - P.themeStats[b].perf; }).slice(0, n)
+    .map(function(k, i) { return (i + 1) + ') ' + themeName(k) + ' ' + P.themeStats[k].perf + (i === 0 ? AL(' — самая слабая', ' — the weakest') : ''); })
+    .concat(P.global ? [AL('общий перфоманс ', 'overall performance ') + P.global.perf] : []) : [];   // от слабой к сильной: слабые модели путаются, сравнивая числа сами
 }
 function stageDesc() {   // этап человеческим языком (для EN — английские названия дебютов)
   if (!CUR.stage) return AL(stageTitle(), 'all planned stages are done');
@@ -6537,6 +6544,9 @@ function aiAbout() {
       out.push(AL('Цель этапа', 'Stage goal') + (CUR.colors.length > 1 ? ' ' + AL(COLOR_WORD[c.color], 'as ' + COLOR_EN[c.color]) : '') + ': ' +
         (c.done ? AL('выполнена', 'done') : ok + AL(' из ', ' of ') + RULE.blocks + AL(' пятёрок; ещё минимум ', ' sets done; at least ') + gamesToGoal(c) + AL(' партий', ' more games')) + '.');
     });
+    var S = CUR.stage, inGoal = last.filter(function(g) { return g.engine === 'Stockfish ' + S.engine && S.colors.indexOf(g.color) >= 0; }).length;
+    out.push(AL('В цель этапа идут только партии ' + (S.colors.length > 1 ? 'обоими цветами' : COLOR_WORD[S.colors[0]]) + ' против Stockfish ' + S.engine + '; из последних 10 партий таких ' + inGoal + ', остальные в цель не идут.',
+                'Only games ' + (S.colors.length > 1 ? 'with both colours' : 'as ' + COLOR_EN[S.colors[0]]) + ' vs Stockfish ' + S.engine + ' count towards the goal; ' + inGoal + ' of the last 10 games are such, the rest do not count.'));
   }
   out.push(speedLine(aiLang));
   if (games.length) {
@@ -6557,7 +6567,9 @@ var AI_DATA = {
   lastgame: function() {
     var g = games[games.length - 1];
     if (!g) return [AL('Партий пока нет', 'No games yet')];
-    var out = [AL('Последняя партия: ', 'Last game: ') + aiGame(g), AL('Ходы: ', 'Moves: ') + aiMovesText(g)];
+    var out = [AL('Последняя партия: ', 'Last game: ') + aiGame(g), AL('Ходы: ', 'Moves: ') + aiMovesText(g)], dv = g.div || {};
+    out.push(AL('Фазы: дебют с 1-го хода', 'Phases: opening from move 1') + (dv.mid ? AL(', миттельшпиль с хода ', ', middlegame from move ') + Math.ceil(dv.mid / 2) : AL(', миттельшпиля не было', ', no middlegame')) +
+      (dv.end ? AL(', эндшпиль с хода ', ', endgame from move ') + Math.ceil(dv.end / 2) : AL(', эндшпиля не было', ', no endgame')) + '.');
     out.push(AL('Мои зевки:', 'My blunders:') + ((g.bl || []).length ? '' : AL(' нет', ' none')));
     (g.bl || []).forEach(function(b) { out.push('- ' + aiBl(g, b)); });
     var sans = aiSans(g), M = (g.jd || []).filter(function(j) { return j[1] === 'M' && anMine(g, j[0]); }).slice(0, 5);
@@ -6597,6 +6609,7 @@ var AI_DATA = {
     });
     var ph = {};
     last.forEach(function(g) { (g.bl || []).forEach(function(b) { if (b.p) ph[b.p] = (ph[b.p] || 0) + 1; }); });
+    var wt = aiWeakThemes(5); if (wt.length) out.push(AL('Слабые темы задач Lichess (перфоманс; других слабых тем в данных нет): ', 'Weak Lichess puzzle themes (performance; no other weak themes in the data): ') + wt.join(', '));
     out.push(AL('По фазам: ', 'By phase: ') + ['debut', 'mid', 'end'].filter(function(p) { return ph[p]; }).map(function(p) { return aiPhase(p) + ' ' + ph[p]; }).join(', '));
     return out;
   },
@@ -6694,6 +6707,7 @@ var AI_DATA = {
       AL('Зевки по типам: ', 'Blunders by type: ') + aiBlTypes(last) + '.', AL('Ошибки бота: ', 'Bot blunders: ') + aiOppStat(last) + '.'];
     var m = aiMateStat(last); if (m) out.push(AL('Маты: ', 'Mates: ') + m + '.');
     last.forEach(function(g) { (g.bl || []).forEach(function(b) { ex.push({g: g, b: b}); }); });
+    var wt = aiWeakThemes(5); if (wt.length) out.push(AL('Слабые темы задач Lichess (перфоманс): ', 'Weak Lichess puzzle themes (performance): ') + wt.join(', ') + '.');
     if (ex.length) out.push(AL('Примеры свежих зевков:', 'Latest blunder examples:'));
     ex.slice(-5).reverse().forEach(function(x) { aiRef(x.g); out.push('- ' + aiGid(x.g) + ': ' + aiBl(x.g, x.b)); });
     return out;
@@ -6763,7 +6777,7 @@ function aiText(ask, isPlan, dataKey, item) {
   var P = AI_PROMPT[aiLang], about = aiAbout(), data = dataKey && AI_DATA[dataKey] ? AI_DATA[dataKey](aiCtx()) : [], out = [];
   var fmt = AI_FMT[(item && item.f) || 'advice'];
   out.push(AL('ЗАДАЧА: ', 'TASK: ') + ask);
-  if (!isPlan) out.push(AL('КАК ОТВЕТИТЬ: ', 'HOW TO ANSWER: ') + fmt[aiLang]);
+  if (!isPlan) out.push(AL('КАК ОТВЕТИТЬ (только по-русски, слово «зевок» не заменяй): ', 'HOW TO ANSWER (in English only): ') + fmt[aiLang]);
   out.push('', P.role.join(' '), '', AL('Правила:', 'Rules:'));
   P.rules.forEach(function(r) { out.push('- ' + r); });
   if (isPlan) out = out.concat([''], P.plan);

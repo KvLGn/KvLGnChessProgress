@@ -6282,8 +6282,8 @@ var AI_DICT = [
 var AI_FMT = {
   advice: {ru: 'ровно 3 пункта по важности. В каждом: что делать (одно конкретное действие) → почему (цифра, ход или партия из данных) → как понять, что получилось. В конце одна строка: что сделать сегодня.',
            en: 'exactly 3 points by importance. Each: what to do (one concrete action) → why (a number, move or game from the data) → how to tell it worked. Finish with one line: what to do today.'},
-  game:   {ru: 'разбери 3 главных момента партии (один из них — «Перелом» из данных, если он есть). Для каждого: номер хода → что я сыграл и что было лучше → почему, простыми словами → правило на будущее одной фразой. В конце — главный урок партии.',
-           en: 'go through the 3 key moments of the game (one of them is the "Turning point" from the data, if there is one). For each: move number → what I played and what was better → why, in simple words → a rule for the future in one sentence. Finish with the main lesson of the game.'},
+  game:   {ru: 'разбери 3 главных момента партии: обязательно «Перелом» и упущенный мат, если они есть в данных, остальные — самые дорогие зевки и ошибки. Для каждого: номер хода → что я сыграл и что было лучше → почему, простыми словами → правило на будущее одной фразой. В конце — главный урок партии.',
+           en: 'go through the 3 key moments of the game: always include the "Turning point" and a missed mate if the data has them, the rest are the most costly blunders and mistakes. For each: move number → what I played and what was better → why, in simple words → a rule for the future in one sentence. Finish with the main lesson of the game.'},
   errors: {ru: 'сгруппируй мои ошибки по причинам (не больше 3 групп). Для каждой: что я делаю не так (с ходами из данных) → как заметить это во время партии → упражнение, чтобы отучиться. В конце — одно правило, которое проверять перед каждым ходом.',
            en: 'group my mistakes by cause (at most 3 groups). For each: what I do wrong (with moves from the data) → how to notice it during the game → an exercise to unlearn it. Finish with one rule to check before every move.'},
   days:   {ru: 'план по дням: день → что делать → сколько минут или задач. Всё конкретно: темы задач, сколько партий и против кого. В конце — как через неделю понять, что план сработал.',
@@ -6484,7 +6484,9 @@ function aiFens(g) {
 function aiFen(g, p) {
   if (PLAIN) return '';
   var f = aiFens(g);
-  return f && f[p - 1] ? AL(' | FEN перед ходом: ', ' | FEN before the move: ') + f[p - 1] : '';
+  if (!f || !f[p - 1]) return '';
+  var x = f[p - 1].split(' '); x[3] = '-';   // поле взятия на проходе убираем: для разбора не нужно, а модели путает
+  return AL(' | FEN перед ходом: ', ' | FEN before the move: ') + x.join(' ');
 }
 // PGN партии с пометками: ?? — мой зевок, ? — моя ошибка, ?! — неточность, у ошибок бота тоже ??/?; в {} — лучший ход и оценка после хода (пешки, с моей стороны)
 function aiPgn(g) {

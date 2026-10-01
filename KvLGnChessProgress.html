@@ -6508,10 +6508,17 @@ function aiRatingPath(P) {
   if (h.length <= 11) return h.map(function(x) { return x.date + ' ' + x.rating; }).join(', ');
   return h[0].date + ' ' + h[0].rating + ' … ' + h.slice(-10).map(function(x) { return x.date + ' ' + x.rating; }).join(', ');
 }
-function aiMateStat(list) {
-  var d = 0, l = 0;
-  list.forEach(function(g) { mateSeries(g).forEach(function(m) { if (m.lost) l++; else if (m.mated) d++; }); });
-  return d || l ? AL('форсированный мат: доведён ' + d + ', упущен ' + l, 'forced mate: delivered ' + d + ', missed ' + l) : '';
+function aiMateStat(list) {   // по партиям: в скольких был форсированный мат, в скольких поставлен; упущенные — разы (мат мог найтись снова позже)
+  var had = 0, done = 0, lost = 0;
+  list.forEach(function(g) {
+    var ms = mateSeries(g);
+    if (!ms.length) return;
+    had++;
+    if (ms.some(function(m) { return m.mated; })) done++;
+    lost += ms.filter(function(m) { return m.lost; }).length;
+  });
+  return had ? AL('форсированный мат был в ' + had + ' ' + plural(had, 'партии', 'партиях', 'партиях') + ', поставлен в ' + done + '; упущен ' + lost + ' ' + plural(lost, 'раз', 'раза', 'раз') + ' (часто потом мат находился снова)',
+                  'a forced mate appeared in ' + had + ' games, delivered in ' + done + '; missed ' + lost + ' times (often found again later)') : '';
 }
 function aiOp() { return ((window.OPENINGS || {}).current || [])[0]; }
 function aiOpGames() { var o = aiOp(); return o ? games.filter(function(g) { return g.color === o.color && opMatch(o, g.opening); }) : []; }
@@ -6667,10 +6674,19 @@ var AI_DATA = {
   phase: function(c) {
     var k = c.phase.k || 'mid', last = games.slice(-10), ex = [];
     var out = [AL('Фаза «' + c.phase.ru + '» по последним 10 партиям (партия: точность фазы / результат / зевков в фазе):', c.phase.en + ' in the last 10 games (game: phase accuracy / result / blunders in the phase):')]
-      .concat(last.map(function(g) { aiRef(g); return aiGid(g) + ': ' + aiPct(g[k]) + ' / ' + AL(RESULT[g.result].label, RES_EN[g.result]) + ' / ' + (g.bl || []).filter(function(b) { return b.p === k; }).length; }))
+      .concat(last.map(function(g) {
+        aiRef(g);
+        var dv = g.div || {}, from = k === 'debut' ? 1 : dv[k] ? Math.ceil(dv[k] / 2) : 0, to = k === 'debut' ? (dv.mid ? Math.ceil(dv.mid / 2) - 1 : g.moves) : k === 'mid' ? (dv.end ? Math.ceil(dv.end / 2) - 1 : g.moves) : g.moves;
+        return aiGid(g) + ': ' + aiPct(g[k]) + ' / ' + AL(RESULT[g.result].label, RES_EN[g.result]) + ' / ' + (g.bl || []).filter(function(b) { return b.p === k; }).length +
+          (from ? AL(' (ходы ', ' (moves ') + from + '–' + to + ')' : AL(' (фазы не было)', ' (phase not reached)'));
+      }))
       .concat([AL('Средние по фазам за эти 10: дебют ', 'Phase averages over these 10: opening ') + aiPct(avg(last, 'debut')) + AL(', миттельшпиль ', ', middlegame ') + aiPct(avg(last, 'mid')) + AL(', эндшпиль ', ', endgame ') + aiPct(avg(last, 'end'))]);
     last.forEach(function(g) { (g.bl || []).forEach(function(b) { if (b.p === k) ex.push({g: g, b: b}); }); });
-    if (ex.length) out.push(AL('Зевки в этой фазе (самые свежие):', 'Blunders in this phase (latest):'));
+    if (ex.length) {
+      var n = {}; ex.forEach(function(x) { n[x.b.t] = (n[x.b.t] || 0) + 1; });
+      out.push(AL('Зевки в этой фазе по типам (всего ', 'Blunders in this phase by type (total ') + ex.length + '): ' + Object.keys(n).sort(function(a, b) { return n[b] - n[a]; }).map(function(t) { return aiBlType(t) + ' ' + n[t]; }).join(', '));
+      out.push(AL('Зевки в этой фазе (самые свежие):', 'Blunders in this phase (latest):'));
+    }
     ex.slice(-8).reverse().forEach(function(x) { out.push('- ' + aiGid(x.g) + ': ' + aiBl(x.g, x.b)); });
     return out;
   },
@@ -6728,7 +6744,7 @@ var AI_DATA = {
     if (!P || !P.themeStats) return [AL('данных по темам нет', 'no theme data')];
     var list = Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k]; }).sort(function(a, b) { return P.themeStats[a].perf - P.themeStats[b].perf; });
     return [AL('Темы задач Lichess за 90 дней (тема: перфоманс / задач / решено с 1-й попытки), общий перфоманс ', 'Lichess puzzle themes, 90 days (theme: performance / puzzles / first-try solved), overall performance ') + (P.global ? P.global.perf : '—') + ':']
-      .concat(list.map(function(k) { var t = P.themeStats[k]; return themeName(k) + ': ' + t.perf + ' / ' + t.nb + ' / ' + Math.round(t.first / t.nb * 100) + '%'; }))
+      .concat(list.map(function(k) { var t = P.themeStats[k]; return themeName(k) + ': ' + t.perf + ' / ' + t.nb + ' / ' + Math.round(t.first / t.nb * 100) + '%' + (t.nb < PZ_MIN_THEME ? AL(' (мало задач — оценка ненадёжна)', ' (too few puzzles — unreliable)') : ''); }))
       .concat([AL('Зевки в последних 10 партиях: ', 'Blunders in the last 10 games: ') + aiBlTypes(games.slice(-10))]);
   },
   checklist: function() {
@@ -6842,7 +6858,13 @@ AI_DATA.openings = function() {
   out.push(AL('Далее по плану: ', 'Next in the plan: ') + names(O.next) + AL('; в планах: ', '; planned: ') + names(O.planned) + '.');
   return out;
 };
-AI_DATA.roadmap = function() { return AI_DATA.goal().concat(AI_DATA.progress()); };
+AI_DATA.roadmap = function() {
+  var O = window.OPENINGS || {}, hist = CUR.hist || [];
+  function names(list) { return (list || []).map(function(o) { return aiOpName(o) + ' (' + AL(COLOR_WORD[o.color], COLOR_EN[o.color]) + ')'; }).join(', ') || '—'; }
+  return AI_DATA.nextstage().concat([
+    AL('Пройденные этапы: ', 'Completed stages: ') + (hist.length ? hist.map(function(h) { return AL('этап ', 'stage ') + (h.idx + 1) + ' — ' + h.date; }).join(', ') : AL('пока нет', 'none yet')),
+    AL('Дебюты: изучаю — ', 'Openings: studying — ') + names(O.current) + AL('; далее — ', '; next — ') + names(O.next) + AL('; в планах — ', '; planned — ') + names(O.planned) + '.']);
+};
 
 /* ---------- текст для нейросети: задача и формат сверху, задача ещё раз внизу ---------- */
 function aiText(ask, isPlan, dataKey, item) {

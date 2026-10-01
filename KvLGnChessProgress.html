@@ -971,13 +971,13 @@
   .vdx-head .vd-rd-btn + .vd-close { margin-left: 0; }
   .vd-detail.vdx.rd-on { height: 640px; }   /* схема — той же высоты, что списки, без прыжка при переключении */
   .rd { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 26px; }   /* схема | таблица (в «К цели этапа»; со списком — .with-list) */
-  .rd-left { min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+  .rd-left { min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; position: relative; }
   .rd-bar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center; margin-bottom: 4px; }
   .rd-seg { display: inline-flex; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
   .rd-seg button { font: 500 11px Inter, sans-serif; color: var(--fg-dim); background: none; border: none; border-radius: 6px; padding: 4px 9px; cursor: pointer; white-space: nowrap; }
   .rd-seg button:hover { color: var(--fg); }
   .rd-seg button.on { background: var(--bg-card-hover); color: var(--fg); }
-  .rd-svg { width: 100%; max-width: 540px; flex: 1; min-height: 0; }
+  .rd-svg { width: 100%; max-width: 640px; flex: 1; min-height: 0; }
   .rd-svg text { font: 600 11px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; fill: #cbd5e1; }
   .rd-svg .rd-pt { cursor: default; }
   .rd-tip { position: absolute; z-index: 5; pointer-events: none; display: none; white-space: nowrap; font-size: 12px; line-height: 1.45; color: var(--fg-dim);
@@ -994,13 +994,126 @@
   .rd-tbl td:first-child { color: var(--fg-dim); white-space: normal; }
   .rd-tbl td.was { color: var(--fg-mute); }
   .rd-tbl .up { color: var(--green); } .rd-tbl .down { color: var(--red); } .rd-tbl .same { color: var(--fg-mute); }
-  .rd.with-list { grid-template-columns: 250px minmax(0, 1.45fr) minmax(0, 0.8fr); gap: 20px; }   /* параметры | схема | таблица */
-  .rd.with-list .rd-right { overflow-x: hidden; }
-  .rd-by { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; justify-content: center; margin-top: 4px; }
+  .rd-ar { font-size: 10px; } .rd-ar.up { color: var(--green); } .rd-ar.down { color: var(--red); }
+  .rd.with-list { grid-template-columns: 236px minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; }   /* параметры | схема | таблица */
+  .rd-pop.off { opacity: 0.35; }
+  .rd-pop.off > * { pointer-events: none; }
+  .rd.with-list .rd-right { overflow-x: hidden; padding-right: 0; }   /* таблица до края колонки; отступ цифр — внутри последнего столбца */
+  .rd.with-list .rd-tbl th:last-child, .rd.with-list .rd-tbl td:last-child { padding-right: 10px; }
+  .rd-by { align-self: stretch; display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 10px; }
+  .rd-lcol { justify-self: start; display: inline-flex; flex-direction: column; gap: 6px; }
+  .rd-lcol .rd-side { width: 100%; margin: 0; }
+  .rd-lcol .rd-side-btn { width: 56px; flex: none; justify-content: center; padding: 0; }   /* под двух коней — ширина не меняется от выбора */
+  .rd-lcol .rd-vs { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }   /* «vs» — до правого края «Партии / Время» */
+  .rd-vs .rd-kn { font-size: 16px; }
+  .rd-by-l { justify-self: start; }
+  .rd-side { align-self: flex-start; position: relative; margin-bottom: 6px; display: flex; gap: 6px; }   /* конь над «Партии / Время», у левого края; справа — «vs» */
+  .rd-vs { height: 30px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,0.03); cursor: pointer;
+    font: 700 12px Inter, sans-serif; letter-spacing: 0.5px; color: var(--fg-dim); }
+  .rd-vs:hover:not(:disabled) { color: var(--fg); border-color: #6b7280; }
+  .rd-vs.on { color: #d8b4fe; border-color: rgba(192,132,252,0.55); background: rgba(192,132,252,0.10); }
+  .rd-vs:disabled { opacity: 0.35; cursor: default; }
+  .rd-side-btn { display: inline-flex; align-items: center; gap: 1px; height: 30px; padding: 0 9px; border: 1px solid var(--border); border-radius: 8px;
+    background: rgba(255,255,255,0.03); cursor: pointer; }
+  .rd-side-btn:hover, .rd-side-btn.open { border-color: #818cf8; }
+  .rd-kn { font-size: 18px; line-height: 1; }
+  .rd-kn.white { color: #f3f4f6; } .rd-kn.black { color: #9ca3af; }
+  .rd-side-menu { position: absolute; bottom: calc(100% + 6px); left: 0; z-index: 9; display: flex; flex-direction: column; gap: 2px; padding: 5px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 24px rgba(0,0,0,0.45); }
+  .rd-side-menu button { display: flex; align-items: center; gap: 8px; padding: 5px 9px; border: none; border-radius: 6px; background: none; cursor: pointer;
+    font: 500 12px Inter, sans-serif; color: var(--fg-dim); white-space: nowrap; text-align: left; }
+  .rd-side-menu button:hover { background: rgba(255,255,255,0.05); color: var(--fg); }
+  .rd-side-menu button.on { background: rgba(129,140,248,0.14); color: var(--fg); }
+  .rd-kns { display: inline-flex; gap: 1px; }
+  .rd-side-menu .rd-kns { min-width: 32px; }
+  .rd-by-c { display: flex; align-items: center; gap: 6px; }
+  .rd-pg { width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 7px; background: rgba(255,255,255,0.03); color: var(--fg-dim); font-size: 15px; line-height: 1; cursor: pointer; }
+  .rd-pg:hover:not(:disabled) { color: var(--fg); border-color: #6b7280; }
+  .rd-pg:disabled { opacity: 0.3; cursor: default; }
   .rd-seg button:disabled { opacity: 0.35; cursor: not-allowed; }
   .rd-cap { flex-basis: 100%; text-align: center; font-size: 11px; color: var(--fg-mute); }
+  .rd-top { align-self: stretch; display: flex; align-items: flex-start; gap: 12px; }
+  .rd-tg { align-self: stretch; display: flex; justify-content: center; gap: 28px; flex-shrink: 0; }   /* сверху в ряд: точка + подпись, без рамок */
+  .rd-tg button { display: flex; align-items: center; gap: 6px; font: 500 11px Inter, sans-serif; color: var(--fg-mute); background: none; border: none;
+    padding: 2px 0; cursor: pointer; white-space: nowrap; }
+  .rd-tg button:hover { color: var(--fg); }
+  .rd-tg button.on { color: #d8b4fe; }   /* включённый — фиолетовый, без кружков */
+  .rd-tg button:disabled { opacity: 0.35; cursor: default; }
+  .rd-tg button:disabled:hover { color: var(--fg-mute); }
+  /* неактивные кнопки схемы не ловят мышь вообще — нажатие не перерисовывает панель (не мелькает) */
+  .rd button:disabled, .rd-nmenu input:disabled { pointer-events: none; }
+  .rd-nw { position: relative; display: inline-flex; align-items: center; gap: 2px; }
+  .rd-tg .rd-narr { padding: 2px 3px; font-size: 10px; color: var(--fg-mute); }
+  .rd-tg .rd-narr:hover, .rd-tg .rd-narr.open { color: var(--fg); }
+  .rd-nmenu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 9; display: flex; flex-direction: column; gap: 6px; padding: 9px 12px; white-space: nowrap;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 24px rgba(0,0,0,0.45); }
+  .rd-nmenu label { display: flex; align-items: center; gap: 7px; font: 500 12px Inter, sans-serif; color: var(--fg-dim); cursor: pointer; }
+  .rd-nmenu label:hover { color: var(--fg); }
+  .rd-nmenu label.off { opacity: 0.4; cursor: default; }
+  .rd-nmenu label.off:hover { color: var(--fg-dim); }
+  .rd-nmenu input { accent-color: #818cf8; }
+  .rd-legend { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 4px; font-size: 12px; color: var(--fg-dim); position: relative; top: -14px; margin-bottom: 6px;
+    min-height: 62px; }   /* под схемой, столбиком; место на 3 строки всегда — схема не прыгает, когда строк 2 или 3 */
+  .rd-legend b { color: var(--fg); font-weight: 600; }
+  .rd-svg .rd-pt, .rd-svg .rd-lbl { cursor: pointer; }
+  .rd-svg text.rd-num { font-weight: 700; letter-spacing: 0; text-transform: none; pointer-events: none; paint-order: stroke; stroke: #1a1d27; stroke-width: 3px; }   /* обводка — читается поверх линий */
+  .rd-svg.faint > polygon:last-of-type, .rd-svg.faint .rd-pt { opacity: 0.45; }   /* мало партий — фигура «сейчас» бледная */
+  .rd-few { color: #fbbf24; font-size: 12px; }
+  .rd-tbl tr[data-rdk] { cursor: pointer; }
+  .rd-tbl tr[data-rdk]:hover td { background: rgba(255,255,255,0.03); }
+  .rd-tbl tr.on td { background: rgba(192,132,252,0.10); }
+  .rd-hint { font-size: 12px; color: var(--fg-mute); line-height: 1.5; margin-top: 12px; }
+  .rd-weak { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .rd-weak-h { display: flex; align-items: center; gap: 6px; width: 100%; background: none; border: none; padding: 0; cursor: pointer; text-align: left;
+    font: 600 10px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); margin-top: 8px; }
+  .rd-weak-h:hover { color: var(--fg-dim); }
+  .rd-weak-h i { font-style: normal; font-size: 11px; }
+  .rd-weak-h span { font-size: 10px; letter-spacing: 0; text-transform: none; color: #f87171; border: 1px solid rgba(248,113,113,0.4); border-radius: 8px; padding: 0 5px; }
+  .rd-wk { display: flex; flex-direction: column; gap: 1px; width: 100%; text-align: left; background: rgba(248,113,113,0.06); border: none; border-left: 2px solid #f87171;
+    border-radius: 0 6px 6px 0; padding: 5px 8px; cursor: pointer; font: 12px Inter, sans-serif; color: var(--fg-dim); }
+  .rd-wk:hover { background: rgba(248,113,113,0.11); }
+  .rd-wk-h { display: flex; justify-content: space-between; gap: 8px; }
+  .rd-wk-h b { color: var(--fg); font-weight: 600; }
+  .rd-wk-h span { color: #f87171; white-space: nowrap; }
+  .rd-wk-t { font-size: 11px; color: var(--fg-dim); }
+  .rdd { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(192,132,252,0.35); display: flex; flex-direction: column; gap: 4px; }
+  .rdd-h { display: flex; align-items: baseline; gap: 6px; font-size: 13px; color: var(--fg); }
+  .rdd-h span { font-size: 11px; color: var(--fg-mute); }
+  .rdd-x { margin-left: auto; background: none; border: none; color: var(--fg-mute); font-size: 16px; line-height: 1; cursor: pointer; padding: 0 2px; }
+  .rdd-x:hover { color: var(--fg); }
+  .rdd-more { font-size: 11px; color: var(--fg-mute); line-height: 1.4; }
+  .rdd-sum { font-size: 12px; color: var(--fg-dim); margin: 2px 0 6px; }
+  .rdd-sum b { color: var(--fg); }
+  .rdd-sum .up { color: var(--green); } .rdd-sum .down { color: var(--red); }
+  .rdd-cw { position: relative; }
+  .rdd-chart { width: 100%; height: 64px; display: block; background: rgba(0,0,0,0.18); border-radius: 6px; }
+  .rdd-chart .rdd-hit { cursor: pointer; }
+  .rdd-chart .rdd-bar.hov { filter: brightness(1.35); }
+  .rdd-tip { position: absolute; z-index: 6; display: none; pointer-events: none; width: max-content; max-width: 100%; font-size: 12px; line-height: 1.45; color: var(--fg-dim);
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+  .rdd-tip b { color: var(--fg); }
+  .rdd-axis { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; color: var(--fg-mute); margin-bottom: 4px; }
+  .rdd-sub { font: 600 10px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); margin-top: 8px; }
+  .rdd-g { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 6px; border: none; border-radius: 6px; background: none; color: var(--fg-dim); font: 12px Inter, sans-serif; cursor: pointer; text-align: left; }
+  .rdd-g:hover { background: rgba(255,255,255,0.04); color: var(--fg); }
+  .rdd-g.bad { background: rgba(248,113,113,0.08); box-shadow: inset 2px 0 0 #f87171; }   /* хуже среднего — тут это было */
+  .rdd-g.bad:hover { background: rgba(248,113,113,0.14); }
+  .rdd-g.warn { background: rgba(250,204,21,0.13); box-shadow: inset 2px 0 0 #facc15; }   /* жёлтый поярче */
+  .rdd-g.warn:hover { background: rgba(250,204,21,0.2); }
+  .rdd-n { color: var(--fg); min-width: 28px; }
+  .rdd-d { min-width: 36px; }
+  .rdd-v { margin-left: auto; color: var(--fg); font-weight: 600; }
+  .rdd-go { color: var(--fg-mute); }
+  .rdd-tag { font-size: 10px; border: 1px solid; border-radius: 4px; padding: 0 4px; }
+  .rdd-tag.best { color: var(--green); border-color: rgba(34,197,94,0.45); }
+  .rdd-tag.worst { color: var(--red); border-color: rgba(239,68,68,0.45); }
+  .rd-legend i { display: inline-block; width: 16px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 7px; }
+  .rd-legend i.dash { height: 0; border-top: 2px dashed #9ca3af; }
+  .rd-legend i.dash.dot { border-top-style: dotted; }
   .rd-cap i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
   .rd.with-list .rd-tbl { font-size: 12.5px; }
+  .rd.with-list .rd-tbl th { letter-spacing: 0.5px; }
+  .rd.with-list .rd-tbl td:first-child { white-space: nowrap; }   /* названия в одну строку */
   .rd.with-list .rd-tbl th, .rd.with-list .rd-tbl td { padding-left: 6px; }   /* таблица | список параметров | схема */
   .rd-pop { min-height: 0; overflow-y: auto; border-right: 1px solid rgba(46,50,68,0.7); padding: 0 16px 0 0;
     scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
@@ -6387,7 +6500,7 @@ function renderVerdictDetail() {
   }
   $('vdDetail').classList.toggle('rd-on', RD.on);
   $('vdDetail').innerHTML =
-    '<div class="vdx-head"><span class="vdx-h">🎯 Итоги</span>' + stage +
+    '<div class="vdx-head"><span class="vdx-h">🎯 Итоги</span>' + (RD.on ? stage.replace(/<span class="vdx-goals">[\s\S]*$/, '') : stage) +   // в «Схеме» — без полосок пятёрок
       '<button class="vd-rd-btn" type="button" title="' + (RD.on ? 'Вернуть списки' : 'Схема: сильные и слабые стороны — последние партии против предыдущих') + '">' + (RD.on ? 'Список' : 'Схема') + '</button>' +
       '<button class="pzd-close vd-close" aria-label="Закрыть">×</button></div>' +
     (RD.on ? rdHtml() :
@@ -6402,24 +6515,76 @@ function renderVerdictDetail() {
    Шкала «Я против себя»: центр — твой худший уровень за всю историю (по скользящему окну из W партий), край — лучший.
    Шкала «К цели этапа»: оси — условия правила rule; центр — первые W партий этапа, край (зелёный контур) — требование правила.
    Параметр = {k, label, group, fn(list) → число | null, low: меньше — лучше, fmt}. Новый параметр — одна строка в RD_METRICS. */
-var RD = {on: false, scale: 'self', keys: ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles'], by: 'games', n: 10, days: 7};
+var RD = {on: false, scale: 'self', keys: ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles'], by: 'games', n: 10, days: 7, prev: false};
 try { var rdSaved = JSON.parse(localStorage.getItem('vdRadar.v1') || 'null'); if (rdSaved) for (var rk in rdSaved) RD[rk] = rdSaved[rk]; } catch (e) {}
 if (!Array.isArray(RD.keys)) RD.keys = Array.isArray(RD.custom) ? RD.custom.slice() : ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles'];   // старый формат (set/custom)
 delete RD.set; delete RD.custom;
-var RD_GOAL_ON = false;   // режим «К цели этапа» пока скрыт
-if (!RD_GOAL_ON) RD.scale = 'self';
+// переключатели слева у края схемы: «Сравнение с прошлыми» (RD.prev — серая фигура «было») и «Цель этапа» (RD.scale = 'goal')
+if (typeof RD.prev !== 'boolean') RD.prev = false;
+RD.colors = false;   // режим «две фигуры по цвету» заменён кнопкой-конём (RD.side), код оставлен
+if (['all', 'white', 'black'].indexOf(RD.side) < 0) RD.side = 'all';   // конь над «Партии / Время»: белые / чёрные / все партии
+var rdSideMenu = false;
+if (typeof RD.vs !== 'boolean') RD.vs = false;   // «vs» справа от коня: выбран один цвет — рядом фигура другого цвета за тот же отрезок
+var RD_SIDE_FILL = {all: ['rgba(192,132,252,0.26)', '#c084fc', '#e9d5ff'], white: ['rgba(241,245,249,0.16)', '#f1f5f9', '#ffffff'], black: ['rgba(8,8,12,0.55)', '#94a3b8', '#cbd5e1']};
+var RD_SIDE_NAME = {all: 'все партии', white: 'партии белыми', black: 'партии чёрными'};
+function rdSideIcon(side) {   // кони — те же, что в таблице партий (KNIGHT): белый светлый, чёрный тёмный
+  var k = function(c) { return '<span class="rd-kn ' + c + '">' + KNIGHT[c] + '</span>'; };
+  return '<span class="rd-kns">' + (side === 'all' ? k('white') + k('black') : k(side)) + '</span>';
+}
+if (!RD.numKinds || typeof RD.numKinds !== 'object') RD.numKinds = {diff: true, now: false, prev: true, moves: true};
+if (RD.numKinds.moves === undefined) RD.numKinds.moves = true;   // виды цифр у точек (стрелка ▾ слева от «Цифры»)
+var rdNumMenu = false;   // список видов цифр открыт (не сохраняется)
+var RD_NUM_KINDS = [['diff', 'Разница', 'у фиолетовых точек: +10% / −6% к среднему или к «было»'], ['now', 'Значение сейчас', 'у фиолетовых точек: само число, например 78%'],
+  ['prev', 'Было', 'серые значения у фигуры «было» (при «Сравнении с прошлыми»)'], ['moves', 'Ходы', 'цифры у осей, которые меряются в ходах: «Ход первого зевка», «Теория»']];
+var RD_MOVE_KEYS = ['firstBl', 'theory'];   // оси в ходах — их цифры включает галочка «Ходы»
 if (!RD.openG || typeof RD.openG !== 'object') RD.openG = {};
-var rdOpenG = RD.openG;   // какие группы в списке параметров раскрыты / свёрнуты — сохраняется (vdRadar.v1); не трогал группу — раскрыта, если в ней что-то выбрано
+var rdOpenG = RD.openG;
+var rdPick = null;   // ключ параметра, по которому открыт подробный разбор под таблицей (не сохраняется)   // какие группы в списке параметров раскрыты / свёрнуты — сохраняется (vdRadar.v1); не трогал группу — раскрыта, если в ней что-то выбрано
 function rdSave() { try { localStorage.setItem('vdRadar.v1', JSON.stringify(RD)); } catch (e) {} }
 function rdAvg(list, f) { var v = list.map(f).filter(function(x) { return x !== null && x !== undefined; }); return v.length ? v.reduce(function(a, b) { return a + b; }, 0) / v.length : null; }
 function rdPerGame(cnt) { return function(list) { return list.length ? list.reduce(function(s, g) { return s + cnt(g); }, 0) / list.length : null; }; }
 function rdBlType(t) { return rdPerGame(function(g) { return (g.bl || []).filter(function(b) { return b.t === t; }).length; }); }
-function rdBlPhase(ph) { return rdPerGame(function(g) { return (g.bl || []).filter(function(b) { return b.p === ph; }).length; }); }
+function rdReached(g, ph) { return ph === 'debut' || (ph === 'mid' ? g.mid !== null && g.mid !== undefined : g.end !== null && g.end !== undefined); }
+function rdBlPhase(ph) { return function(list) {   // только партии, дошедшие до фазы: не дошла до эндшпиля — у неё нет «зевков в эндшпиле», а не 0
+  var l = list.filter(function(g) { return rdReached(g, ph); });
+  return l.length ? l.reduce(function(s, g) { return s + (g.bl || []).filter(function(b) { return b.p === ph; }).length; }, 0) / l.length : null; }; }
 function rdShare(list, base, ok) { var b = list.filter(base); return b.length ? b.filter(ok).length / b.length * 100 : null; }
 function rdDayAttempts(list) { var att = ((window.PUZZLES || {}).attempts || []), days = {}; list.forEach(function(g) { days[g.day] = true; }); return {a: att.filter(function(x) { return days[x.day]; }), d: Object.keys(days).length}; }
 var rdPct = function(v) { return Math.round(v) + '%'; }, rdOne = function(v) { return v.toFixed(1); };
+// разница коротко: «+3.7» (пункты, у параметров в %) или «+10%»; q — относительная (знак = лучше / хуже), cur и base — сами значения
+function rdDiff(m, q, cur, base) {
+  if (m.fmt === rdPct && cur !== null && cur !== undefined && base !== null && base !== undefined) return (q > 0 ? '+' : '−') + Math.abs(cur - base).toFixed(1) + '%';   // пункты, но со знаком % — как говорят: «точность +6.9%»
+  return (q > 0 ? '+' : '−') + Math.round(Math.abs(q) * 100) + '%';
+}
+// словами: «на 3.7 пункта лучше» / «на 10% хуже»
+function rdDiffWords(m, q, cur, base) {
+  var w = q > 0 ? 'лучше' : 'хуже';
+  if (m.fmt === rdPct && cur !== null && cur !== undefined && base !== null && base !== undefined) {
+    var d = Math.abs(cur - base), t = d.toFixed(1);
+    return 'на ' + t + '% ' + w;   // 78% против 71% — «на 6.9% лучше» (пункты, как говорят обычно)
+  }
+  return 'на ' + Math.round(Math.abs(q) * 100) + '% ' + w;
+}
 // low — меньше лучше; more — пояснение (подсказка у точки и в списке); unit — подпись к числу
 var RD_METRICS = [
+  {k: 'winrate', label: 'Винрейт', group: 'Результат', more: 'доля побед (ничья — половина)', fn: function(l) { return l.length ? winrate(l) : null; }, fmt: rdPct},
+  {k: 'elo', label: 'ELO', group: 'Результат', more: 'рост или спад рейтинга за эти дни — по рейтинговым партиям того же контроля, что последняя', fn: function(l) {
+    var R = window.RATING_GAMES || []; if (!R.length || !l.length) return null;
+    var perf = R[R.length - 1].perf, days = l.map(function(g) { return g.day; }).sort(), from = days[0], to = days[days.length - 1];
+    var r = R.filter(function(x) { return x.perf === perf && x.day >= from && x.day <= to; });
+    return r.length ? r.reduce(function(s, x) { return s + x.diff; }, 0) : null; }, fmt: function(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(Math.round(v)); }},
+  {k: 'wrWhite', label: 'Винрейт белыми', group: 'Результат', fn: function(l) { var w = l.filter(function(g) { return g.color === 'white'; }); return w.length ? winrate(w) : null; }, fmt: rdPct},
+  {k: 'wrBlack', label: 'Винрейт чёрными', group: 'Результат', fn: function(l) { var b = l.filter(function(g) { return g.color === 'black'; }); return b.length ? winrate(b) : null; }, fmt: rdPct},
+  {k: 'mateWins', label: 'Победы матом', group: 'Результат', more: 'доля побед, закончившихся матом (а не сдачей или временем)', fn: function(l) {
+    return rdShare(l, function(g) { return g.result === 'win'; }, function(g) { return g.how === 'mate'; }); }, fmt: rdPct},
+  {k: 'honest', label: 'Честные поражения', group: 'Результат', more: 'невыигранные партии с точностью ≥ правила этапа и не больше допустимых зевков', fn: function(l) {
+    return rdShare(l, function(g) { return g.result !== 'win'; }, honestLoss); }, fmt: rdPct},
+  {k: 'median', label: 'Медиана точности', group: 'Результат', more: 'точность «средней» партии: половина партий лучше, половина хуже (так считает правило этапа)', fn: function(l) {
+    var a = l.map(function(g) { return g.acc; }).filter(function(x) { return typeof x === 'number'; }); return a.length ? median(a) : null; }, fmt: rdPct},
+  {k: 'lossBl', label: 'Зевки в поражениях', group: 'Результат', low: true, more: 'среднее число зевков в невыигранных партиях', fn: function(l) {
+    return rdAvg(l.filter(function(g) { return g.result !== 'win'; }), function(g) { return g.blunders; }); }, fmt: rdOne, unit: 'за партию'},
+  {k: 'lossAcc', label: 'Точность в поражениях', group: 'Результат', more: 'средняя точность в невыигранных партиях', fn: function(l) {
+    return rdAvg(l.filter(function(g) { return g.result !== 'win'; }), function(g) { return g.acc; }); }, fmt: rdPct},
   {k: 'acc', label: 'Точность', group: 'Фазы', fn: function(l) { return rdAvg(l, function(g) { return g.acc; }); }, fmt: rdPct},
   {k: 'debut', label: 'Дебют', group: 'Фазы', more: 'точность в дебюте', fn: function(l) { return rdAvg(l, function(g) { return g.debut; }); }, fmt: rdPct},
   {k: 'mid', label: 'Миттельшпиль', group: 'Фазы', more: 'точность в миттельшпиле', fn: function(l) { return rdAvg(l, function(g) { return g.mid; }); }, fmt: rdPct},
@@ -6433,6 +6598,8 @@ var RD_METRICS = [
   {k: 'blunders', label: 'Зевки', group: 'Ошибки', low: true, fn: function(l) { return rdAvg(l, function(g) { return g.blunders; }); }, fmt: rdOne, unit: 'за партию'},
   {k: 'mistakes', label: 'Ошибки', group: 'Ошибки', low: true, fn: function(l) { return rdAvg(l, function(g) { return g.mistakes; }); }, fmt: rdOne, unit: 'за партию'},
   {k: 'inacc', label: 'Неточности', group: 'Ошибки', low: true, fn: function(l) { return rdAvg(l, function(g) { return g.inacc; }); }, fmt: rdOne, unit: 'за партию'},
+  {k: 'firstBl', label: 'Ход первого зевка', group: 'Ошибки', more: 'сколько ходов держишься без зевка (партия без зевков — считается вся)', fn: function(l) {
+    return rdAvg(l, function(g) { return g.bl && g.bl.length ? g.bl[0].m : g.moves || null; }); }, fmt: function(v) { return 'ход ' + Math.round(v); }},
   {k: 'blDebut', label: 'Зевки в дебюте', group: 'Ошибки', low: true, fn: rdBlPhase('debut'), fmt: rdOne, unit: 'за партию'},
   {k: 'blMid', label: 'Зевки в миттельшпиле', group: 'Ошибки', low: true, fn: rdBlPhase('mid'), fmt: rdOne, unit: 'за партию'},
   {k: 'blEnd', label: 'Зевки в эндшпиле', group: 'Ошибки', low: true, fn: rdBlPhase('end'), fmt: rdOne, unit: 'за партию'},
@@ -6449,7 +6616,12 @@ var RD_METRICS = [
     return rdShare(l, function(g) { return g.ev && Math.max.apply(null, g.ev) >= 30; }, function(g) { return g.result === 'win'; }); }, fmt: rdPct},
   {k: 'defend', label: 'Защита', group: 'Против бота', more: 'партии, где перевес был у бота (−3 и хуже), — сколько не проиграно', fn: function(l) {
     return rdShare(l, function(g) { return g.ev && Math.min.apply(null, g.ev) <= -30; }, function(g) { return g.result !== 'lose'; }); }, fmt: rdPct},
-  {k: 'winrate', label: 'Победы', group: 'Против бота', fn: function(l) { return l.length ? winrate(l) : null; }, fmt: rdPct},
+
+  {k: 'minEv', label: 'Самый низкий перевес', group: 'Против бота', more: 'насколько глубоко проваливался по оценке за партию, в пешках (выше — лучше)', fn: function(l) {
+    return rdAvg(l, function(g) { return g.ev && g.ev.length > 1 ? Math.min.apply(null, g.ev) / 10 : null; }); },
+    fmt: function(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1); }},
+  {k: 'turns', label: 'Переломы в мою пользу', group: 'Против бота', more: 'сколько раз за партию оценка за один ход резко (на 1.5 пешки и больше) повернулась к тебе, пока позиция ещё не решена (перевес меньше ±5)', fn: rdPerGame(function(g) {
+    var c = 0; if (g.ev) for (var i = 1; i < g.ev.length; i++) if (Math.abs(g.ev[i - 1]) < 50 && g.ev[i] - g.ev[i - 1] >= 15) c++; return c; }), fmt: rdOne, unit: 'за партию'},
   {k: 'mates', label: 'Маты доведены', group: 'Против бота', more: 'короткие маты (до 3 ходов) — сколько доведено до конца; нужно хотя бы 2 таких момента', fn: function(l) {
     var m = []; l.forEach(function(g) { mateSeries(g).forEach(function(x) { if (x.N && x.N <= 3) m.push(x); }); });
     return m.length >= 2 ? m.filter(function(x) { return !x.lost; }).length / m.length * 100 : null; }, fmt: rdPct},
@@ -6475,15 +6647,21 @@ var RD_METRICS = [
   {k: 'secMove', label: 'Время на ход', group: 'Время', more: 'сколько в среднем думаешь над ходом (больше — обдуманнее)', fn: function(l) {
     return rdAvg(l, function(g) { return g.dur && g.plies ? g.dur / Math.max(1, Math.ceil(g.plies / 2)) : null; }); }, fmt: function(v) { return Math.round(v) + ' с'; }}
 ];
-var RD_GROUPS = ['Фазы', 'Ошибки', 'Типы зевков', 'Против бота', 'Дебют', 'Задачи', 'Время'];
+var RD_GROUPS = ['Результат', 'Фазы', 'Ошибки', 'Типы зевков', 'Против бота', 'Дебют', 'Задачи', 'Время'];
 var RD_SETS = [
   {k: 'main', name: 'Главное', keys: ['acc', 'mid', 'blunders', 'punish', 'theory', 'puzzles']},
   {k: 'phases', name: 'Фазы', keys: ['debut', 'mid', 'end', 'acc', 'acpl', 'stab']},
   {k: 'errors', name: 'Ошибки', keys: ['blunders', 'mistakes', 'inacc', 'blDebut', 'blMid', 'blEnd']},
   {k: 'types', name: 'Типы зевков', keys: ['hang', 'tactic', 'missedWin', 'mateMissed', 'mateAllowed', 'other']},
-  {k: 'bot', name: 'Против бота', keys: ['punish', 'convert', 'defend', 'winrate', 'mates', 'botErr']},
+  {k: 'result', name: 'Результат', keys: ['winrate', 'elo', 'mateWins', 'honest', 'lossAcc', 'firstBl']},
+  {k: 'bot', name: 'Против бота', keys: ['punish', 'convert', 'defend', 'minEv', 'turns', 'botErr']},
   {k: 'debutSet', name: 'Дебют', keys: ['debut', 'theory', 'evOut', 'planOp', 'blDebut']},
-  {k: 'pz', name: 'Задачи', keys: ['puzzles', 'pzWin', 'pzDay']}
+  {k: 'pz', name: 'Задачи', keys: ['puzzles', 'pzWin', 'pzDay']},
+  {k: 'blunders', name: 'Зевки', keys: ['blunders', 'blDebut', 'blMid', 'blEnd', 'firstBl', 'hang']},
+  {k: 'tactics', name: 'Тактика', keys: ['tactic', 'missedWin', 'mateMissed', 'punish', 'mates', 'puzzles']},
+  {k: 'solid', name: 'Надёжность', keys: ['firstBl', 'minEv', 'defend', 'hang', 'mateAllowed', 'stab']},
+  {k: 'convertSet', name: 'Реализация', keys: ['convert', 'mates', 'mateWins', 'missedWin', 'turns', 'punish']},
+  {k: 'stage', name: 'К переходу этапа', keys: ['winrate', 'median', 'honest', 'lossAcc', 'lossBl']}   // те же 5, что оси «Цели этапа"
 ];
 function rdMetric(k) { return RD_METRICS.filter(function(m) { return m.k === k; })[0]; }
 // оси «К цели этапа» — условия правила rule (на партиях этапа против его бота)
@@ -6502,34 +6680,65 @@ function rdGoalMetrics() {
 }
 // что сравниваем: по партиям — последние W против W перед ними (W = 5 / 10 / 20, не больше половины партий);
 // по времени — последние P дней (7 / 30) против P дней перед ними. Окна истории для шкалы «Я против себя» — такие же скользящие
+// «Цель этапа» недоступна, когда этап двухцветный, а выбраны оба коня: правило проверяется по каждому цвету отдельно
+function rdGoalOff() { return RD.side === 'all' && CUR.colors.length > 1; }
+function rdNeedB() { return RD.prev && !(RD.vs && RD.side !== 'all'); }   // нужен ли отрезок «было» перед текущим
 var RD_N = [5, 10, 20], RD_DAYS = [[7, 'Неделя'], [14, '2 недели'], [30, 'Месяц'], [90, '3 месяца']];
 function rdIso(day) { var q = day.split('-'); return new Date(+q[0], q[1] - 1, +q[2]); }
-function rdSel(list) {
-  var n = list.length;
-  if (RD.by === 'time') {
-    var P = RD.days || 7, today = gameToday(), d = function(k) { return isoDay(addDays(today, -k)); };
-    var inn = function(l, from, to) { return l.filter(function(g) { return g.day > from && g.day <= to; }); };
-    var wins = [];
-    if (n) {
-      var d0 = rdIso(list[0].day), span = Math.round((today - d0) / 864e5);
-      for (var k = 0; k <= span; k++) { var end = isoDay(addDays(d0, k)), w = inn(list, isoDay(addDays(d0, k - P)), end); if (w.length) wins.push(w); }
+var RD_MONTHS = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+// календарный отрезок номер k назад: {from, to (iso, включительно), label}
+function rdSeg(P) {
+  var t = gameToday(), mon = addDays(t, -((t.getDay() + 6) % 7)), dm = function(d) { return isoDay(d).slice(8) + '.' + isoDay(d).slice(5, 7); };
+  return function(k) {
+    var a, b, label;
+    if (P === 7 || P === 14) {
+      var len = P / 7;
+      a = addDays(mon, -7 * (len - 1) - 7 * len * k); b = addDays(a, 7 * len - 1);
+      label = k === 0 ? (len === 1 ? 'эта неделя' : 'эти 2 недели') + ' (' + dm(a) + ' – ' + dm(b) + ')' : dm(a) + ' – ' + dm(b);
+    } else {
+      var len2 = P === 90 ? 3 : 1;
+      a = new Date(t.getFullYear(), t.getMonth() - (len2 - 1) - len2 * k, 1); b = new Date(a.getFullYear(), a.getMonth() + len2, 0);
+      label = len2 === 1 ? RD_MONTHS[a.getMonth()] + (a.getFullYear() !== t.getFullYear() ? ' ' + a.getFullYear() : '')
+        : RD_MONTHS[a.getMonth()] + ' – ' + RD_MONTHS[b.getMonth()];
     }
-    return {A: inn(list, d(P), d(0)), B: inn(list, d(2 * P), d(P)), first: n ? inn(list, isoDay(addDays(rdIso(list[0].day), -1)), isoDay(addDays(rdIso(list[0].day), P - 1))) : [],
-      wins: wins, ok: true, P: P};
+    return {from: isoDay(a), to: isoDay(b), label: label};
+  };
+}
+// номера партий отрезка: «№7 – №11» или «№1»
+function rdNums(l) { return !l || !l.length ? '' : l.length === 1 ? '№' + l[0].n : '№' + l[0].n + ' – №' + l[l.length - 1].n; }
+var rdPage = 0;   // стрелки ‹ › под схемой: на сколько отрезков сдвинуто в прошлое (не сохраняется; сброс при смене размера / режима)
+function rdSel(list) {
+  var n = list.length, pg = rdPage;
+  if (RD.by === 'time') {
+    // календарные отрезки: неделя — пн–вс, 2 недели — две календарные недели, месяц — календарный, 3 месяца — три календарных;
+    // k = 0 — текущий отрезок (содержит сегодня), 1 — предыдущий и т. д.
+    var P = RD.days || 7, seg = rdSeg(P), inn = function(l, S) { return l.filter(function(g) { return g.day >= S.from && g.day <= S.to; }); };
+    var cur = seg(pg), prev = seg(pg + 1), wins = [];
+    if (n) for (var k = 0; k < 400; k++) { var S = seg(k); if (S.to < list[0].day) break; var w = inn(list, S); if (w.length) wins.push(w); }
+    return {A: inn(list, cur), B: inn(list, prev), first: wins.length ? wins[wins.length - 1] : [], wins: wins, ok: true, P: P,
+      label: cur.label, prevLabel: prev.label, canBack: n ? prev.to >= list[0].day : false, page: pg};
   }
-  var W = Math.min(RD.n || 10, Math.floor(n / 2));
+  // двойной запас партий нужен только для «Сравнения с прошлыми» (там есть «было»); иначе хватает самих N партий.
+  // W — ближайший доступный размер из 5 / 10 / 20 не больше выбранного; партий меньше 5 — сколько есть (от 3)
+  var limit = rdNeedB() ? Math.floor(n / 2) : n, avail = RD_N.filter(function(v) { return v <= limit && v <= (RD.n || 10); });
+  var W = avail.length ? avail[avail.length - 1] : Math.min(limit, RD.n || 10);
   if (W < 3) return {ok: false, W: W};
   var ws = [];
   for (var i = W; i <= n; i++) ws.push(list.slice(i - W, i));
-  return {A: list.slice(-W), B: list.slice(-2 * W, -W), first: list.slice(0, W), wins: ws, ok: true, W: W};
+  var end = n - pg * W, A = list.slice(Math.max(0, end - W), end), B = list.slice(Math.max(0, end - 2 * W), Math.max(0, end - W));
+  return {A: A, B: B, first: list.slice(0, W), wins: ws, ok: A.length >= 3, W: W, canBack: end - W >= 3, page: pg};
 }
 function rdData() {
-  var goal = RD.scale === 'goal';
+  var goal = RD.scale === 'goal' && !rdGoalOff();
   var list = goal ? [].concat.apply([], CUR.colors.map(function(c) { return c.rel; })).sort(function(a, b) { return a.n - b.n; }) : games.slice();
+  if (RD.side !== 'all') list = list.filter(function(g) { return g.color === RD.side; });   // конь: только белыми / только чёрными
   var n = list.length, Sl = rdSel(list), W = Sl.W;
   var metrics = goal ? rdGoalMetrics() : RD.keys.map(rdMetric).filter(Boolean);
-  if (!Sl.ok || !Sl.A.length) return {n: n, W: W, axes: [], goal: goal, sel: Sl};
+  if (!Sl.ok || !Sl.A.length) return {n: n, W: W, goal: goal, sel: Sl, empty: true, avgMode: !goal, hasB: false,   // нечего показать — оси и таблица на месте, значения пустые
+    axes: metrics.map(function(m) { return {m: m, a: null, b: null, avg: null, rel: null, relB: null, ra: null, rb: null, lo: null, hi: null}; })};
   var A = Sl.A, B = Sl.B, first = Sl.first;
+  var vs = RD.vs && RD.side !== 'all' && !goal, vsSide = RD.side === 'white' ? 'black' : 'white';
+  var SlV = vs ? rdSel(games.filter(function(g) { return g.color === vsSide; })) : null, Bv = vs && SlV.ok ? SlV.A : [];   // тот же отрезок другим цветом
   var axes = metrics.map(function(m) {
     var a = m.fn(A), b = m.fn(B), lo, hi, r = function() { return null; };
     if (goal) {   // центр — начало этапа, край — требование правила (дальше края — с запасом, до 1.15)
@@ -6542,28 +6751,35 @@ function rdData() {
         if (st === null || st === gl || (m.low ? st <= v : st >= v)) return 0.12;
         return 0.12 + 0.88 * Math.max(0, Math.min(1, (v - st) / (gl - st)));
       };
-    } else {     // худший и лучший уровень за историю — по всем скользящим окнам (W партий подряд или P дней)
-      var vals = [];
-      Sl.wins.forEach(function(w) { var v = m.fn(w); if (v !== null) vals.push(v); });
-      if (vals.length) { lo = Math.min.apply(null, vals); hi = Math.max.apply(null, vals); }
-      if (m.low && vals.length) { var t = lo; lo = hi; hi = t; }   // для «меньше — лучше» худшее — максимум
-      r = function(v) { if (v === null || lo === undefined) return null; if (hi === lo) return 0.55; return 0.12 + 0.88 * Math.max(0, Math.min(1, (v - lo) / (hi - lo))); };
+    } else {     // относительно обычного уровня: среднее за все партии = серый ровный многоугольник (r = 0.5);
+      // точка «сейчас» — на сколько процентов лучше (наружу) или хуже (внутрь) обычного; ±50% и больше — край / центр
+      var avgAll = m.fn(list), floor = m.fmt === rdPct ? 10 : /партию/.test(m.unit || '') ? 0.5 : 1;
+      lo = avgAll;
+      var rel = function(v) { if (v === null || avgAll === null) return null; var d = (v - avgAll) / Math.max(Math.abs(avgAll), floor); return m.low ? -d : d; };
+      r = function(v) { var q = rel(v); return q === null ? null : Math.max(0.06, Math.min(1.02, 0.5 + q)); };
+      var b0 = vs ? (Bv.length ? m.fn(Bv) : null) : RD.prev && !RD.colors && B.length ? m.fn(B) : null;
+      var Aw = A.filter(function(g) { return g.color === 'white'; }), Ab = A.filter(function(g) { return g.color === 'black'; });
+      var aw = RD.colors && Aw.length ? m.fn(Aw) : null, ab = RD.colors && Ab.length ? m.fn(Ab) : null;
+      return {m: m, a: a, b: b0, avg: avgAll, rel: rel(a), ra: r(a), rb: r(b0), lo: lo, aw: aw, ab: ab, rw: r(aw), rbk: r(ab), relW: rel(aw), relBk: rel(ab),
+        relB: b0 === null || a === null ? null : (m.low ? -1 : 1) * (a - b0) / Math.max(Math.abs(avgAll === null ? b0 : avgAll), floor)};   // сейчас против «было», в тех же единицах
     }
     return {m: m, a: a, b: b, ra: r(a), rb: B.length ? r(b) : null, lo: lo, hi: hi};
   });
-  return {n: n, W: W, axes: axes, goal: goal, hasB: B.length > 0, sel: Sl};
+  var colors = RD.colors && !goal;
+  return {n: n, W: W, axes: axes, goal: goal, hasB: vs ? Bv.length > 0 : RD.prev && !colors && B.length > 0, avgMode: !goal, colors: colors, sel: Sl,
+    vs: vs, vsSide: vsSide, vsN: Bv.length,
+    nW: A.filter(function(g) { return g.color === 'white'; }).length, nB: A.filter(function(g) { return g.color === 'black'; }).length};
 }
 function rdHtml() {
-  var D = rdData(), S = 360, C = S / 2, R0 = 128;
-  // переключатель шкалы «Я против себя | К цели этапа» пока скрыт (решение 02.10.2026); код режима цели оставлен — вернуть: RD_GOAL_ON = true
-  var bar = RD_GOAL_ON ? '<div class="rd-bar"><span class="rd-seg">' +
-      [['self', 'Я против себя'], ['goal', 'К цели этапа']].map(function(x) { return '<button type="button" data-rds="' + x[0] + '" class="' + (RD.scale === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '</span>' +
-    '</div>' : '';
+  var D = rdData(), S = 360, C = S / 2, R0 = 146;
+  var bar = '';
   var axes = D.axes, k = axes.length, svg = '';
+  var Sl = D.sel || {};
+  var emptyMsg = !D.empty ? '' : (RD.side !== 'all' && !D.n ? 'Партий ' + (RD.side === 'white' ? 'белыми' : 'чёрными') + ' пока нет — появятся сами, когда сыграешь.'
+      : !Sl.ok ? 'Мало партий для схемы: нужно хотя бы 6' + (D.goal ? ' партий этапа' : '') + (RD.side !== 'all' ? (RD.side === 'white' ? ' белыми' : ' чёрными') : '') + ', сейчас ' + D.n + '.'
+      : Sl.A && !Sl.A.length ? 'В отрезке «' + esc(Sl.label || '') + '» партий нет — листай стрелкой ‹ или выбери отрезок побольше.' : '');
   if (k < 3) {
-    var Sl = D.sel || {};
-    svg = '<div class="rd-note" style="margin:40px 0">' + (!Sl.ok ? 'Мало партий для схемы: нужно хотя бы 6' + (D.goal ? ' партий этапа' : '') + ', сейчас ' + D.n + '.'
-      : Sl.A && !Sl.A.length ? 'За последние ' + Sl.P + ' ' + plural(Sl.P, 'день', 'дня', 'дней') + ' партий нет — выбери период побольше или «Партии».' : 'Выбери хотя бы 3 параметра.') + '</div>';
+    svg = '<div class="rd-note" style="margin:40px 0">Выбери хотя бы 3 параметра.</div>';
   } else {
     var ang = function(i) { return -Math.PI / 2 + i * 2 * Math.PI / k; };
     var pt = function(i, r) { return [C + Math.cos(ang(i)) * R0 * r, C + Math.sin(ang(i)) * R0 * r]; };
@@ -6572,63 +6788,312 @@ function rdHtml() {
     [0.25, 0.5, 0.75, 1].forEach(function(r) { g += '<polygon points="' + poly(axes.map(function() { return r; })) + '" fill="' + (r === 1 ? 'rgba(255,255,255,0.025)' : 'none') + '" stroke="rgba(255,255,255,' + (r === 1 ? 0.16 : 0.07) + '"/>'; });
     axes.forEach(function(x, i) { var q = pt(i, 1); g += '<line x1="' + C + '" y1="' + C + '" x2="' + q[0].toFixed(1) + '" y2="' + q[1].toFixed(1) + '" stroke="rgba(255,255,255,0.07)"/>'; });
     if (D.goal) g += '<polygon points="' + poly(axes.map(function() { return 1; })) + '" fill="none" stroke="#4ade80" stroke-opacity="0.55" stroke-dasharray="5 4"/>';
-    if (D.hasB) g += '<polygon points="' + poly(axes.map(function(x) { return x.rb; })) + '" fill="rgba(156,163,175,0.12)" stroke="#9ca3af" stroke-opacity="0.7" stroke-dasharray="4 3"/>';
-    g += '<polygon points="' + poly(axes.map(function(x) { return x.ra; })) + '" fill="rgba(192,132,252,0.26)" stroke="#c084fc" stroke-width="1.8"/>';   // «сейчас» — фиолетовый, светлее фона
-    axes.forEach(function(x, i) {
+    if (D.hasB) g += D.vs ? '<polygon points="' + poly(axes.map(function(x) { return x.rb; })) + '" fill="' + RD_SIDE_FILL[D.vsSide][0] + '" stroke="' + RD_SIDE_FILL[D.vsSide][1] + '" stroke-width="1.4" stroke-dasharray="5 3"/>'
+      : '<polygon points="' + poly(axes.map(function(x) { return x.rb; })) + '" fill="rgba(156,163,175,0.16)" stroke="#9ca3af" stroke-opacity="0.85" stroke-width="1.2"/>';
+    if (D.avgMode && !D.hasB && !D.empty) g += '<polygon points="' + poly(axes.map(function() { return 0.5; })) + '" fill="rgba(156,163,175,0.13)" stroke="#9ca3af" stroke-opacity="0.85" stroke-dasharray="5 4"/>';   // при сравнении с прошлыми средний не рисуем
+    if (D.colors) {   // белыми — светлая, чёрными — голубая; нет партий цветом — фигуры нет
+      if (D.nB) g += '<polygon points="' + poly(axes.map(function(x) { return x.rbk; })) + '" fill="rgba(96,165,250,0.18)" stroke="#60a5fa" stroke-width="1.6"/>';
+      if (D.nW) g += '<polygon points="' + poly(axes.map(function(x) { return x.rw; })) + '" fill="rgba(241,245,249,0.14)" stroke="#f1f5f9" stroke-width="1.6"/>';
+    } else
+    if (!D.empty) g += '<polygon points="' + poly(axes.map(function(x) { return x.ra; })) + '" fill="' + RD_SIDE_FILL[RD.side][0] + '" stroke="' + RD_SIDE_FILL[RD.side][1] + '" stroke-width="1.8"/>';   // «сейчас» — фиолетовый, светлее фона
+    var weakK = rdWeak(D).map(function(o) { return o.x.m.k; });   // 2 самых слабых (хуже на 5%+) — красные, как в «Слабее всего»
+    var warnK = rdWeak(D, 8, 0.005).map(function(o) { return o.x.m.k; }).filter(function(k) { return weakK.indexOf(k) < 0; }).slice(0, 2);   // следующие 2 с любым ухудшением — жёлтые
+    if (D.colors) axes.forEach(function(x, i) {   // точки двух фигур (наведение — на белые, как основные)
+      if (D.nB && x.rbk !== null) { var qk = pt(i, x.rbk); g += '<circle cx="' + qk[0].toFixed(1) + '" cy="' + qk[1].toFixed(1) + '" r="4" fill="#bfdbfe" stroke="#1a1d27" stroke-width="1.5"/>'; }
+      if (D.nW && x.rw !== null) { var qw = pt(i, x.rw); g += '<circle class="rd-pt" data-rdi="' + i + '" data-rdk="' + x.m.k + '" cx="' + qw[0].toFixed(1) + '" cy="' + qw[1].toFixed(1) + '" r="4.5" fill="#f8fafc" stroke="#1a1d27" stroke-width="1.5"/>'; }
+    });
+    if (!D.colors) axes.forEach(function(x, i) {
       if (x.ra === null) return;
       var q = pt(i, x.ra);
-      g += '<circle class="rd-pt" data-rdi="' + i + '" cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="5" fill="#e9d5ff" stroke="#1a1d27" stroke-width="1.5"/>';
+      var picked = rdPick === x.m.k;
+      if (weakK.indexOf(x.m.k) >= 0) g += '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + (picked ? 13 : 9) + '" fill="none" stroke="#f87171" stroke-width="1.3" stroke-opacity="0.85"/>';
+      if (picked) g += '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="10" fill="none" stroke="#c084fc" stroke-width="1.5" stroke-opacity="0.8"/>';
+      g += '<circle class="rd-pt" data-rdi="' + i + '" data-rdk="' + x.m.k + '" cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + (picked ? 6 : 5) + '" fill="' + RD_SIDE_FILL[RD.side][2] + '" stroke="#1a1d27" stroke-width="1.5"/>';
     });
+    if (RD.nums && !D.colors) (function() {   // «Цифры»: у фиолетовой точки — разница, у серой «было» — значение; подписи не налезают друг на друга
+      var boxes = [], out = '';
+      var box = function(x, y, w, h, anc) { var l = anc === 'middle' ? x - w / 2 : anc === 'end' ? x - w : x; return {l: l, r: l + w, t: y - h + 2, b: y + 2}; };
+      var hit = function(B) { return boxes.some(function(o) { return B.l < o.r + 2 && B.r > o.l - 2 && B.t < o.b + 2 && B.b > o.t - 2; }); };
+      var put = function(x, y, anc, txt, col, size) {
+        out += '<text class="rd-num" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" text-anchor="' + anc + '" style="fill:' + col + ';font-size:' + size + 'px">' + txt + '</text>';
+      };
+      // точки обеих фигур — тоже препятствия
+      axes.forEach(function(x, i) {
+        [x.ra, D.hasB ? x.rb : null].forEach(function(r) { if (r !== null && r !== undefined) { var q = pt(i, r); boxes.push({l: q[0] - 6, r: q[0] + 6, t: q[1] - 6, b: q[1] + 6}); } });
+      });
+      // 1) фиолетовые — разница, вдоль оси (у края — внутрь)
+      axes.forEach(function(x, i) {
+        if (x.ra === null || (!RD.numKinds.moves && RD_MOVE_KEYS.indexOf(x.m.k) >= 0)) return;
+        var q = D.goal ? null : D.hasB ? x.relB : x.rel, txt = '', col = '#e9d5ff', K = RD.numKinds;
+        if (D.goal) { if (!K.now && !K.diff) return; txt = x.m.fmt(x.a); col = x.ra >= 1 ? '#4ade80' : '#e9d5ff'; }
+        else {
+          var dTxt = '';
+          if (K.diff && q !== null && q !== undefined) {
+            if (Math.abs(q) < 0.005) { dTxt = '0%'; col = '#9ca3af'; }
+            else { dTxt = rdDiff(x.m, q, x.a, D.hasB ? x.b : x.avg); col = q > 0 ? '#4ade80' : '#f87171'; }
+          }
+          var vTxt = K.now && x.a !== null ? String(x.m.fmt(x.a)).replace(/^ход /, '') : '';
+          txt = vTxt && dTxt ? vTxt + ' · ' + dTxt : vTxt || dTxt;
+          if (!dTxt) col = '#e9d5ff';
+          if (!txt) return;
+        }
+        var c = Math.cos(ang(i)), sn = Math.sin(ang(i)), w = txt.length * 6.4, p0 = pt(i, x.ra);
+        // варианты: вдоль оси наружу / внутрь, потом сбоку
+        var cand = [x.ra > 0.8 ? -15 : 14, x.ra > 0.8 ? 14 : -15].map(function(dist) {
+          var anc = Math.abs(c) < 0.3 ? 'middle' : (c > 0) === (dist > 0) ? 'start' : 'end';
+          return {x: p0[0] + c * dist + (anc === 'middle' ? 0 : anc === 'start' ? 3 : -3), y: p0[1] + sn * dist + 4, anc: anc};
+        }).concat([{x: p0[0] + 9, y: p0[1] - 7, anc: 'start'}, {x: p0[0] - 9, y: p0[1] - 7, anc: 'end'}, {x: p0[0] + 9, y: p0[1] + 14, anc: 'start'}, {x: p0[0] - 9, y: p0[1] + 14, anc: 'end'}]);
+        var pick = cand.filter(function(o) { return !hit(box(o.x, o.y, w, 11, o.anc)); })[0] || cand[0];
+        boxes.push(box(pick.x, pick.y, w, 11, pick.anc));
+        put(pick.x, pick.y, pick.anc, esc(txt), col, 11);
+      });
+      // 2) серые «было» — значение (без слова «ход»), в первое свободное место вокруг точки
+      if (D.hasB && RD.numKinds.prev) axes.forEach(function(x, i) {
+        if (x.rb === null || x.rb === undefined || x.b === null || x.b === undefined || (!RD.numKinds.moves && RD_MOVE_KEYS.indexOf(x.m.k) >= 0)) return;
+        var txt = String(x.m.fmt(x.b)).replace(/^ход /, ''), w = txt.length * 5.6, p0 = pt(i, x.rb);
+        var cand = [{x: p0[0], y: p0[1] + 16, anc: 'middle'}, {x: p0[0], y: p0[1] - 9, anc: 'middle'}, {x: p0[0] + 9, y: p0[1] + 4, anc: 'start'}, {x: p0[0] - 9, y: p0[1] + 4, anc: 'end'},
+          {x: p0[0] + 9, y: p0[1] + 15, anc: 'start'}, {x: p0[0] - 9, y: p0[1] + 15, anc: 'end'}, {x: p0[0] + 9, y: p0[1] - 8, anc: 'start'}, {x: p0[0] - 9, y: p0[1] - 8, anc: 'end'}];
+        var pick = cand.filter(function(o) { return !hit(box(o.x, o.y, w, 10, o.anc)); })[0];
+        if (!pick) return;   // места нет — серую цифру не рисуем (значение есть в таблице и подсказке)
+        boxes.push(box(pick.x, pick.y, w, 10, pick.anc));
+        put(pick.x, pick.y, pick.anc, esc(txt), '#9ca3af', 9.5);
+      });
+      g += out;
+    })();
     axes.forEach(function(x, i) {   // длинная подпись — в две строки (по пробелу ближе к середине)
       var q = pt(i, 1.17), c = Math.cos(ang(i)), sn = Math.sin(ang(i)), anchor = Math.abs(c) < 0.3 ? 'middle' : c > 0 ? 'start' : 'end';
       var lines = [x.m.label], sp = [];
       if (x.m.label.length > 11) { x.m.label.replace(/ /g, function(m, at) { sp.push(at); }); }
       if (sp.length) { var cut = sp.sort(function(a, b) { return Math.abs(a - x.m.label.length / 2) - Math.abs(b - x.m.label.length / 2); })[0]; lines = [x.m.label.slice(0, cut), x.m.label.slice(cut + 1)]; }
       var y0 = q[1] + 4 - (lines.length - 1) * (sn < -0.3 ? 13 : sn > 0.3 ? 0 : 6.5);
-      g += '<text x="' + q[0].toFixed(1) + '" y="' + y0.toFixed(1) + '" text-anchor="' + anchor + '"' + (x.ra === null ? ' opacity="0.4"' : '') + '>' +
+      g += '<text class="rd-lbl" data-rdk="' + x.m.k + '" x="' + q[0].toFixed(1) + '" y="' + y0.toFixed(1) + '" text-anchor="' + anchor + '"' + (x.ra === null ? ' opacity="0.4"' : rdPick === x.m.k ? ' style="fill:#e9d5ff"' : weakK.indexOf(x.m.k) >= 0 ? ' style="fill:#f87171"' : warnK.indexOf(x.m.k) >= 0 ? ' style="fill:#fbbf24"' : '') + '>' +
         lines.map(function(t, j) { return '<tspan x="' + q[0].toFixed(1) + '" dy="' + (j ? 13 : 0) + '">' + esc(t) + '</tspan>'; }).join('') + '</text>';
     });
-    svg = '<svg class="rd-svg" viewBox="-95 -24 ' + (S + 190) + ' ' + (S + 48) + '">' + g + '</svg>';
+    var few = D.sel && D.sel.A && D.sel.A.length < 3;   // 1–2 партии — схема бледная, с пометкой
+    svg = '<svg class="rd-svg' + (few ? ' faint' : '') + '" viewBox="-88 -14 ' + (S + 176) + ' ' + (S + 28) + '" preserveAspectRatio="xMidYMin meet">' + g + '</svg>';   // прижата к верху — не прыгает от числа строк подписи
   }
   // под схемой: сравнивать по партиям (5 / 10 / 20) или по времени (неделя / месяц)
   var Sl2 = D.sel || {}, byT = RD.by === 'time', nAll = D.n;
+  var dm = function(iso) { return iso ? iso.slice(8) + '.' + iso.slice(5, 7) : ''; };
+  var nG = function(l) { return l ? ' · ' + l.length + ' ' + plural(l.length, 'партия', 'партии', 'партий') : ''; };
+  var nowTxt = byT ? Sl2.label + nG(Sl2.A)
+    : Sl2.ok ? (Sl2.page ? rdNums(Sl2.A) + nG(Sl2.A) : 'последние ' + Sl2.W + ' ' + plural(Sl2.W, 'партия', 'партии', 'партий') + ' (' + rdNums(Sl2.A) + ')') : '';
   var cap = byT ? 'последние ' + Sl2.P + ' ' + plural(Sl2.P, 'день', 'дня', 'дней') + (Sl2.A ? ' (' + Sl2.A.length + ' ' + plural(Sl2.A.length, 'партия', 'партии', 'партий') + ')' : '') + ' против ' + Sl2.P + ' до них' + (Sl2.B ? ' (' + Sl2.B.length + ')' : '')
     : Sl2.ok ? 'последние ' + Sl2.W + ' ' + plural(Sl2.W, 'партия', 'партии', 'партий') + ' против ' + Sl2.W + ' перед ними' : '';
-  var by = '<div class="rd-by"><span class="rd-seg">' +
-      '<button type="button" data-rdby="games" class="' + (byT ? '' : 'on') + '">Партии</button><button type="button" data-rdby="time" class="' + (byT ? 'on' : '') + '">Время</button></span>' +
-    '<span class="rd-seg">' + (byT
+  var side = '<div class="rd-side"><button type="button" class="rd-side-btn' + (rdSideMenu ? ' open' : '') + '" data-rdsd title="Какие партии: белыми, чёрными или все">' + rdSideIcon(RD.side) + '</button>' +
+    '<button type="button" class="rd-vs' + (RD.vs && RD.side !== 'all' ? ' on' : '') + '" data-rdvs' + (RD.side === 'all' || D.goal ? ' disabled' : '') +
+      ' title="Сравнить с партиями другим цветом за тот же отрезок">vs' + (RD.side !== 'all' ? ' <span class="rd-kn ' + (RD.side === 'white' ? 'black' : 'white') + '">' + KNIGHT[RD.side === 'white' ? 'black' : 'white'] + '</span>' : '') + '</button>' +   // справа — конь соперника по цвету
+    (rdSideMenu ? '<div class="rd-side-menu">' + ['white', 'black', 'all'].map(function(sd) {
+      return '<button type="button" data-rdside="' + sd + '" class="' + (RD.side === sd ? 'on' : '') + '">' + rdSideIcon(sd) + '<span>' + RD_SIDE_NAME[sd] + '</span></button>'; }).join('') + '</div>' : '') + '</div>';
+  // слева столбик: конь + «vs» сверху, «Партии / Время» снизу — одной ширины
+  var by = '<div class="rd-by"><div class="rd-lcol">' + side + '<span class="rd-seg rd-by-l">' +
+      '<button type="button" data-rdby="games" class="' + (byT ? '' : 'on') + '">Партии</button><button type="button" data-rdby="time" class="' + (byT ? 'on' : '') + '">Время</button></span></div>' +
+    '<span class="rd-by-c"><button type="button" class="rd-pg" data-rdpg="1"' + (Sl2.canBack ? ' title="Отрезок раньше"' : ' disabled title="Раньше партий нет"') + '>‹</button><span class="rd-seg">' + (byT
       ? RD_DAYS.map(function(x) { return '<button type="button" data-rdd="' + x[0] + '" class="' + ((RD.days || 7) === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('')
-      : RD_N.map(function(v) { var can = nAll >= 2 * v, on = Sl2.ok && Sl2.W === v || (!Sl2.ok && false);
-          return '<button type="button" data-rdn="' + v + '" class="' + (on ? 'on' : '') + '"' + (can ? '' : ' disabled title="Нужно хотя бы ' + 2 * v + ' партий, сейчас ' + nAll + '"') + '>' + v + '</button>'; }).join('')) + '</span>' +
-    (cap ? '<div class="rd-cap"><i style="background:#c084fc"></i>' + esc(cap).replace(' против ', ' <i style="background:#9ca3af;margin-left:8px"></i>против ') + '</div>' : '') + '</div>';
+      : RD_N.map(function(v) { var need = rdNeedB() ? 2 * v : v, can = nAll >= need, on = Sl2.ok && Sl2.W === v;
+          return '<button type="button" data-rdn="' + v + '" class="' + (on ? 'on' : '') + '"' + (can ? '' : ' disabled title="Нужно хотя бы ' + need + ' партий, сейчас ' + nAll + '"') + '>' + v + '</button>'; }).join('')) + '</span>' +
+    '<button type="button" class="rd-pg" data-rdpg="-1"' + (rdPage ? ' title="Отрезок позже"' : ' disabled title="Это последний отрезок"') + '>›</button></span><span></span></div>';
+  var vsWord = D.vs ? (D.vsSide === 'white' ? 'белыми' : 'чёрными') : '';
+  var prevTxt = D.vs ? vsWord + (D.vsN ? nG(new Array(D.vsN)) : ' · пока нет партий') : byT ? Sl2.prevLabel + nG(Sl2.B)
+    : Sl2.ok && Sl2.B && Sl2.B.length ? rdNums(Sl2.B) + nG(Sl2.B) : '';
+  // «Сравнение с прошлыми» бледнеет по состоянию vs (а не по данным) — одинаково с партиями этого цвета и без
+  var tg = '<div class="rd-tg">' +
+    '<button type="button" data-rdtg="prev"' + (D.colors || (RD.vs && RD.side !== 'all' && !D.goal) ? ' disabled' : '') + ' class="' + (RD.prev ? 'on' : '') + '" title="Сравнить последние партии с такими же до них: серая фигура — «было»">Сравнение с прошлыми</button>' +
+    '<span class="rd-nw"><button type="button" data-rdtg="nums"' + (D.colors ? ' disabled' : '') + ' class="' + (RD.nums ? 'on' : '') + '" title="Подписать у точек цифры (какие — стрелка справа)">Цифры</button>' +
+      '<button type="button" class="rd-narr' + (rdNumMenu ? ' open' : '') + '" data-rdnm title="Какие цифры показывать">▾</button>' +
+      (rdNumMenu ? '<span class="rd-nmenu">' + RD_NUM_KINDS.map(function(k) {
+        var dis = k[0] === 'prev' && !D.hasB;   // «Было» — только при «Сравнении с прошлыми»
+        return '<label' + (dis ? ' class="off"' : ' title="' + esc(k[2]) + '"') + '><input type="checkbox" data-rdnk="' + k[0] + '"' + (RD.numKinds[k[0]] ? ' checked' : '') + (dis ? ' disabled' : '') + '>' + k[1] + '</label>'; }).join('') + '</span>' : '') + '</span>' +
+    '<button type="button" data-rdtg="goal"' + (rdGoalOff() ? ' disabled' : '') + ' class="' + (D.goal ? 'on' : '') + '" title="Оси — условия перехода на следующий этап, зелёный контур — требование правила">Цель этапа</button></div>';
+  var leg = k < 3 ? '' : D.colors ? '<span><i style="background:#f1f5f9"></i><b>белыми</b> · ' + (D.nW ? D.nW + ' ' + plural(D.nW, 'партия', 'партии', 'партий') : 'партий нет') + '</span>' +
+      '<span><i style="background:#60a5fa"></i><b>чёрными</b> · ' + (D.nB ? D.nB + ' ' + plural(D.nB, 'партия', 'партии', 'партий') : 'пока нет партий — появятся сами') + '</span>' +
+      '<span><i class="dash"></i>' + esc(nowTxt) + ' · среднее за все ' + D.n + ' ' + plural(D.n, 'партию', 'партии', 'партий') + '</span>'
+    : '<span><i style="background:' + RD_SIDE_FILL[RD.side][1] + '"></i><b>' + esc(nowTxt) + '</b>' + (RD.side !== 'all' ? ' · ' + (RD.side === 'white' ? 'белыми' : 'чёрными') : '') + '</span>' +
+    (D.vs ? '<span><i style="background:' + RD_SIDE_FILL[D.vsSide][1] + '"></i>' + esc(prevTxt) + '</span>' : D.hasB ? '<span><i style="background:#9ca3af"></i>' + esc(prevTxt) + '</span>' : '') +
+    (D.goal ? '<span><i class="dash" style="border-color:#4ade80"></i>требование правила этапа</span>'
+      : D.hasB ? '' : '<span><i class="dash"></i>твой средний уровень — за все ' + D.n + ' ' + plural(D.n, 'партию', 'партии', 'партий') + '</span>');
+  bar = tg;   // сверху — переключатели сравнения в ряд; подписи цветов — под схемой
+  var fewA = Sl2.A && Sl2.A.length && Sl2.A.length < 3, nBcmp = D.vs ? D.vsN : Sl2.B ? Sl2.B.length : 0, fewB = D.hasB && nBcmp < 3;   // в vs сравнение — с другим цветом
+  var fewTxt = fewA ? Sl2.A.length + ' ' + plural(Sl2.A.length, 'партия', 'партии', 'партий') + ' — слишком мало для выводов'
+    : fewB ? (D.vs ? vsWord : 'в «было»') + ' ' + nBcmp + ' ' + plural(nBcmp, 'партия', 'партии', 'партий') + ' — сравнение ненадёжное' : '';
+  var legHtml = D.empty ? '<div class="rd-legend"><span class="rd-hint" style="margin:0">' + emptyMsg + '</span></div>'
+    : leg ? '<div class="rd-legend">' + (fewTxt ? '<span class="rd-few">⚠ ' + fewTxt + '</span>' : '') + leg + '</div>' : '';
   var fmt = function(x, v) { return v === null || v === undefined ? '—' : x.m.fmt(v); };
+  var arr = function(better) { return better === null || better === undefined ? '' : ' <span class="rd-ar ' + (better ? 'up' : 'down') + '">' + (better ? '▲' : '▼') + '</span>'; };
   var rows = axes.map(function(x) {
     var d = x.a !== null && x.b !== null ? x.a - x.b : null, better = d === null || Math.abs(d) < 1e-9 ? null : (x.m.low ? d < 0 : d > 0);
-    return '<tr><td title="' + esc(x.m.more || '') + '">' + esc(x.m.label) + '</td><td>' + fmt(x, x.a) + '</td>' + (D.hasB ? '<td class="was">' + fmt(x, x.b) + '</td><td class="' + (better === null ? 'same' : better ? 'up' : 'down') + '">' +
-      (d === null ? '—' : better === null ? '=' : (better ? '▲' : '▼')) + '</td>' : '') + '<td class="was">' + (D.goal ? fmt(x, x.m.goal) : fmt(x, x.m.low ? x.hi : x.hi)) + '</td></tr>';
+    return '<tr><td title="' + esc(x.m.more || '') + '">' + esc(x.m.label) + '</td><td>' + fmt(x, x.a) + (D.hasB ? arr(better) : '') + '</td>' + (D.hasB ? '<td class="was">' + fmt(x, x.b) + '</td>' : '') +
+      '<td class="was">' + (D.goal ? fmt(x, x.m.goal) : fmt(x, x.m.low ? x.hi : x.hi)) + '</td></tr>';
   }).join('');
-  var tbl = k ? '<table class="rd-tbl"><tr><th></th><th>сейчас</th>' + (D.hasB ? '<th>было</th><th></th>' : '') + '<th>' + (D.goal ? 'нужно' : 'лучшее') + '</th></tr>' + rows + '</table>' : '';
-  return '<div class="rd' + (D.goal ? '' : ' with-list') + '">' + (D.goal ? '' : rdPopHtml()) +
-    '<div class="rd-left">' + bar + svg + by + '<div class="rd-tip"></div></div>' + '<div class="rd-right">' + tbl + '</div></div>';
+  if (D.avgMode) rows = axes.map(function(x) {
+    var q = D.hasB ? x.relB : x.rel, cls = q === null || Math.abs(q) < 0.005 ? 'same' : q > 0 ? 'up' : 'down';
+    return '<tr data-rdk="' + x.m.k + '" class="' + (rdPick === x.m.k ? 'on' : '') + '"><td title="' + esc(x.m.more || '') + '">' + esc(x.m.label) + '</td><td>' + fmt(x, x.a) + arr(cls === 'same' ? null : q > 0) + '</td><td class="was">' + fmt(x, D.hasB ? x.b : x.avg) + '</td><td class="' + cls + '">' +
+      (q === null ? '—' : cls === 'same' ? '=' : rdDiff(x.m, q, x.a, D.hasB ? x.b : x.avg)) + '</td></tr>';
+  }).join('');
+  if (D.colors) rows = axes.map(function(x) {
+    var d = x.relW === null || x.relBk === null ? null : x.relW - x.relBk, cls = d === null || Math.abs(d) < 0.005 ? 'same' : d > 0 ? 'up' : 'down';   // белые против чёрных, в тех же единицах, что разница со средним
+    return '<tr data-rdk="' + x.m.k + '" class="' + (rdPick === x.m.k ? 'on' : '') + '"><td title="' + esc(x.m.more || '') + '">' + esc(x.m.label) + '</td><td>' + fmt(x, x.aw) + '</td><td class="was">' + fmt(x, x.ab) + '</td><td class="' + cls + '">' +
+      (d === null ? '—' : cls === 'same' ? '=' : rdDiff(x.m, d, x.aw, x.ab)) + '</td></tr>';
+  }).join('');
+  var tbl = !k ? '' : D.colors ? '<table class="rd-tbl"><tr><th></th><th>белыми</th><th>чёрными</th><th title="белыми лучше (+) или хуже (−), чем чёрными">разница</th></tr>' + rows + '</table>'
+    : D.avgMode ? '<table class="rd-tbl"><tr><th></th><th>сейчас</th><th>' + (D.vs ? vsWord : D.hasB ? 'было' : 'среднее') + '</th><th title="на сколько лучше (+) или хуже (−) ' + (D.hasB ? 'прошлого периода' : 'среднего') + '">разница</th></tr>' + rows + '</table>'
+    : '<table class="rd-tbl"><tr><th></th><th>сейчас</th>' + (D.hasB ? '<th>было</th>' : '') + '<th>' + (D.goal ? 'нужно' : 'лучшее') + '</th></tr>' + rows + '</table>';
+  // в «Цели этапа» список параметров остаётся на месте (раскладка не меняется), но тусклый и не нажимается: оси задаёт правило
+  return '<div class="rd with-list">' + rdPopHtml(D.goal) +
+    '<div class="rd-left">' + bar + svg + legHtml + by + '<div class="rd-tip"></div></div>' + '<div class="rd-right">' + tbl + (k >= 3 && !D.empty ? rdWeakHtml(D) : '') + (D.avgMode && k >= 3 && !D.empty ? rdDetailHtml(D) : '') + '</div></div>';
 }
 // выпадающий список: готовые наборы сверху, ниже группы — клик раскрывает, галочки (3–8 параметров)
+// подробно по выбранному параметру: итог, столбики по всем партиям (период — фиолетовым, пунктир — обычный уровень),
+// партии периода по одной и лучшая / худшая партия за всё время; клик по партии — она в «Анализе»
+function rdDetailHtml(D) {
+  var x = D.axes.filter(function(a) { return a.m.k === rdPick; })[0];
+  if (!x) return '<div class="rd-hint">Нажми на точку схемы или строку таблицы — здесь появится разбор по партиям</div>';
+  var m = x.m, f = function(v) { return v === null || v === undefined ? '—' : m.fmt(v); };
+  var all = games.slice(), inA = {};
+  (D.sel.A || []).forEach(function(g) { inA[g.id] = true; });
+  var vals = all.map(function(g) { return {g: g, v: m.fn([g])}; }), has = vals.filter(function(o) { return o.v !== null; });
+  var head = '<div class="rdd-h"><b>' + esc(m.label) + '</b>' + (m.low ? ' <span>▼ меньше — лучше</span>' : '') + '<button class="rdd-x" type="button" aria-label="Закрыть">×</button></div>' +
+    (m.more ? '<div class="rdd-more">' + esc(m.more) + '</div>' : '') +
+    '<div class="rdd-sum">сейчас <b>' + f(x.a) + '</b>' + (x.rel === null || Math.abs(x.rel) < 0.005 ? '' : ' <span class="rd-ar ' + (x.rel > 0 ? 'up' : 'down') + '">' + (x.rel > 0 ? '▲' : '▼') + '</span>') + (m.unit ? ' ' + m.unit : '') + ' · среднее ' + f(x.avg) +
+      (x.rel === null ? '' : Math.abs(x.rel) < 0.005 ? ' · на уровне среднего' : ' · <span class="' + (x.rel > 0 ? 'up' : 'down') + '">' + rdDiffWords(m, x.rel, x.a, x.avg) + '</span>') + '</div>';
+  if (!has.length) return '<div class="rdd">' + head + '<div class="rd-hint">По одной партии этот параметр не считается — он только по группе партий.</div></div>';
+  // столбики: высота — значение партии; фиолетовые — партии периода
+  var W = 300, H = 64, n = vals.length, bw = W / n, mx = Math.max.apply(null, has.map(function(o) { return o.v; })), mn = Math.min(0, Math.min.apply(null, has.map(function(o) { return o.v; })));
+  var y = function(v) { return H - 4 - (v - mn) / ((mx - mn) || 1) * (H - 10); };
+  var bars = vals.map(function(o, i) {
+    if (o.v === null) return '';
+    var top = y(o.v), base = y(Math.max(mn, 0));
+    return '<rect class="rdd-bar" x="' + (i * bw + bw * 0.15).toFixed(1) + '" y="' + Math.min(top, base).toFixed(1) + '" width="' + (bw * 0.7).toFixed(1) + '" height="' + Math.max(1.5, Math.abs(base - top)).toFixed(1) +
+      '" rx="1.5" fill="' + (inA[o.g.id] ? '#c084fc' : 'rgba(156,163,175,0.45)') + '"/>';
+  }).join('');
+  // невидимые колонки на всю высоту — наведение по всей колонке, а не только по столбику
+  bars += vals.map(function(o, i) { return '<rect class="rdd-hit" data-rddi="' + i + '" x="' + (i * bw).toFixed(1) + '" y="0" width="' + bw.toFixed(1) + '" height="' + H + '" fill="transparent"/>'; }).join('');
+  rdDetailVals = vals.map(function(o) { return {g: o.g, v: o.v, inA: !!inA[o.g.id]}; }); rdDetailX = x;
+  var avgY = x.avg === null ? null : y(x.avg);
+  var chart = '<div class="rdd-cw"><div class="rdd-tip"></div><svg class="rdd-chart" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + bars +
+    (avgY === null ? '' : '<line x1="0" x2="' + W + '" y1="' + avgY.toFixed(1) + '" y2="' + avgY.toFixed(1) + '" stroke="#9ca3af" stroke-dasharray="4 3" stroke-width="1" vector-effect="non-scaling-stroke"/>') + '</svg></div>' +
+    '<div class="rdd-axis"><span>#1</span><span>фиолетовые — период · пунктир — среднее</span><span>#' + all[all.length - 1].n + '</span></div>';
+  var RES = {win: ['W', 'var(--green)'], lose: ['L', 'var(--red)'], draw: ['D', 'var(--fg-dim)']};
+  // цвет партий — как цвет параметра: параметр из «Слабее всего» (красный) — партии хуже среднего красные, любой другой — жёлтые
+  var redParam = rdWeak(D).some(function(o) { return o.x.m.k === m.k; });
+  var row = function(o, tag) {
+    var r = RES[o.g.result] || RES.draw;
+    var worse = o.v !== null && x.avg !== null && Math.abs(o.v - x.avg) > 1e-9 && (m.low ? o.v > x.avg : o.v < x.avg);
+    return '<button class="rdd-g' + (worse ? (redParam ? ' bad' : ' warn') : '') + '" type="button" data-rdg-open="' + o.g.id + '" title="' + (worse ? 'Хуже среднего · ' : '') + esc(rdGoHint(m.k)) + '">' + (tag ? '<span class="rdd-tag ' + (tag === 'лучшая' ? 'best' : 'worst') + '">' + tag + '</span>' : '') +
+      '<span class="rdd-n">#' + o.g.n + '</span><span class="rdd-d">' + o.g.date + '</span><b style="color:' + r[1] + '">' + r[0] + '</b><span class="rdd-v">' + f(o.v) + '</span><span class="rdd-go">›</span></button>';
+  };
+  var inPeriod = vals.filter(function(o) { return inA[o.g.id]; }).reverse();
+  var sorted = has.slice().sort(function(a, b) { return m.low ? a.v - b.v : b.v - a.v; });
+  return '<div class="rdd">' + head + chart +
+    '<div class="rdd-sub">Партии периода</div>' + inPeriod.map(function(o) { return row(o); }).join('') +
+    (sorted.length > 1 ? '<div class="rdd-sub">За всё время</div>' + row(sorted[0], 'лучшая') + row(sorted[sorted.length - 1], 'худшая') : '') + '</div>';
+}
+// подсказка у столбика разбора: партия, результат, соперник, значение и сравнение с обычным
+var rdDetailVals = [], rdDetailX = null;
+function rddHide() {
+  var t = $('vdDetail').querySelector('.rdd-tip'); if (t) t.style.display = 'none';
+  $('vdDetail').querySelectorAll('.rdd-bar.hov').forEach(function(b) { b.classList.remove('hov'); });
+}
+$('vdDetail').addEventListener('mousemove', function(e) {
+  var cw = e.target.closest && e.target.closest('.rdd-cw');
+  if (!cw) { rddHide(); return; }   // курсор ушёл с графика — подсказку убрать
+  var tip = cw.querySelector('.rdd-tip'), hit = e.target.closest('.rdd-hit');
+  cw.querySelectorAll('.rdd-bar.hov').forEach(function(b) { b.classList.remove('hov'); });
+  if (!hit || !rdDetailX) { tip.style.display = 'none'; return; }
+  var i = +hit.getAttribute('data-rddi'), o = rdDetailVals[i], x = rdDetailX, m = x.m;
+  if (!o) return;
+  var bar = cw.querySelectorAll('.rdd-bar')[rdDetailVals.slice(0, i).filter(function(q) { return q.v !== null; }).length];
+  if (o.v !== null && bar) bar.classList.add('hov');
+  var f = function(v) { return v === null || v === undefined ? '—' : m.fmt(v); }, g = o.g;
+  var res = {win: ['Победа', 'var(--green)'], lose: ['Поражение', 'var(--red)'], draw: ['Ничья', 'var(--fg-dim)']}[g.result] || ['—', 'var(--fg-dim)'];
+  var d = o.v === null || x.avg === null ? null : (o.v - x.avg) / Math.max(Math.abs(x.avg), m.fmt === rdPct ? 10 : /партию/.test(m.unit || '') ? 0.5 : 1) * (m.low ? -1 : 1);
+  tip.innerHTML = '<b>#' + g.n + ' · ' + g.date + '</b> · <span style="color:' + res[1] + '">' + res[0] + '</span> · ' + esc(g.engine || '') + (o.inA ? ' <span style="color:#c4b5fd">· в периоде</span>' : '') +
+    '<div>' + esc(m.label) + ': <b>' + (o.v === null ? 'нет значения' : f(o.v)) + '</b>' + (o.v !== null && m.unit && !/партию/.test(m.unit) ? ' ' + m.unit : '') +
+    (d === null ? '' : ' · среднее ' + f(x.avg) + (Math.abs(d) < 0.005 ? ' — на уровне среднего' : ' — <span style="color:' + (d > 0 ? 'var(--green)' : 'var(--red)') + '">' + rdDiffWords(m, d, o.v, x.avg) + '</span>')) + '</div>' +
+    (o.v === null ? '<div style="color:var(--fg-mute)">' + (m.k === 'end' || m.k === 'blEnd' ? 'партия не дошла до эндшпиля' : m.k === 'mid' || m.k === 'blMid' ? 'партия не дошла до миттельшпиля' : 'по этой партии параметр не посчитать') + '</div>' : '');
+  tip.style.display = 'block';
+  var cb = cw.getBoundingClientRect(), hb = hit.getBoundingClientRect();
+  tip.style.left = Math.max(0, Math.min(cb.width - tip.offsetWidth, hb.left - cb.left + hb.width / 2 - tip.offsetWidth / 2)) + 'px';
+  tip.style.top = (-tip.offsetHeight - 6) + 'px';
+});
+$('vdDetail').addEventListener('mouseleave', rddHide);
+$('vdDetail').addEventListener('scroll', rddHide, true);   // прокрутили колонку — подсказка не висит в воздухе
+// «Слабее всего»: две оси, где «сейчас» хуже всего — относительно среднего (при сравнении — относительно «было»),
+// в «Цели этапа» — дальше всего от требования. Совет — короткий, в духе «Итогов»; для результатов (винрейт, ELO) совета нет — только факт
+var RD_TIPS = {
+  acc: 'перед каждым ходом сравни 2–3 варианта', median: 'перед каждым ходом сравни 2–3 варианта', acpl: 'перед каждым ходом сравни 2–3 варианта',
+  debut: 'повтори линии дебюта по студии мастера', mid: 'в миттельшпиле перед ходом ищи угрозы соперника',
+  end: 'в эндшпиле активируй короля и толкай пешки', stab: 'играй каждую партию одинаково внимательно, без спешки',
+  blunders: 'перед ходом: что у меня не защищено?', blMid: 'перед ходом: что у меня не защищено?', firstBl: 'первые 20 ходов — двойная проверка каждого хода',
+  blDebut: 'первые 10 ходов играй по плану, без экспериментов', blEnd: 'в эндшпиле считай каждый ход до конца',
+  mistakes: 'перед ходом проверь 2–3 кандидата', inacc: 'перед ходом проверь 2–3 кандидата',
+  hang: 'перед ходом: что у меня не защищено?', missedWin: 'перед ходом: какие у меня взятия и шахи?',
+  tactic: 'ищи угрозы бота на 2 хода вперёд', mateAllowed: 'перед ходом: какие шахи есть у соперника?',
+  mateMissed: 'в атаке сначала переберите все шахи', other: 'перед ходом сравни 2–3 кандидата',
+  punish: 'после хода бота спроси: что он мне подставил?', botErr: 'после хода бота спроси: что он мне подставил?',
+  convert: 'получил перевес — меняй фигуры и упрощай', defend: 'в плохой позиции не сдавайся: ищи шахи и ловушки',
+  minEv: 'перед ходом: что у меня не защищено?', mates: 'в атаке сначала переберите все шахи', mateWins: 'в атаке сначала переберите все шахи',
+  theory: 'повтори дебют по студии: первые ходы как у мастера', planOp: 'повтори дебют по студии: первые ходы как у мастера', evOut: 'повтори дебют по студии: первые ходы как у мастера',
+  puzzles: 'реши 10–15 задач на слабую тему', pzWin: 'решай задачи медленнее: сначала найди все шахи и взятия', pzDay: 'добавь 10–15 задач в день',
+  secMove: 'думай над ходом дольше — хотя бы 15–20 секунд',
+  honest: 'даже в плохой партии играй до конца внимательно', lossAcc: 'даже в плохой партии играй до конца внимательно',
+  lossBl: 'в плохой позиции не спеши: проверяй, что не защищено',
+  'g-med': 'перед каждым ходом сравни 2–3 варианта', 'g-honest': 'даже в плохой партии играй до конца внимательно',
+  'g-lacc': 'даже в плохой партии играй до конца внимательно', 'g-lbl': 'в плохой позиции не спеши: проверяй, что не защищено'
+};
+function rdWeak(D, cnt, min) {   // min — порог «хуже на …» (по умолчанию 5%)
+  var list = D.axes.map(function(x) {
+    var bad = D.goal ? (x.ra === null || x.ra >= 1 ? null : 1 - x.ra) : (function(q) { return q === null || q === undefined || q > -(min === undefined ? 0.05 : min) ? null : -q; })(D.hasB ? x.relB : x.rel);
+    return {x: x, bad: bad};
+  }).filter(function(o) { return o.bad !== null; });
+  return list.sort(function(a, b) { return b.bad - a.bad; }).slice(0, cnt || 2);
+}
+function rdWeakHtml(D) {
+  var W = rdWeak(D), open = RD.weakOpen !== false;   // заголовок сворачивает / раскрывает список (помнится — vdRadar.v1)
+  var head = '<button type="button" class="rd-weak-h" data-rdweak>Слабее всего <i>' + (open ? '▾' : '▸') + '</i>' + (!open && W.length ? '<span>' + W.length + '</span>' : '') + '</button>';
+  if (!open) return '<div class="rd-weak">' + head + '</div>';
+  if (!W.length) return '<div class="rd-weak">' + head + '<div class="rd-hint" style="margin-top:2px">' + (D.goal ? 'Все условия этапа выполнены ✓' : 'Нигде не хуже ' + (D.hasB ? 'прошлого отрезка' : 'среднего') + ' — так держать') + '</div></div>';
+  return '<div class="rd-weak">' + head + W.map(function(o) {
+    var x = o.x, tip = RD_TIPS[x.m.k];
+    var how = D.goal ? 'нужно ' + x.m.fmt(x.m.goal) : rdDiff(x.m, -o.bad, x.a, D.hasB ? x.b : x.avg);
+    return '<button class="rd-wk" type="button" data-rdk="' + x.m.k + '"><span class="rd-wk-h"><b>' + esc(x.m.label) + '</b><span>' + how + '</span></span>' +
+      (tip ? '<span class="rd-wk-t">' + esc(tip) + '</span>' : '') + '</button>';
+  }).join('') + '</div>';
+}
+// клик по партии в разборе — «Анализ» сразу на нужном моменте: для зевков — позиция перед первым зевком этого вида (линза «Зевки»),
+// для матов — линза «Мат в N», для дебюта — «Мастера»; остальное — партия с начала
+var RD_BL_PICK = {blunders: {}, lossBl: {}, firstBl: {}, blDebut: {p: 'debut'}, blMid: {p: 'mid'}, blEnd: {p: 'end'},
+  hang: {t: 'hang'}, tactic: {t: 'tactic'}, missedWin: {t: 'missedWin'}, mateMissed: {t: 'mateMissed'}, mateAllowed: {t: 'mateAllowed'}, other: {t: 'other'}};
+var RD_LENS = {mates: 'mate', mateWins: 'mate', theory: 'ms', planOp: 'ms', evOut: 'ms', debut: 'ms'};
+function rdGoHint(k) { return RD_BL_PICK[k] ? 'Открыть в «Анализе» на этом зевке' : RD_LENS[k] ? 'Открыть в «Анализе»' : 'Открыть партию в «Анализе»'; }
+function rdGoTo(g, k) {
+  var f = RD_BL_PICK[k];
+  if (f) {
+    var b = (g.bl || []).filter(function(b) { return (!f.p || b.p === f.p) && (!f.t || b.t === f.t); })[0];
+    if (b) { anOpen(g, blPly(g, b) - 1, 'bl'); return; }
+    anOpen(g, undefined, 'bl'); return;
+  }
+  anOpen(g, undefined, RD_LENS[k]);
+}
 // перерисовать, сохранив прокрутку выпадающего списка
 function rdRerender() {
-  var pop = $('vdDetail').querySelector('.rd-pop'), top = pop ? pop.scrollTop : 0;
+  var pop = $('vdDetail').querySelector('.rd-pop'), top = pop ? pop.scrollTop : 0, rt = $('vdDetail').querySelector('.rd-right'), rtop = rt ? rt.scrollTop : 0;
   renderVerdictDetail();
   pop = $('vdDetail').querySelector('.rd-pop'); if (pop) pop.scrollTop = top;
+  rt = $('vdDetail').querySelector('.rd-right'); if (rt) rt.scrollTop = rtop;
 }
-function rdPopHtml() {
+function rdPopHtml(off) {
   var same = function(a, b) { return a.length === b.length && a.every(function(x) { return b.indexOf(x) >= 0; }); };
-  return '<div class="rd-pop"><div class="rd-pop-h">Готовые наборы</div><div class="rd-pre">' +
-    RD_SETS.map(function(x) { return '<button type="button" data-rdset="' + x.k + '" class="' + (same(x.keys, RD.keys) ? 'on' : '') + '">' + x.name + '</button>'; }).join('') + '</div>' +
-    '<div class="rd-pop-h">Параметры · ' + RD.keys.length + ' (от 3 до 8)</div><div class="rd-note" style="font-size:11px;margin:-2px 2px 6px">▼ — чем меньше, тем лучше</div>' +
+  var keys = off ? RD_SETS.filter(function(x) { return x.k === 'stage'; })[0].keys : RD.keys;   // «Цель этапа» — показать её параметры, выбор не трогать
+  return '<div class="rd-pop' + (off ? ' off' : '') + '"' + (off ? ' title="В «Цели этапа» оси задаёт правило этапа"' : '') + '><div class="rd-pop-h">Готовые шаблоны</div><div class="rd-pre">' +
+    RD_SETS.map(function(x) { return '<button type="button" data-rdset="' + x.k + '" class="' + (same(x.keys, keys) ? 'on' : '') + '">' + x.name + '</button>'; }).join('') + '</div>' +
+    '<div class="rd-pop-h">Параметры · ' + keys.length + ' (от 3 до 8)</div><div class="rd-note" style="font-size:11px;margin:-2px 2px 6px">▼ — чем меньше, тем лучше</div>' +
     RD_GROUPS.map(function(G) {
-      var ms = RD_METRICS.filter(function(m) { return m.group === G; }), on = ms.filter(function(m) { return RD.keys.indexOf(m.k) >= 0; }).length;
-      var open = rdOpenG[G] === undefined ? on > 0 : rdOpenG[G];   // сначала раскрыты группы, где что-то выбрано
+      var ms = RD_METRICS.filter(function(m) { return m.group === G; }), on = ms.filter(function(m) { return keys.indexOf(m.k) >= 0; }).length;
+      var open = off ? on > 0 : rdOpenG[G] === undefined ? on > 0 : rdOpenG[G];   // в «Цели этапа» раскрыты группы с её параметрами   // сначала раскрыты группы, где что-то выбрано
       return '<div class="rd-grp"><button type="button" class="rd-grp-h" data-rdg="' + esc(G) + '"><i>' + (open ? '▾' : '▸') + '</i>' + esc(G) + '<small>' + on + '/' + ms.length + '</small></button>' +
         (open ? '<div class="rd-grp-b">' + ms.map(function(m) {
-          var sel = RD.keys.indexOf(m.k) >= 0, lock = (sel && RD.keys.length <= 3) || (!sel && RD.keys.length >= 8);
+          var sel = keys.indexOf(m.k) >= 0, lock = (sel && keys.length <= 3) || (!sel && keys.length >= 8);
           return '<label' + (lock ? ' class="off" title="' + (sel ? 'Нужно хотя бы 3 параметра' : 'Не больше 8 параметров') + '"' : '') + '><input type="checkbox" data-rdck="' + m.k + '"' + (sel ? ' checked' : '') + (lock ? ' disabled' : '') + '>' +
             '<span>' + esc(m.label) + (m.low ? ' ▼' : '') + (m.more ? '<em>' + esc(m.more) + '</em>' : '') + '</span></label>';
         }).join('') + '</div>' : '') + '</div>';
@@ -6642,9 +7107,13 @@ $('vdDetail').addEventListener('mouseover', function(e) {
   var D = rdData(), x = D.axes[+c.getAttribute('data-rdi')];
   if (!x) return;
   var f = function(v) { return v === null || v === undefined ? '—' : x.m.fmt(v); };
-  tip.innerHTML = '<b>' + esc(x.m.label) + ': ' + f(x.a) + '</b>' + (x.m.unit ? ' ' + x.m.unit : '') + (D.hasB ? ' <span>(было ' + f(x.b) + ')</span>' : '') +
+  if (D.colors) { tip.innerHTML = '<b>' + esc(x.m.label) + '</b><div>белыми ' + f(x.aw) + ' · чёрными ' + (D.nB ? f(x.ab) : 'пока нет партий') + '</div><div>среднее ' + f(x.avg) + '</div>'; }
+  else tip.innerHTML = '<b>' + esc(x.m.label) + ': ' + f(x.a) + '</b>' + (x.m.unit ? ' ' + x.m.unit : '') + (D.hasB && !D.avgMode ? ' <span>(было ' + f(x.b) + ')</span>' : '') +
     (x.m.more ? '<div>' + esc(x.m.more) + '</div>' : '') +
-    '<div>' + (D.goal ? 'начало этапа ' + f(x.lo) + ' · нужно ' + f(x.m.goal) : 'худшее ' + f(x.lo) + ' · лучшее ' + f(x.hi)) + '</div>';
+    '<div>' + (D.goal ? 'начало этапа ' + f(x.lo) + ' · нужно ' + f(x.m.goal) : (function() {   // со сравнением — против «было», без — против среднего
+      var q = D.hasB ? x.relB : x.rel, base = D.hasB ? 'было ' + f(x.b) : 'среднее ' + f(x.avg);
+      return base + (q === null || q === undefined ? '' : Math.abs(q) < 0.005 ? ' — ' + (D.hasB ? 'без изменений' : 'на уровне среднего') : ' — ' + rdDiffWords(x.m, q, x.a, D.hasB ? x.b : x.avg));
+    })()) + '</div>';
   tip.style.display = 'block';
   var box = tip.parentNode.getBoundingClientRect(), cb = c.getBoundingClientRect();
   tip.style.left = Math.max(0, Math.min(box.width - tip.offsetWidth, cb.left - box.left - tip.offsetWidth / 2)) + 'px';
@@ -6706,12 +7175,37 @@ $('vdDetail').addEventListener('click', function(e) {
   if (e.target.closest('.vd-rd-btn')) { RD.on = !RD.on; rdSave(); renderVerdictDetail(); return; }
   var rb = e.target.closest('[data-rds]');
   if (rb) { RD.scale = rb.getAttribute('data-rds'); rdSave(); renderVerdictDetail(); return; }
+  if (e.target.closest('.rdd-x')) { rdPick = null; rdRerender(); return; }
+  var vsb = e.target.closest('[data-rdvs]');
+  if (vsb) { if (!vsb.disabled) { RD.vs = !RD.vs; rdPick = null; rdSave(); renderVerdictDetail(); } return; }
+  if (e.target.closest('[data-rdsd]')) { rdSideMenu = !rdSideMenu; rdRerender(); return; }
+  var sdb = e.target.closest('[data-rdside]');
+  if (sdb) { RD.side = sdb.getAttribute('data-rdside'); if (rdGoalOff()) RD.scale = 'self'; rdSideMenu = false; rdPage = 0; rdPick = null; rdSave(); renderVerdictDetail(); return; }
+  if (rdSideMenu && !e.target.closest('.rd-side-menu')) { rdSideMenu = false; rdRerender(); }
+  if (e.target.closest('[data-rdnm]')) { rdNumMenu = !rdNumMenu; rdRerender(); return; }
+  var nk = e.target.closest('[data-rdnk]');
+  if (nk) { RD.numKinds[nk.getAttribute('data-rdnk')] = nk.checked; RD.nums = true; rdSave(); rdRerender(); return; }
+  if (rdNumMenu && !e.target.closest('.rd-nmenu')) { rdNumMenu = false; rdRerender(); }   // клик мимо — закрыть список (и выполнить сам клик дальше)
+  if (e.target.closest('[data-rdweak]')) { RD.weakOpen = RD.weakOpen === false; rdSave(); rdRerender(); return; }
+  rb = e.target.closest('.rdd-hit');
+  if (rb) { var ho = rdDetailVals[+rb.getAttribute('data-rddi')]; if (ho) { toggleVerdict(false); rdGoTo(ho.g, rdPick); } return; }
+  rb = e.target.closest('[data-rdg-open]');
+  if (rb) { var og = games.filter(function(g) { return g.id === rb.getAttribute('data-rdg-open'); })[0]; if (og) { toggleVerdict(false); rdGoTo(og, rdPick); } return; }
+  rb = e.target.closest('[data-rdk]');
+  if (rb) { var pk = rb.getAttribute('data-rdk'); rdPick = rdPick === pk ? null : pk; rdRerender(); return; }
+  rb = e.target.closest('[data-rdtg]');
+  if (rb) { var tgk = rb.getAttribute('data-rdtg'); if (tgk === 'nums') { RD.nums = !RD.nums; rdSave(); rdRerender(); return; }
+    if (rb.disabled) return;
+    if (tgk === 'colors') RD.colors = !RD.colors; else if (tgk === 'prev') RD.prev = !RD.prev; else RD.scale = RD.scale === 'goal' ? 'self' : 'goal'; rdPick = null; rdSave(); renderVerdictDetail(); return; }
+  rb = e.target.closest('[data-rdpg]');
+  if (rb && !rb.disabled) { rdPage = Math.max(0, rdPage + +rb.getAttribute('data-rdpg')); rdRerender(); return; }
   rb = e.target.closest('[data-rdby]');
-  if (rb) { RD.by = rb.getAttribute('data-rdby'); rdSave(); renderVerdictDetail(); return; }
+  if (rb) { RD.by = rb.getAttribute('data-rdby'); rdPage = 0; rdSave(); renderVerdictDetail(); return; }
   rb = e.target.closest('[data-rdn]');
-  if (rb && !rb.disabled) { RD.n = +rb.getAttribute('data-rdn'); rdSave(); renderVerdictDetail(); return; }
+  if (rb && !rb.disabled) { RD.n = +rb.getAttribute('data-rdn'); rdPage = 0; rdSave(); renderVerdictDetail(); return; }
   rb = e.target.closest('[data-rdd]');
-  if (rb) { RD.days = +rb.getAttribute('data-rdd'); rdSave(); renderVerdictDetail(); return; }
+  if (rb) { RD.days = +rb.getAttribute('data-rdd'); rdPage = 0; rdSave(); renderVerdictDetail(); return; }
+  if (RD.scale === 'goal' && e.target.closest('.rd-pop')) { e.preventDefault(); return; }   // в «Цели этапа» список параметров выключен
   rb = e.target.closest('[data-rdset]');
   if (rb) { RD.keys = RD_SETS.filter(function(x) { return x.k === rb.getAttribute('data-rdset'); })[0].keys.slice(); rdSave(); rdRerender(); return; }
   rb = e.target.closest('[data-rdg]');
@@ -6735,89 +7229,143 @@ $('vdDetail').addEventListener('click', function(e) {
 
 
 /* ---------- сводка для ИИ: текущая картина одним текстом (вставить в чат вместе с AI-PROMPT.md) ---------- */
-function aiSummary() {
-  var L = [], r1 = function(v) { return v === null ? '—' : (Math.round(v * 10) / 10); };
+function aiSummary() {   // язык — как у пакета (AL); «Автовыводы сайта» (тексты «Итогов») — только в русском: на английский не переведены, их числа есть в блоках выше
+  var L = [], r1 = function(v) { return v === null ? '—' : (Math.round(v * 10) / 10); }, en = aiLang === 'en';
   function pct(v) { return v === null ? '—' : Math.round(v) + '%'; }
   function wl(list) {
     var w = list.filter(function(g) { return g.result === 'win'; }).length, l = list.filter(function(g) { return g.result === 'lose'; }).length;
     return w + 'W/' + l + 'L' + (list.length - w - l ? '/' + (list.length - w - l) + 'D' : '');
   }
   function phases(list) {
-    return 'точность ' + pct(avg(list, 'acc')) + ', дебют ' + pct(avg(list, 'debut')) + ', миттельшпиль ' + pct(avg(list, 'mid')) +
-      ', эндшпиль ' + pct(avg(list, 'end')) + ', зевков ' + r1(avg(list, 'blunders')) + ' за партию';
+    return AL('точность ', 'accuracy ') + pct(avg(list, 'acc')) + AL(', дебют ', ', opening ') + pct(avg(list, 'debut')) + AL(', миттельшпиль ', ', middlegame ') + pct(avg(list, 'mid')) +
+      AL(', эндшпиль ', ', endgame ') + pct(avg(list, 'end')) + AL(', зевков ', ', blunders ') + r1(avg(list, 'blunders')) + AL(' за партию', ' per game');
   }
-  L.push('# Сводка шахматного прогресса KvLGn (новичок, занимается с ' + PLAN.start + ')');
-  L.push('Данные с Lichess на ' + (window.GAMES_UPDATED || '—') + '. Сайт: https://kvlgn.github.io/KvLGnChessProgress/');
+  function blockEn(b) {   // blockWhy по-английски
+    if (!b.games.length) return 'no games yet';
+    var p = [b.wins + ' win' + (b.wins === 1 ? '' : 's') + ' of ' + b.games.length + ' (need ' + RULE.wins + ' of ' + RULE.games + ')', 'median accuracy ' + Math.round(b.med) + '% (need ≥ ' + RULE.medianAcc + '%)'];
+    if (b.bad.length) p.push('weak loss: #' + b.bad.map(function(g) { return g.n || '?'; }).join(', #') + ' (need accuracy ≥ ' + RULE.lossMinAcc + '% and at most ' + RULE.lossMaxBlunders + ' blunders)');
+    return p.join(' · ');
+  }
+  L.push(AL('# Сводка шахматного прогресса KvLGn (новичок, занимается с ', '# Chess progress summary for KvLGn (beginner, training since ') + PLAN.start + ')');
+  L.push(AL('Данные с Lichess на ', 'Lichess data as of ') + (window.GAMES_UPDATED || '—') + AL('. Сайт: ', '. Site: ') + 'https://kvlgn.github.io/KvLGnChessProgress/');
   L.push('');
-  L.push('## Этап');
-  L.push(stageTitle() + (CUR.stage ? ' (этап ' + (CUR.idx + 1) + ' из ' + PLAN.stages.length + ')' : ''));
-  L.push('Правило перехода: ' + stageRuleText());
-  if (CUR.stage) L.push('В цель этапа идут только партии ' + (CUR.stage.colors.length > 1 ? 'обоими цветами' : COLOR_WORD[CUR.stage.colors[0]]) + ' против Stockfish ' + CUR.stage.engine +
-    '; из последних 10 партий таких ' + games.slice(-10).filter(aiInGoal).length + ', остальные в цель не идут.');
+  L.push(AL('## Этап', '## Stage'));
+  // название этапа в plan.js — по-русски; для английского пакета описание собирается из данных этапа
+  var stEn = function(S) { var ops = (S.openings || []).map(function(id) { var o = (PLAN.openings || []).filter(function(x) { return x.id === id; })[0]; return o ? opEn(o) : id; });
+    return 'Stockfish ' + S.engine + ', ' + S.colors.map(function(c) { return 'as ' + COLOR_EN[c]; }).join(' and ') + (ops.length ? '; new openings: ' + ops.join(', ') : ''); };
+  L.push(en ? (CUR.stage ? 'Stage ' + (CUR.idx + 1) + ' of ' + PLAN.stages.length + ': ' + stEn(CUR.stage) : 'No current stage')
+    : stageTitle() + (CUR.stage ? ' (этап ' + (CUR.idx + 1) + ' из ' + PLAN.stages.length + ')' : ''));
+  L.push(en ? 'Rule: ' + ruleDesc() : 'Правило перехода: ' + stageRuleText());
+  if (CUR.stage) L.push(AL('В цель этапа идут только партии ' + (CUR.stage.colors.length > 1 ? 'обоими цветами' : COLOR_WORD[CUR.stage.colors[0]]) + ' против Stockfish ' + CUR.stage.engine + '; из последних 10 партий таких ',
+                           'Only games ' + (CUR.stage.colors.length > 1 ? 'with both colours' : 'as ' + COLOR_EN[CUR.stage.colors[0]]) + ' against Stockfish ' + CUR.stage.engine + ' count towards the stage goal; of the last 10 games, ') +
+    games.slice(-10).filter(aiInGoal).length + AL(', остальные в цель не идут.', ' do, the rest do not.'));
   CUR.colors.forEach(function(c) {
-    L.push('- ' + COLOR_WORD[c.color] + ': ' + (c.done ? 'выполнено ' + c.doneGame.date : colorLine(c)) + '. ' +
-      c.blocks.map(function(b, i) { return 'пятёрка ' + (i + 1) + ': ' + (b.ok ? 'выполнена' : blockWhy(b)); }).join('; '));
-    if (!c.done) L.push('  Итог (посчитано сайтом): ' + toGoalText(c, 'ru'));
+    var okN = c.blocks.filter(function(b) { return b.ok; }).length;
+    L.push('- ' + AL(COLOR_WORD[c.color], 'as ' + COLOR_EN[c.color]) + ': ' + (c.done ? AL('выполнено ', 'done ') + c.doneGame.date : en ? 'sets of five done: ' + okN + ' of ' + RULE.blocks : colorLine(c)) + '. ' +
+      c.blocks.map(function(b, i) { return AL('пятёрка ', 'set ') + (i + 1) + ': ' + (b.ok ? AL('выполнена', 'done') : en ? blockEn(b) : blockWhy(b)); }).join('; '));
+    if (!c.done) L.push(AL('  Итог (посчитано сайтом): ', '  Summary (computed by the site): ') + toGoalText(c, en ? 'en' : 'ru'));
   });
-  if (CUR.hist.length) L.push('Пройдено: ' + CUR.hist.map(function(h) { return 'этап ' + (h.idx + 1) + ' — ' + h.date; }).join(', '));
+  if (CUR.hist.length) L.push(AL('Пройдено: ', 'Completed: ') + CUR.hist.map(function(h) { return AL('этап ', 'stage ') + (h.idx + 1) + ' — ' + h.date; }).join(', '));
   L.push('');
-  L.push('## Партии (все с компьютерным анализом Lichess)');
-  L.push('Всего ' + games.length + ' (' + wl(games) + '); последние 10 партий: ' + wl(games.slice(-10)) + ', последние 5: ' + wl(games.slice(-5)));
+  L.push(AL('## Партии (все с компьютерным анализом Lichess)', '## Games (all with Lichess computer analysis)'));
+  L.push(AL('Всего ', 'Total ') + games.length + ' (' + wl(games) + AL('); последние 10 партий: ', '); last 10 games: ') + wl(games.slice(-10)) + AL(', последние 5: ', ', last 5: ') + wl(games.slice(-5)));
   var byOpp = {};
   games.forEach(function(g) { (byOpp[g.engine] = byOpp[g.engine] || []).push(g); });
-  L.push(speedLine('ru'));
-  L.push('Соперники: ' + Object.keys(byOpp).map(function(k) { return k + ' — ' + byOpp[k].length + ' (' + wl(byOpp[k]) + ')'; }).join('; '));
+  L.push(speedLine(en ? 'en' : 'ru'));
+  L.push(AL('Соперники: ', 'Opponents: ') + Object.keys(byOpp).map(function(k) { return (en && k === 'Люди' ? 'Humans' : k) + ' — ' + byOpp[k].length + ' (' + wl(byOpp[k]) + ')'; }).join('; '));
   ['white', 'black'].forEach(function(c) {
     var gl = games.filter(function(g) { return g.color === c; });
     if (!gl.length) return;
-    var l10 = gl.slice(-10), ph = [['дебют', avg(l10, 'debut')], ['миттельшпиль', avg(l10, 'mid')], ['эндшпиль', avg(l10, 'end')]].filter(function(x) { return x[1] !== null; }).sort(function(a, b) { return a[1] - b[1]; });
-    L.push(COLOR_WORD[c].replace(/^./, function(x) { return x.toUpperCase(); }) + ': ' + gl.length + ' (' + wl(gl) + '); последние 10 (' + wl(l10) + '): ' + phases(l10) +
-      (ph.length > 1 ? '. Самая слабая фаза — ' + ph[0][0] + ' (' + pct(ph[0][1]) + '), самая сильная — ' + ph[ph.length - 1][0] + ' (' + pct(ph[ph.length - 1][1]) + ')' : ''));
+    var l10 = gl.slice(-10), ph = [[AL('дебют', 'opening'), avg(l10, 'debut')], [AL('миттельшпиль', 'middlegame'), avg(l10, 'mid')], [AL('эндшпиль', 'endgame'), avg(l10, 'end')]].filter(function(x) { return x[1] !== null; }).sort(function(a, b) { return a[1] - b[1]; });
+    L.push(AL(COLOR_WORD[c].replace(/^./, function(x) { return x.toUpperCase(); }), 'As ' + COLOR_EN[c]) + ': ' + gl.length + ' (' + wl(gl) + AL('); последние 10 (', '); last 10 (') + wl(l10) + '): ' + phases(l10) +
+      (ph.length > 1 ? AL('. Самая слабая фаза — ', '. The weakest phase is the ') + ph[0][0] + ' (' + pct(ph[0][1]) + AL('), самая сильная — ', '), the strongest is the ') + ph[ph.length - 1][0] + ' (' + pct(ph[ph.length - 1][1]) + ')' : ''));
   });
   var l5 = games.slice(-5), p5 = games.slice(-10, -5);
-  if (p5.length === 5) L.push('Последние 5 против предыдущих 5: точность ' + pct(avg(l5, 'acc')) + ' vs ' + pct(avg(p5, 'acc')) + ', зевков ' + r1(avg(l5, 'blunders')) + ' vs ' + r1(avg(p5, 'blunders')));
+  if (p5.length === 5) L.push(AL('Последние 5 против предыдущих 5: точность ', 'Last 5 vs the previous 5: accuracy ') + pct(avg(l5, 'acc')) + ' vs ' + pct(avg(p5, 'acc')) + AL(', зевков ', ', blunders ') + r1(avg(l5, 'blunders')) + ' vs ' + r1(avg(p5, 'blunders')));
+  var prof = aiProfile(7);
+  if (prof.length) {
+    L.push('');
+    L.push(AL('## Как держусь в партиях (последние 10 против всех моих партий)', '## How I hold up in games (last 10 vs all my games)'));
+    prof.forEach(function(t) { L.push('- ' + t); });
+  }
   L.push('');
-  L.push('## Дебюты');
+  L.push(AL('## Дебюты', '## Openings'));
   var O = window.OPENINGS || {};
-  function on(list) { return (list || []).map(function(o) { var st = opStats(o); return o.name + ' (' + COLOR_WORD[o.color] + (st.games.length ? ', ' + (st.byPlan ? 'по плану ' : '') + st.games.length + ' ' + plural(st.games.length, 'партия', 'партии', 'партий') + ', ' + st.w + 'W/' + st.l + 'L' + (st.byPlan && st.board.length < st.games.length ? '; на доске получился в ' + st.board.length + ', в остальных бот ответил иначе: ' + opAwayText(st) : '') : '') + ')'; }).join('; ') || '—'; }
-  L.push('Изучаю: ' + on(O.current));
-  L.push('Далее: ' + on(O.next));
-  L.push('В планах: ' + on(O.planned));
+  function on(list) { return (list || []).map(function(o) { var st = opStats(o), n = st.games.length; return AL(o.name, opEn(o)) + ' (' + AL(COLOR_WORD[o.color], 'as ' + COLOR_EN[o.color]) + (n ? ', ' + (st.byPlan ? AL('по плану ', 'by plan ') : '') + n + ' ' + AL(plural(n, 'партия', 'партии', 'партий'), n === 1 ? 'game' : 'games') + ', ' + st.w + 'W/' + st.l + 'L' + (st.byPlan && st.board.length < n ? AL('; на доске получился в ', '; reached on the board in ') + st.board.length + AL(', в остальных бот ответил иначе: ', ', in the rest the bot replied differently: ') + opAwayText(st) : '') : '') + ')'; }).join('; ') || '—'; }
+  L.push(AL('Изучаю: ', 'Studying: ') + on(O.current));
+  L.push(AL('Далее: ', 'Next: ') + on(O.next));
+  L.push(AL('В планах: ', 'Planned: ') + on(O.planned));
   var P = window.PUZZLES;
   if (P && P.rating !== null) {
     L.push('');
-    L.push('## Задачи');
+    L.push(AL('## Задачи', '## Puzzles'));
     var hist = P.history || [], first = hist[0];
     var w = P.attempts.filter(function(a) { return a.win; }).length;
-    L.push('Рейтинг ' + P.rating + (first ? ' (' + (P.rating - first.rating >= 0 ? '+' : '') + (P.rating - first.rating) + ' с ' + first.day.split('-').reverse().slice(0, 2).join('.') + ')' : '') +
-      ', решено ' + Math.round(w / P.attempts.length * 100) + '% из ' + P.attempts.length);
+    L.push(AL('Рейтинг ', 'Rating ') + P.rating + (first ? ' (' + (P.rating - first.rating >= 0 ? '+' : '') + (P.rating - first.rating) + AL(' с ', ' since ') + first.day.split('-').reverse().slice(0, 2).join('.') + ')' : '') +
+      AL(', решено ', ', solved ') + Math.round(w / P.attempts.length * 100) + AL('% из ', '% of ') + P.attempts.length);
     if (P.themeStats) {
       var th = Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k] && P.themeStats[k].nb >= PZ_MIN_THEME; })
-        .map(function(k) { return {n: (P.themeNames || {})[k] || PZ_NAMES[k] || k, p: P.themeStats[k].perf}; }).sort(function(a, b) { return b.p - a.p; });
+        .map(function(k) { return {n: en ? themeEn(k) : (P.themeNames || {})[k] || PZ_NAMES[k] || k, p: P.themeStats[k].perf}; }).sort(function(a, b) { return b.p - a.p; });
       if (th.length) {
         var gp = P.global ? P.global.perf : null;
-        L.push('Перфоманс тем задач (общий перфоманс ' + (gp || '—') + '):');
-        L.push('- слабые, от самой слабой: ' + th.slice(-3).reverse().map(function(x, i) { return (i + 1) + ') ' + x.n + ' ' + x.p; }).join(', '));
-        L.push('- сильные, от самой сильной: ' + th.slice(0, 3).map(function(x, i) { return (i + 1) + ') ' + x.n + ' ' + x.p; }).join(', '));
+        L.push(AL('Перфоманс тем задач (общий перфоманс ', 'Puzzle theme performance (overall performance ') + (gp || '—') + '):');
+        L.push(AL('- слабые, от самой слабой: ', '- weak, weakest first: ') + th.slice(-3).reverse().map(function(x, i) { return (i + 1) + ') ' + x.n + ' ' + x.p; }).join(', '));
+        L.push(AL('- сильные, от самой сильной: ', '- strong, strongest first: ') + th.slice(0, 3).map(function(x, i) { return (i + 1) + ') ' + x.n + ' ' + x.p; }).join(', '));
       }
     }
   }
   var st = streaks();
   L.push('');
-  L.push('## Активность');
-  L.push('Серия: ' + st.current + ' дн. подряд (рекорд ' + st.best + ')' + (st.playedToday ? '' : ', сегодня ещё не играл'));
+  L.push(AL('## Активность', '## Activity'));
+  L.push(AL('Серия: ', 'Streak: ') + st.current + AL(' дн. подряд (рекорд ', ' days in a row (record ') + st.best + ')' + (st.playedToday ? '' : AL(', сегодня ещё не играл', ', no games yet today')));
   L.push('');
-  L.push('## Автовыводы сайта');
-  var V = buildVerdicts();
-  // каждый вывод полной фразой: заголовок + пояснение, чтобы число не оторвалось от своего смысла (главная ошибка моделей — число не к тому)
-  [['bad', 'Проседает', 6], ['good', 'Хорошо', 4], ['tip', 'Советы сайта', 4]].forEach(function(k) {
-    var it = V.filter(function(v) { return v.t === k[0]; }).slice(0, k[2]);
-    if (!it.length) return;
-    L.push(k[1] + ':');
-    it.forEach(function(v) { L.push('- ' + aiOf(v.text + (v.more && v.more !== v.text ? ' — ' + v.more : ''))); });
-  });
-  L.push('');
+  if (!en) {
+    L.push('## Автовыводы сайта');
+    var V = buildVerdicts();
+    // каждый вывод полной фразой: заголовок + пояснение, чтобы число не оторвалось от своего смысла (главная ошибка моделей — число не к тому)
+    [['bad', 'Проседает', 6], ['good', 'Хорошо', 4], ['tip', 'Советы сайта', 4]].forEach(function(k) {
+      var it = V.filter(function(v) { return v.t === k[0]; }).slice(0, k[2]);
+      if (!it.length) return;
+      L.push(k[1] + ':');
+      it.forEach(function(v) { L.push('- ' + aiOf(v.text + (v.more && v.more !== v.text ? ' — ' + v.more : ''))); });
+    });
+    L.push('');
+  }
   return L.join('\n');
+}
+// «Как держусь в партиях»: параметры из «Схемы» (RD_METRICS) — последние 10 партий против всех; n — сколько строк:
+// 7 — сильный режим (все), 5 — письмо человеку (без технических ACPL и разброса), 3 — простой режим (самое понятное)
+var AI_PROF = [
+  ['firstBl', 'Ход первого зевка (чем позже, тем лучше)', 'Move of the first blunder (later is better)'],
+  ['convert', 'Дожимание: партии с перевесом +3 и больше, которые выиграны', 'Converting: games with an advantage of +3 or more that were won'],
+  ['defend', 'Защита: партии, где у соперника было +3 и больше, которые не проиграны', 'Defending: games where the opponent was +3 or more ahead that were not lost'],
+  ['minEv', 'Самая низкая оценка за партию, в пешках (выше — лучше)', 'Lowest evaluation in a game, in pawns (higher is better)'],
+  ['mateWins', 'Победы матом (а не сдачей соперника или по времени)', 'Wins by checkmate (not by resignation or on time)'],
+  ['acpl', 'Средняя потеря за ход, ACPL (меньше — лучше)', 'Average loss per move, ACPL (lower is better)'],
+  ['stab', 'Разброс точности между партиями (меньше — ровнее)', 'Accuracy spread between games (lower is steadier)']
+];
+function aiProfVal(k, v) {
+  if (v === null || v === undefined) return AL('нет таких партий', 'no such games');
+  if (k === 'firstBl') return AL('ход ', 'move ') + Math.round(v);
+  if (k === 'minEv') return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1);
+  if (k === 'stab') return '±' + Math.round(v) + '%';
+  if (k === 'acpl') return String(Math.round(v));
+  return Math.round(v) + '%';
+}
+function aiProfile(n) {
+  var last = games.slice(-10);
+  if (last.length < 5) return [];
+  return AI_PROF.slice(0, n).map(function(row) {
+    var m = rdMetric(row[0]); if (!m) return null;
+    var a = m.fn(last), b = m.fn(games);
+    if (a === null && b === null) return null;
+    var cmp = '';
+    if (a !== null && b !== null) {
+      var floor = m.fmt === rdPct ? 10 : 1, q = (a - b) / Math.max(Math.abs(b), floor) * (m.low ? -1 : 1);
+      cmp = Math.abs(q) < 0.05 ? AL(' — как обычно', ' — about usual') : q > 0 ? AL(' — лучше обычного', ' — better than usual') : AL(' — хуже обычного', ' — worse than usual');
+    }
+    return AL(row[1], row[2]) + ': ' + AL('последние 10 — ', 'last 10 — ') + aiProfVal(row[0], a) + AL(', все партии — ', ', all games — ') + aiProfVal(row[0], b) + cmp;
+  }).filter(Boolean);
 }
 // «6 из 19» → «6 из 19 (32%)»: доля посчитана заранее, модель не вычисляет сама
 function aiOf(t) {
@@ -6954,6 +7502,10 @@ var AI_ASKS = [
     {t: 'Что я пропускаю у соперника', tEn: 'What I miss from my opponent', d: 'opp',
      ru: 'Соперник ошибается, а я этим не пользуюсь. Назови одну главную причину, почему я не вижу его ошибки, и как научиться их наказывать.', en: 'My opponent makes mistakes and I do not use them. Name one main reason why I miss them and how to learn to punish them.',
      h: 'Соперник ошибается, а я этого не замечаю. Как научиться видеть и наказывать его ошибки?', hEn: 'My opponent makes mistakes and I do not notice them. How do I learn to see and punish them?'},
+    {t: 'Как я дожимаю и защищаюсь', tEn: 'How I convert and defend', d: 'convert',
+     ru: 'Как я довожу выигранные позиции до победы и как защищаюсь в плохих? Назови одну главную проблему — дожимание или защита: почему (цифры и партии из данных) и 2–3 действия.',
+     en: 'How do I convert winning positions and how do I defend bad ones? Name one main problem — converting or defending: why (numbers and games from the data) and 2–3 actions.',
+     h: 'Умею ли я дожимать выигранные позиции и держаться в плохих? Что исправить первым?', hEn: 'Can I convert winning positions and hold bad ones? What should I fix first?'},
     {t: 'Разбор последних поражений', tEn: 'Review of my recent losses', d: 'losses',
      ru: 'Что общего у моих поражений: фаза, зевки, дебют, момент перелома? Назови одну главную причину и что исправить первым.', en: 'What do my losses have in common: phase, blunders, opening, turning point? Name one main cause and what to fix first.',
      h: 'Посмотрите, пожалуйста, мои последние поражения: что у них общего и что исправить первым?', hEn: 'Could you look at my recent losses: what do they have in common and what should I fix first?'},
@@ -7469,6 +8021,61 @@ var AI_DATA = {
     if (t) out.push(AL('Партий, где я упустил выигрыш материала или мат: ', 'Games where I missed winning material or a mate: ') + t);
     return out;
   },
+  // «Как я дожимаю и защищаюсь»: последние 20 партий (выигранных позиций и провалов мало — 10 партий не хватает); любые соперники
+  convert: function() {
+    var last = games.slice(-20).filter(function(g) { return g.ev && g.ev.length > 1; });
+    if (!last.length) return [AL('Партий с анализом пока нет', 'No analysed games yet')];
+    var pw = function(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + (Math.abs(v) / 10).toFixed(1); };
+    var mv = function(g, p) { return anMoveNo(p) + (aiSans(g)[p - 1] || ''); };
+    var argm = function(a, fn) { var k = 0; for (var i = 1; i < a.length; i++) if (fn(a[i], a[k])) k = i; return k; };
+    var opp = {}; last.forEach(function(g) { var k = g.engine === 'Люди' ? AL('люди', 'humans') : g.engine; opp[k] = (opp[k] || 0) + 1; });
+    var out = [AL('Последние ' + last.length + ' ' + plural(last.length, 'партия', 'партии', 'партий') + ' (' + aiWL(last) + '); соперники: ', 'Last ' + last.length + ' games (' + aiWL(last) + '); opponents: ') +
+      Object.keys(opp).map(function(k) { return k + ' — ' + opp[k]; }).join(', ') + '.',
+      AL('Оценка — в пешках с моей стороны: плюс — перевес у меня, минус — у соперника; ±10 — решающий перевес или мат.', 'Evaluation is in pawns from my side: plus — I am better, minus — the opponent is; ±10 means decisive or mate.')];
+    // дожимание: был перевес +3 — выиграно ли; если нет — что случилось после пика
+    var adv = last.filter(function(g) { return Math.max.apply(null, g.ev) >= 30; }), won = adv.filter(function(g) { return g.result === 'win'; });
+    out.push('', AL('ДОЖИМАНИЕ. Перевес +3 и больше был в ', 'CONVERTING. An advantage of +3 or more appeared in ') + adv.length + AL(' ' + plural(adv.length, 'партии', 'партиях', 'партиях') + '; выиграно ', ' games; won ') + won.length +
+      (adv.length ? ' (' + Math.round(won.length / adv.length * 100) + '%)' : '') + '.');
+    if (won.length) {
+      var dur = won.map(function(g) { var f = 0; while (f < g.ev.length && g.ev[f] < 30) f++; return Math.ceil((g.ev.length - 1 - f) / 2); });
+      out.push(AL('В выигранных: от первого перевеса +3 до конца партии в среднем ', 'In the won ones: from the first +3 to the end of the game, on average ') + Math.round(dur.reduce(function(a, b) { return a + b; }, 0) / dur.length) + AL(' ходов.', ' moves.'));
+    }
+    adv.filter(function(g) { return g.result !== 'win'; }).forEach(function(g) {
+      aiRef(g);
+      var p = argm(g.ev, function(a, b) { return a > b; }), b = (g.bl || []).filter(function(x) { return blPly(g, x) > p; })[0], lo = Math.min.apply(null, g.ev.slice(p));
+      out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + AL(': перевес ', ': advantage ') + pw(g.ev[p]) + AL(' после хода ', ' after move ') + mv(g, p) + ', ' +
+        (b ? AL('потом мой зевок: ', 'then my blunder: ') + aiBl(g, b) + aiFen(g, blPly(g, b)) : AL('потом перевес ушёл постепенно, самая низкая оценка после пика ', 'then the advantage faded gradually, lowest evaluation after the peak ') + pw(lo)));
+    });
+    var mm = [];
+    last.forEach(function(g) { mateSeries(g).forEach(function(x) { if (x.lost && x.N && x.N <= 3) mm.push({g: g, x: x}); }); });
+    if (mm.length) {
+      out.push(AL('Упущенные короткие маты (был мат в 1–3 хода, но я его не поставил): ', 'Missed short mates (mate in 1–3 was there, but I did not play it): ') + mm.length + ':');
+      mm.slice(-4).reverse().forEach(function(o) { if (AI_REFS.length < 3) aiRef(o.g); out.push('- ' + aiGid(o.g) + AL(', ход ', ', move ') + mv(o.g, o.x.s + 1) + AL(' — был мат в ', ' — there was mate in ') + o.x.N + (PLAIN ? ' (' + aiLink(o.g, o.x.s + 1) + ')' : '')); });
+    }
+    var W = last.filter(function(g) { return g.result === 'win'; });
+    var Wm = W.filter(function(g) { return g.how === 'mate'; }).length;
+    if (W.length) out.push(AL('Победы матом: ', 'Wins by checkmate: ') + Wm + AL(' из ', ' of ') + W.length + AL(' побед', ' wins') + (Wm < W.length ? AL(' (остальные — сдача соперника или время)', ' (the rest — resignation or time)') : '') + '.');
+    // защита: был перевес соперника −3 — не проиграно ли; отыгрыш — когда оценка снова стала в мою пользу
+    var bad = last.filter(function(g) { return Math.min.apply(null, g.ev) <= -30; }), saved = bad.filter(function(g) { return g.result !== 'lose'; });
+    out.push('', AL('ЗАЩИТА. Перевес соперника +3 и больше (оценка −3 и ниже) был в ', 'DEFENDING. The opponent was +3 or more ahead (evaluation −3 or lower) in ') + bad.length + AL(' ' + plural(bad.length, 'партии', 'партиях', 'партиях') + '; не проиграно ', ' games; not lost ') + saved.length +
+      (bad.length ? ' (' + Math.round(saved.length / bad.length * 100) + '%)' : '') + '.');
+    bad.forEach(function(g) {   // без aiRef: в письме «партии по теме» — те, что со ссылками выше (упущенные выигрыши и маты)
+      var p = argm(g.ev, function(a, b) { return a < b; }), q = 0;
+      for (var i = p + 1; i < g.ev.length; i++) if (g.ev[i] >= 0) { q = i; break; }
+      out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + AL(': провал до ', ': dropped to ') + pw(g.ev[p]) + AL(' после хода ', ' after move ') + mv(g, p) +
+        (q ? (g.result !== 'lose' ? AL(', потом отыгрался: оценка снова в мою пользу после хода ', ', then came back: the evaluation was in my favour again after move ') + mv(g, q)
+          : AL(', оценка на время вернулась в мою пользу после хода ', ', the evaluation briefly turned in my favour after move ') + mv(g, q) + AL(', но партия проиграна', ', but the game was lost')) : '') + '.');
+    });
+    var lostB = bad.filter(function(g) { return g.result === 'lose'; }), fromAdv = lostB.filter(aiWasUp), noAdv = lostB.filter(function(g) { return !aiWasUp(g); });
+    var ids = function(l) { return PLAIN || !l.length ? '' : ' (' + l.map(aiGid).join(', ') + ')'; };
+    if (fromAdv.length) out.push(AL('Из ' + lostB.length + ' проигранных: в ' + fromAdv.length + ' до провала был мой перевес +3 и больше (', 'Of the ' + lostB.length + ' lost: in ' + fromAdv.length + ' I had been +3 or more ahead before the drop (') +
+      (PLAIN ? '' : fromAdv.map(aiGid).join(', ') + ' — ') + AL('они же выше в дожимании: проиграны из выигранной позиции); в ' + noAdv.length + ids(noAdv) + ' такого перевеса не было.', 'the same games as under converting above: lost from a winning position); in ' + noAdv.length + ids(noAdv) + ' there was no such advantage.'));
+    var lows = last.map(function(g) { return Math.min.apply(null, g.ev) / 10; });
+    out.push(AL('Самая низкая оценка за партию в среднем: ', 'Average lowest evaluation in a game: ') + pw(lows.reduce(function(a, b) { return a + b; }, 0) / lows.length * 10) + '.');
+    var fb = rdMetric('firstBl').fn(last);
+    if (fb !== null) out.push(AL('Первый зевок в партии — в среднем на ходу ', 'The first blunder in a game comes on average at move ') + Math.round(fb) + '.');
+    return out;
+  },
   // поражения из последних 10 партий; если их меньше 3 — добавляются более ранние (помечены)
   losses: function() {
     var isL = function(g) { return g.result === 'lose'; };
@@ -7775,6 +8382,7 @@ var AI_COND = {
   typical:   [['одна главная причина', '1–2 примера ходов из данных'], ['one main cause', '1–2 examples of moves from the data']],
   opp:       [['одна главная причина', '2–3 действия'], ['one main reason', '2–3 actions']],
   losses:    [['одна главная причина', 'что исправить первым'], ['one main cause', 'what to fix first']],
+  convert:   [['одна главная проблема: дожимание или защита', 'почему — 2–3 числа и номера партий из данных', '2–3 действия'], ['one main problem: converting or defending', 'why — 2–3 numbers and game numbers from the data', '2–3 actions']],
   phase:     [['одна главная причина', 'что тренировать'], ['one main cause', 'what to train']],
   winloss:   [['одно главное отличие'], ['one main difference']],
   deviate:   [['один главный отход от мастеров', 'почему ход мастеров лучше — из общих шахматных знаний, с пометкой «обычно»', 'правило для запоминания — с указанием, после какого хода бота оно действует (смотри ходы до отхода)'],
@@ -7842,12 +8450,17 @@ AI_SIMPLE_TPL.own = [['Ответ: …', 'Почему: … (2–3 числа и
   ['Answer: …', 'Why: … (2–3 numbers from the data, with labels; if missing — "not in the data")', 'What to do: 1) … 2) …']];   // свой вопрос: общий короткий шаблон — без него Алиса пишет сплошным текстом
 AI_SIMPLE_TPL.steps = [['Шаг 1: …', 'Шаг 2: …', '… не больше 6 шагов'], ['Step 1: …', 'Step 2: …', '… at most 6 steps']];
 AI_SIMPLE_TPL.progress = [['Стало лучше: … (было → стало)', 'Не изменилось или хуже: … (было → стало)', 'Дальше смотреть на: …'], ['Improved: … (before → now)', 'Unchanged or worse: … (before → now)', 'Watch next: …']];
-var AI_SIMPLE_KIND = {own: 'own', opLines: 'list5', opAway: 'advice', lastgame: 'game', weak: 'advice', typical: 'advice', opp: 'advice', losses: 'advice', phase: 'advice', winloss: 'advice', deviate: 'deviate', themes: 'advice',
+var AI_SIMPLE_KIND = {convert: 'advice', own: 'own', opLines: 'list5', opAway: 'advice', lastgame: 'game', weak: 'advice', typical: 'advice', opp: 'advice', losses: 'advice', phase: 'advice', winloss: 'advice', deviate: 'deviate', themes: 'advice',
   goal: 'goal', checklist: 'checklist', opening: 'list5', plans: 'plans', week: 'days', today: 'today', review: 'steps', weekcmp: 'progress', progress: 'progress'};
 // помощники лёгкого пакета: одна строка — одна партия / один зевок, с подписью
 function aiSGame(g) {   // «#2 28.09 — ПОРАЖЕНИЕ: точность 71%, миттельшпиль 68%, зевков 6, до эндшпиля НЕ дошли»
   return aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + AL(': точность ', ': accuracy ') + g.acc + AL('%, миттельшпиль ', '%, middlegame ') + aiPct(g.mid) +
     AL(', зевков ', ', blunders ') + g.blunders + ', ' + (hasEnd(g) ? AL('до эндшпиля дошли', 'reached the endgame') : AL('до эндшпиля НЕ дошли', 'did NOT reach the endgame'));
+}
+// был ли мой перевес +3 до самой низкой оценки партии («Как я дожимаю и защищаюсь»)
+function aiWasUp(g) {
+  var p = 0; g.ev.forEach(function(v, i) { if (v < g.ev[p]) p = i; });
+  return Math.max.apply(null, g.ev.slice(0, p + 1)) >= 30;
 }
 function aiSBl(g, b) {   // «#11, ход 9. cxd6 — движок советовал a4; миттельшпиль; оценка упала на 3.6»
   return aiGid(g) + AL(', ход ', ', move ') + anMoveNo(blPly(g, b)) + b.s + (b.b ? AL(' — движок советовал ', ' — the engine suggested ') + b.b : '') + (b.p ? '; ' + aiPhase(b.p) : '') + (typeof b.d === 'number' ? AL('; оценка упала на ', '; evaluation dropped by ') + b.d : '');
@@ -7865,6 +8478,26 @@ function aiSTypes(list, n, inline) {   // типы зевков от часты�
 function aiSTheme() { var wt = aiWeakThemes(1), P = window.PUZZLES || {}; return wt.length ? AL('Самая слабая тема задач: ', 'The weakest puzzle theme: ') + wt[0].replace(/^1\) /, '').replace(AL(' — самая слабая', ' — the weakest'), '') + AL(' (общий перфоманс ', ' (overall performance ') + (P.global ? P.global.perf : '—') + ').' : ''; }
 function aiSWindow(n, list) { return AL('Все числа ниже — за последние ' + n + ' ' + plural(n, 'партию', 'партии', 'партий') + ' (' + aiWL(list) + ').', 'All numbers below are for the last ' + n + ' games (' + aiWL(list) + ').'); }
 var AI_SIMPLE = {
+  convert: function() {
+    var last = games.slice(-20).filter(function(g) { return g.ev && g.ev.length > 1; }), out = [aiSWindow(last.length, last)];
+    var pw = function(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + (Math.abs(v) / 10).toFixed(1); };
+    var adv = last.filter(function(g) { return Math.max.apply(null, g.ev) >= 30; }), won = adv.filter(function(g) { return g.result === 'win'; });
+    out.push(AL('Дожимание: перевес +3 и больше был в ' + adv.length + ' партиях, выиграно ' + won.length + '.', 'Converting: an advantage of +3 or more appeared in ' + adv.length + ' games, won ' + won.length + '.'));
+    adv.filter(function(g) { return g.result !== 'win'; }).slice(-3).forEach(function(g) {
+      var p = 0; g.ev.forEach(function(v, i) { if (v > g.ev[p]) p = i; });
+      var b = (g.bl || []).filter(function(x) { return blPly(g, x) > p; })[0];
+      out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + AL(': был перевес ', ': I was ') + pw(g.ev[p]) + AL('', ' ahead') + (b ? AL(', потом зевок: ', ', then a blunder: ') + aiSBl(g, b).slice(aiGid(g).length + 2) : ''));
+    });
+    var mm = 0; last.forEach(function(g) { mateSeries(g).forEach(function(x) { if (x.lost && x.N && x.N <= 3) mm++; }); });
+    out.push(AL('Упущенные короткие маты (мат в 1–3 хода был, но не поставлен): ', 'Missed short mates (mate in 1–3 was there, but not played): ') + mm + '.');
+    var bad = last.filter(function(g) { return Math.min.apply(null, g.ev) <= -30; }), saved = bad.filter(function(g) { return g.result !== 'lose'; });
+    out.push(AL('Защита: перевес соперника +3 и больше был в ' + bad.length + ' партиях, не проиграно ' + saved.length + '.', 'Defending: the opponent was +3 or more ahead in ' + bad.length + ' games, not lost ' + saved.length + '.'));
+    var fromAdv = bad.filter(function(g) { return g.result === 'lose' && aiWasUp(g); });
+    if (fromAdv.length) out.push(AL('Из них проиграны после моего перевеса +3 и больше (то есть это упущенный выигрыш, а не плохая защита): ', 'Of these, lost after I had been +3 or more ahead (so a missed win, not poor defence): ') + fromAdv.length + ' — ' + fromAdv.map(aiGid).join(', ') + '.');
+    var fb = rdMetric('firstBl').fn(last);
+    if (fb !== null) out.push(AL('Первый зевок в партии — в среднем на ходу ', 'The first blunder in a game — on average at move ') + Math.round(fb) + '.');
+    return out;
+  },
   // «Главная слабость»: фазы, зевки, поражения по одному в строке, одна тема задач, цель — всё за последние 10 партий
   weak: function() {
     var last = games.slice(-10), L = last.filter(function(g) { return g.result === 'lose'; }), P = window.PUZZLES || {}, out = [];
@@ -8112,6 +8745,11 @@ var AI_SIMPLE = {
     return out;
   }
 };
+// простой режим: к «главной слабости», поражениям и «победы против поражений» — 3 строки «как держусь» (самое понятное)
+['weak', 'losses', 'winloss'].forEach(function(k) {
+  var f = AI_SIMPLE[k]; if (!f) return;
+  AI_SIMPLE[k] = function(c) { var pr = aiProfile(3); return f(c).concat(pr.length ? [AL('Как держусь в партиях (последние 10 против всех):', 'How I hold up in games (last 10 vs all):')].concat(pr.map(function(t) { return '- ' + t; })) : []); };
+});
 function aiTextSimple(ask, dataKey) {
   var data = AI_SIMPLE[dataKey] ? AI_SIMPLE[dataKey](aiCtx()) : dataKey && AI_DATA[dataKey] ? AI_DATA[dataKey](aiCtx()) : [], tpl = AI_SIMPLE_TPL[AI_SIMPLE_KIND[dataKey]];
   if (typeof tpl === 'function') tpl = tpl();
@@ -8153,6 +8791,10 @@ function humanTextInner(ask, isPlan, dataKey, item) {   // пустые стро
     out.push(AL('Вопрос: ', 'Question: ') + q, '');
     out.push(AL('Коротко обо мне:', 'About me in short:'));
     out = out.concat(aiAbout().map(function(t) { return '• ' + t; }));
+    if (/^(weak|typical|opp|losses|phase|winloss)$/.test(dataKey || '')) {   // «как держусь» — 5 понятных строк (без ACPL и разброса)
+      var pr = aiProfile(5);
+      if (pr.length) out = out.concat(['', AL('Как я держусь в партиях (последние 10 против всех моих партий):', 'How I hold up in games (my last 10 vs all my games):')], pr.map(function(t) { return '• ' + t; }));
+    }
     if (refs.length) { out.push('', AL('Партии по теме:', 'Games on the topic:')); refs.forEach(function(g) { out.push('• ' + g.date + ', ' + AL(RESULT[g.result].label.toLowerCase(), RES_EN[g.result]) + ' — ' + aiLink(g)); }); }
     if (data.length) out = out.concat(['', AL('Статистика по вопросу (по компьютерному анализу Lichess; оценка — в пешках, плюс — перевес у меня; ходы в английской записи, ссылки ведут прямо на ход):', 'Stats for the question (from Lichess computer analysis; evaluation in pawns, plus means I am better; moves in standard notation, links open the exact move):')], data);
     out.push('', AL('Спасибо за любой совет!', 'Thanks for any advice!'));

@@ -7745,7 +7745,7 @@ function humanTextInner(ask, isPlan, dataKey, item) {   // пустые стро
     AL('4. Через ~1 минуту открыть ' + site + ' и проверить: «Итоги» → название этапа, карточка «Дебюты».', '4. After ~1 minute open ' + site + ' and check: «Итоги» → stage name, «Дебюты» card.'),
     AL('5. Если сверху красная плашка — в ней написана причина; исправить файл или откатить: ' + repo + '/commits/main/data/plan.js → прошлая версия.', '5. If a red banner appears at the top, it shows the reason; fix the file or roll back: ' + repo + '/commits/main/data/plan.js → previous version.'),
     '', AL('Текущий data/plan.js:', 'Current data/plan.js:'), planSource());
-  return out.join('\n');
+  return out.filter(function(x) { return x !== null; }).join('\n');   // null — строки только для отдельных пунктов («Как менять дебют»)
 }
 // простой режим — не для правки плана (новый plan.js простой модели не доверяем)
 function helpText(ask, isPlan, dataKey, item) {

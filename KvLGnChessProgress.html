@@ -2541,7 +2541,8 @@ function renderStats() {
     var v = avg(list, s.key);
     var value = v === null ? '—' : v.toFixed(1) + '<small>%</small>';
     var diff = tr(function(l) { return avg(l, s.key); });
-    return '<div class="stat toggle" data-s="' + s.key + '" role="button" tabindex="0" style="--sc:' + s.color + '">' + statLine(s.label, s.color, value, s.dotOpacity) +
+    // скрытый показатель рождается приглушённым: иначе класс off добавлялся после перерисовки графика и строка мигала (transition opacity у .toggle)
+    return '<div class="stat toggle' + (hiddenSeries[s.key] ? ' off' : '') + '" data-s="' + s.key + '" role="button" tabindex="0" style="--sc:' + s.color + '">' + statLine(s.label, s.color, value, s.dotOpacity) +
            '<div class="stat-trend">' + th(diff, true, false) + '</div></div>';
   }).join('');
 

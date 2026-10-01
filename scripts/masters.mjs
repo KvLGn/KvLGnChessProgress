@@ -2,17 +2,24 @@
 // Два источника:
 //   студии из plan.js (поле ids — все части; партии мастера только его цветом = цвет дебюта) → «дерево мастера»:
 //     позиция → {ход: сколько раз}; дерево кэшируется в cache/study-trees.json и пересобирается раз в сутки или при смене ids;
-//   база мастеров Lichess (explorer.lichess.ovh/masters, нужен токен) → «все мастера»; если у мастеров позиции почти нет
-//     (меньше MIN_GAMES партий — бот сыграл необычно), берётся база сильных игроков Lichess (2000+, блиц / рапид / классика);
-//     ответы кэшируются по позиции в cache/masters.json, запрашиваются только новые позиции.
-// Итог для партии — поле ms: [[p, [всего, [[ход, партий], …], источник 'm' | 'l'], {'дебют/мастер': [[ход, раз], …]}], …]
+//   база по ступеням (нужен токен): 'm' — база мастеров Lichess (турнирные партии 2200+); если там меньше MIN_GAMES партий
+//     (бот сыграл необычно) — 'l' — игроки Lichess 2000+; меньше и там — 'a' — любители Lichess 1800+ (качество ниже, сайт
+//     показывает их серым); ни на одной ступени нет MIN_GAMES — берётся та, где партий больше всего.
+//     Ответы кэшируются по позиции в cache/masters.json (CACHE_V — версия правил; сменилась — кэш собирается заново).
+// Итог для партии — поле ms: [[p, [всего, [[ход, партий], …], источник 'm' | 'l' | 'a'], {'дебют/мастер': [[ход, раз], …]}], …]
 //   (ключ с дебютом: один мастер бывает в студиях разных дебютов — «italian/Carlsen», «ruy/Carlsen»; какой брать, решает сайт по плану),
 //   p — полуход позиции перед моим ходом (мой ход — p + 1); база — топ-5 ходов, мастер из студии — все его ходы.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-export const MAX_MOVES = 15;                 // сравниваем первые 15 своих ходов
-const MIN_GAMES = 20;                        // меньше партий у мастеров — берём сильных игроков Lichess
+export const MAX_MOVES = 20;                 // сравниваем первые 20 своих ходов
+const MIN_GAMES = 20;                        // меньше партий на ступени — спускаемся на следующую
+const CACHE_V = 2;                           // версия правил кэша: 2 — ступени m / l / a
+const TIERS = [                              // ступени базы: сначала самые сильные
+  ['m', 'masters?'],
+  ['l', 'lichess?recentGames=0&speeds=blitz,rapid,classical&ratings=2000,2200,2500&'],
+  ['a', 'lichess?recentGames=0&speeds=bullet,blitz,rapid,classical,correspondence&ratings=1800,2000,2200,2500&']
+];
 const TREE_TTL = 24 * 3600e3;                // дерево студий пересобирается раз в сутки
 const posKey = (fen) => fen.split(' ').slice(0, 4).join(' ');   // доска + очередь хода + рокировки + взятие на проходе
 
@@ -96,20 +103,26 @@ async function ask(url, token) {
   }
   return null;
 }
-// позиция: сначала мастера ('m'); мало партий — сильные игроки Lichess ('l'); null — база недоступна
+// позиция: первая ступень, где не меньше MIN_GAMES партий; иначе — где партий больше всего; null — база недоступна
 async function explorer(fen, token) {
   const f = encodeURIComponent(fen);
-  const m = await ask('https://explorer.lichess.ovh/masters?moves=5&topGames=0&fen=' + f, token);
-  if (!m || m[0] >= MIN_GAMES) return m && m.concat('m');
-  await sleep(250);
-  const l = await ask('https://explorer.lichess.ovh/lichess?moves=5&topGames=0&recentGames=0&speeds=blitz,rapid,classical&ratings=2000,2200,2500&fen=' + f, token);
-  return l && l[0] > m[0] ? l.concat('l') : m.concat('m');
+  let best = null;
+  for (const [src, path] of TIERS) {
+    const r = await ask('https://explorer.lichess.ovh/' + path + 'moves=5&topGames=0&fen=' + f, token);
+    if (!r) return best;   // база ответила ошибкой — что успели
+    const cur = r.concat(src);
+    if (cur[0] >= MIN_GAMES) return cur;
+    if (!best || cur[0] > best[0]) best = cur;
+    await sleep(250);
+  }
+  return best;
 }
 
 /* ---------- сверка партии ---------- */
 // games — партии из update.mjs (color, mv); планы дебютов — какие деревья мастеров смотреть для цвета партии
 export async function mastersForGames(Chess, games, plan, trees, token, cacheFile, log) {
-  const cache = readJson(cacheFile, {});
+  let cache = readJson(cacheFile, {});
+  if (cache._v !== CACHE_V) cache = { _v: CACHE_V };   // правила ступеней сменились — спрашиваем заново
   let asked = 0, failed = false;
   for (const g of games) {
     if (!g.mv) continue;

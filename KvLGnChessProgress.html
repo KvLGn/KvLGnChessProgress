@@ -1201,6 +1201,10 @@
   .an-mc small { font-size: 10.5px; color: var(--fg-mute); }
   .an-mc:hover { background: rgba(74,222,128,0.1); }
   .an-mc.on { border-color: rgba(34,211,238,0.45); }
+  /* слабый ориентир: любители 1800+ или меньше 10 партий в позиции */
+  .an-mc.weak { color: var(--fg-mute); background: rgba(255,255,255,0.02); }
+  .an-mv.mk2.weak { opacity: 0.6; }
+  .an-ms-sum { flex-shrink: 0; margin: -2px 12px 6px; font-size: 11px; line-height: 1.35; color: var(--fg-dim); }
   /* колонка 3: моменты выбранной линзы (клик — позиция перед ходом) */
   .an-mom { position: relative; border-right: 1px solid rgba(46,50,68,0.6); }
   .an-mom-in { position: absolute; inset: 0; display: flex; flex-direction: column; }
@@ -4575,6 +4579,9 @@ function anMasterPicked(g) {
   return keys.indexOf(an.master) >= 0 ? an.master : keys[0] || 'all';
 }
 function anGamesN(n) { return n.toLocaleString('ru-RU') + ' ' + plural(n, 'партия', 'партии', 'партий'); }
+// ступени базы (scripts/masters.mjs): m — мастера, l — игроки Lichess 2000+, a — любители 1800+ (качество ниже — серым)
+var MS_TIER = {m: {name: 'база мастеров', short: 'мастера'}, l: {name: 'игроки Lichess 2000+', short: 'игроки 2000+'}, a: {name: 'любители Lichess 1800+', short: 'любители 1800+'}};
+var MS_FEW = 10;   // меньше партий в позиции — «самый частый ход» почти случайность: серым, с числом партий
 var AN_MS = {top: {c: '#4ade80', t: 'good', mark: '✓', txt: 'как чаще всего у мастеров'},
              alt: {c: '#facc15', t: null,   mark: '~', txt: 'встречалось, но не чаще всего'},
              off: {c: '#f87171', t: 'bad',  mark: '✗', txt: 'мастера так не играли'}};
@@ -4590,15 +4597,17 @@ function anMasterMoments(g, P) {
     var st = i === 0 ? 'top' : i > 0 ? 'alt' : 'off', S = AN_MS[st], top = list[0][0];
     function cnt(x) { return own ? '×' + x[1] : Math.round(x[1] / total * 100) + '%'; }
     if (!own && !base) return;
-    var src = own ? masterName(want, g) + ' · ' + anGamesN(total) : (base[2] === 'l' ? 'игроки Lichess 2000+' : 'база мастеров') + ' · ' + anGamesN(total) +
-      (want !== 'all' ? ' <span style="color:var(--fg-mute)">(у ' + masterName(want, g) + ' этой позиции нет)</span>' : '');
+    var tier = own ? 'own' : base[2] || 'm', weak = tier === 'a' || total < MS_FEW;
+    var src = own ? masterName(want, g) + ' · ' + anGamesN(total) : MS_TIER[tier].name + ' · ' + anGamesN(total) +
+      (want !== 'all' ? ' <span style="color:var(--fg-mute)">(у ' + masterName(want, g) + ' этой позиции нет)</span>' : '') +
+      (weak ? ' <span style="color:var(--fg-mute)">— ' + (total < MS_FEW ? 'мало партий, ориентир слабый' : 'уровень ниже мастеров') + '</span>' : '');
     var rows = anRow('Ты', '<span style="color:' + S.c + '">' + anMoveNo(p) + esc(san) + ' ' + S.mark + '</span> — ' + S.txt) +
       anRow('Играли', list.slice(0, 4).map(function(x) { return '<b>' + esc(x[0]) + '</b> ' + cnt(x); }).join(' · ')) +
       anRow('Откуда', src);
     out.push({p: p, at: p - 1, color: S.c, tint: S.t, san: san, short: st === 'top' ? 'как у мастеров' : 'мастера: ' + top, dot: st !== 'top',
       title: '♟ ' + anMoveNo(p) + esc(san) + ' · <em>' + S.txt + '</em>', before: rows, after: rows,
       arrows: st === 'top' ? anArrows(P, p, AN_COLORS.best) : anArrows(P, p, S.c, top),
-      ms: {st: st, top: top, topN: cnt(list[0]), src: own ? masterName(want, g) : base[2] === 'l' ? 'игроки 2000+' : 'мастера'}});
+      ms: {st: st, top: top, topN: cnt(list[0]), n: total, tier: tier, weak: weak, src: own ? masterName(want, g) : MS_TIER[tier].short}});
   });
   return out;
 }
@@ -4689,6 +4698,20 @@ function anInfoHtml(g, P, v) {
     '<div class="an-info-s">' + (mine ? 'твой ход' : 'ход соперника') +
       (typeof ev === 'number' ? ' · перевес <b>' + evText(ev) + '</b>' + (ev ? (ev > 0 ? ' у тебя' : ' у соперника') : '') : '') + '</div></div>';
 }
+// «Мастера»: итог над таблицей — до какого хода сверка шла по каждому источнику: «Карлсен — до 4-го · мастера — до 7-го · игроки 2000+ — до 9-го»
+function anMasterSummary(g, moments) {
+  if (!moments.length) return 'Сравнивать не с чем — у партии нет данных мастеров (обнови данные)';
+  var last = {}, order = [];
+  moments.forEach(function(m) {
+    var k = m.ms.tier === 'own' ? m.ms.src : MS_TIER[m.ms.tier].short;
+    if (!(k in last)) order.push(k);
+    last[k] = Math.ceil(m.p / 2);
+  });
+  var end = Math.ceil(moments[moments.length - 1].p / 2), total = Math.ceil(anPositions(g).n / 2);
+  order.sort(function(a, b) { return last[a] - last[b]; });   // по ходу, до которого дошёл источник
+  return order.map(function(k) { return k + ' — до ' + last[k] + '-го'; }).join(' · ') +
+    (end >= 20 ? ' · дальше не сравниваем (20 ходов)' : end < total ? ' · дальше позиции нет в базах' : '');
+}
 // «Мастера»: таблица «ты / мастера / соперник» (за чёрных — «соперник / ты / мастера»); мои ходы с ✓ ~ ✗, в «Мастерах» — самый частый ход
 function anMasterTable(g, P, v, moments) {
   var byP = {}, white = g.color === 'white';
@@ -4696,14 +4719,15 @@ function anMasterTable(g, P, v, moments) {
   var out = ['<span class="an-th"></span>'].concat((white ? ['Ты', 'Мастера', 'Соперник'] : ['Соперник', 'Ты', 'Мастера']).map(function(h) { return '<span class="an-th">' + h + '</span>'; }));
   function mv(p) {
     if (p > P.n) return '<span></span>';
-    var m = byP[p], cls = 'an-mv' + (anMine(g, p) ? ' me' : '') + (m ? ' mk2' : '') + (p === an.ply ? ' on' : '') + (v.at && p === v.at.p ? ' next' : '');
+    var m = byP[p], cls = 'an-mv' + (anMine(g, p) ? ' me' : '') + (m ? ' mk2' + (m.ms.weak ? ' weak' : '') : '') + (p === an.ply ? ' on' : '') + (v.at && p === v.at.p ? ' next' : '');
     return '<button class="' + cls + '" data-p="' + p + '"' + (m ? ' style="--c:' + m.color + '"' : '') + '>' + esc(P.moves[p - 1].san) + (m ? ' ' + AN_MS[m.ms.st].mark : '') + '</button>';
   }
   function mc(p) {
     var m = byP[p];
     if (!m) return '<span class="an-mc-empty"></span>';
-    return '<button class="an-mc' + (an.ply === m.at || an.ply === m.p ? ' on' : '') + '" data-p="' + m.at + '" title="' + esc(m.ms.src + ': чаще всего ' + m.ms.top) + '">' +
-      esc(m.ms.top) + ' <small>' + m.ms.topN + '</small></button>';
+    return '<button class="an-mc' + (m.ms.weak ? ' weak' : '') + (an.ply === m.at || an.ply === m.p ? ' on' : '') + '" data-p="' + m.at + '" title="' +
+      esc(m.ms.src + ': чаще всего ' + m.ms.top + ' · ' + anGamesN(m.ms.n) + (m.ms.weak ? ' — ориентир слабый' : '')) + '">' +
+      esc(m.ms.top) + ' <small>' + m.ms.topN + (m.ms.weak && m.ms.tier !== 'own' ? ' · ' + m.ms.n : '') + '</small></button>';
   }
   for (var p = 1; p <= P.n; p += 2) {
     var no = '<span class="an-no">' + (p + 1) / 2 + '.</span>';
@@ -4732,7 +4756,8 @@ function anMovesCol(g, P, v, moments) {
         var fr = anFresh(g), bang = fr && fr[x.k] ? anBang('В этой партии (последние сутки) есть ' + (x.k === 'bl' ? 'зевки' : 'мат')) : '';
         return '<button class="win-opt' + (x.k === L.k ? ' on' : '') + '" data-lens="' + x.k + '" title="' + esc(x.hint) + '">' + x.label + bang + '</button>';
       }).join('') + '</div></span>' + (L.k === 'ms' ? anMasterPick(g) : '') + '</div>' +
-    anInfoHtml(g, P, v) + '<div class="an-mvs' + (L.k === 'ms' ? ' ms-t ms-' + (g.color === 'white' ? 'w' : 'b') : '') + '">' + anMovesHtml(g, P, v, moments) + '</div>' +
+    anInfoHtml(g, P, v) + (L.k === 'ms' ? '<div class="an-ms-sum" title="До какого хода сверка шла по каждому источнику">' + esc(anMasterSummary(g, moments)) + '</div>' : '') +
+    '<div class="an-mvs' + (L.k === 'ms' ? ' ms-t ms-' + (g.color === 'white' ? 'w' : 'b') : '') + '">' + anMovesHtml(g, P, v, moments) + '</div>' +
     '<div class="an-nav">' +
       '<button data-nav="first" title="В начало (Home)"' + (ply ? '' : ' disabled') + '>⏮</button>' +
       '<button data-nav="prev" title="Назад (←)"' + (ply ? '' : ' disabled') + '>◀</button>' +

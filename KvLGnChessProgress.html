@@ -1326,6 +1326,14 @@
   .f-link:hover { text-decoration: underline; }
   .f-menu-metrics { width: 300px; }
   .f-menu-dates { width: 300px; }
+  /* фильтр дат — в заголовке колонки «Дата»: выглядит как заголовок, меню над страницей (таблица обрезает выпадающее) */
+  .th-drop { display: inline-block; }
+  .th-btn { font: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--fg-dim);
+    background: none; border: none; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; max-width: none; }
+  .th-btn:hover { color: var(--fg); background: rgba(255,255,255,0.05); }
+  .th-btn.active { color: #a5b4fc; background: rgba(129,140,248,0.1); border: none; }
+  .th-drop .f-menu { position: fixed; text-transform: none; letter-spacing: 0; font-weight: 400; text-align: left; }
+  body.hush-table .th-btn .caret { display: none; }
   .f-dq { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 10px; }   /* быстрые кнопки сеткой 2×2 */
   .f-dq .f-chip { padding: 4px 6px; font-size: 11.5px; text-align: center; }
   .f-dr { display: flex; flex-direction: column; gap: 6px; }
@@ -1844,13 +1852,6 @@
         <div class="f-foot"><button class="f-link" data-act="clear">Сбросить режимы</button></div>
       </div>
     </div>
-    <div class="f-drop" id="fDates">
-      <button class="f-btn" aria-haspopup="true" aria-expanded="false"></button>
-      <div class="f-menu f-menu-dates">
-        <div class="f-dates" data-scope="table"></div>
-        <div class="f-foot"><button class="f-link" data-act="clear">Сбросить даты</button></div>
-      </div>
-    </div>
     <div class="f-drop" id="fMetrics">
       <button class="f-btn" aria-haspopup="true" aria-expanded="false"></button>
       <div class="f-menu f-menu-metrics">
@@ -1871,7 +1872,13 @@
       <tr>
         <th>№ партии</th>
         <th></th>
-        <th>Дата</th>
+        <th><div class="f-drop th-drop" id="fDates">
+          <button class="f-btn th-btn" aria-haspopup="true" aria-expanded="false" title="Фильтр по датам"></button>
+          <div class="f-menu f-menu-dates">
+            <div class="f-dates" data-scope="table"></div>
+            <div class="f-foot"><button class="f-link" data-act="clear">Сбросить даты</button></div>
+          </div>
+        </div></th>
         <th>Дебют <span class="th-seg" id="tblOpSeg" role="group" aria-label="Какие названия дебютов в таблице"></span></th>
         <th>Соперник</th>
         <th>Результат</th>
@@ -3522,7 +3529,7 @@ function datesInput(f, e) {
 function renderTableDates() { $('fDates').querySelector('.f-dates').innerHTML = datesHtml(filt.dates); }
 $('fDates').addEventListener('click', function(e) {
   e.stopPropagation();
-  if (e.target.closest('.f-btn')) { toggleDrop('fDates'); return; }
+  if (e.target.closest('.f-btn')) { if (!hush.table) toggleDrop('fDates'); return; }
   if (e.target.closest('[data-act="clear"]')) { filt.dates = null; renderTableDates(); filtersChanged(); return; }
   if (datesInput(filt, e)) { renderTableDates(); filtersChanged(); }
 });
@@ -3555,7 +3562,11 @@ function toggleDrop(id) {
   el.querySelector('.f-btn').setAttribute('aria-expanded', String(open));
   if (open && id === 'fOpening') { renderOpeningList(); el.querySelector('.f-search').focus(); }
   if (open && id === 'fMode') el.querySelector('.md-body').innerHTML = modeColsHtml(filt.modes);
-  if (open && id === 'fDates') renderTableDates();
+  if (open && id === 'fDates') {
+    renderTableDates();
+    var r = el.querySelector('.f-btn').getBoundingClientRect(), mn = el.querySelector('.f-menu');
+    mn.style.top = (r.bottom + 6) + 'px'; mn.style.left = Math.max(8, Math.min(r.left - 8, window.innerWidth - 316)) + 'px';
+  }
 }
 function closeDrops() {
   ['fOpening', 'fMetrics', 'fMode', 'fDates'].forEach(function(id) {
@@ -3564,6 +3575,7 @@ function closeDrops() {
   });
 }
 document.addEventListener('click', closeDrops);
+window.addEventListener('scroll', function() { if ($('fDates').classList.contains('open')) closeDrops(); }, {passive: true});   // меню дат стоит над страницей — при прокрутке закрываем
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeDrops(); });
 
 $('fReset').addEventListener('click', function() {
@@ -3600,7 +3612,7 @@ function renderFilterButtons() {
   mb.classList.toggle('active', mk > 0);
 
   var dk = dateActive(filt.dates) ? 1 : 0, db = $('fDates').querySelector('.f-btn');
-  db.innerHTML = esc(dk ? 'Даты: ' + dateLabel(filt.dates) : 'Даты') + '<span class="caret">▾</span>';
+  db.innerHTML = esc(dk ? 'Дата: ' + dateLabel(filt.dates) : 'Дата') + '<span class="caret">▾</span>';
   db.classList.toggle('active', !!dk);
   var any = mc > 0 || hasKeys(filt.results) || hasKeys(filt.colors) || names.length > 0 || mk > 0 || dk > 0;
   $('filters').classList.toggle('any', any);

@@ -7407,9 +7407,11 @@ AI_SIMPLE_TPL.deviate = [['Отход: #партия, ходы до отхода
   ['Deviation: #game, moves up to it → my move …, the masters play … (number from the data)', 'Why the masters\' move is better (usually …): …', 'When to play it: after which bot move …', 'How to remember: …']];
 AI_SIMPLE_TPL.checklist = [['1) Вопрос себе перед ходом: «…?» — почему: … (число из данных)', '2) …', '3) …', '4) …', '5) …'],
   ['1) Question to ask myself before a move: "…?" — why: … (number from the data)', '2) …', '3) …', '4) …', '5) …']];
+AI_SIMPLE_TPL.own = [['Ответ: …', 'Почему: … (2–3 числа из данных, с подписью; если нужного нет — «в данных нет»)', 'Что делать: 1) … 2) …'],
+  ['Answer: …', 'Why: … (2–3 numbers from the data, with labels; if missing — "not in the data")', 'What to do: 1) … 2) …']];   // свой вопрос: общий короткий шаблон — без него Алиса пишет сплошным текстом
 AI_SIMPLE_TPL.steps = [['Шаг 1: …', 'Шаг 2: …', '… не больше 6 шагов'], ['Step 1: …', 'Step 2: …', '… at most 6 steps']];
 AI_SIMPLE_TPL.progress = [['Стало лучше: … (было → стало)', 'Не изменилось или хуже: … (было → стало)', 'Дальше смотреть на: …'], ['Improved: … (before → now)', 'Unchanged or worse: … (before → now)', 'Watch next: …']];
-var AI_SIMPLE_KIND = {opLines: 'list5', opAway: 'advice', lastgame: 'game', weak: 'advice', typical: 'advice', opp: 'advice', losses: 'advice', phase: 'advice', winloss: 'advice', deviate: 'deviate', themes: 'advice',
+var AI_SIMPLE_KIND = {own: 'own', opLines: 'list5', opAway: 'advice', lastgame: 'game', weak: 'advice', typical: 'advice', opp: 'advice', losses: 'advice', phase: 'advice', winloss: 'advice', deviate: 'deviate', themes: 'advice',
   goal: 'goal', checklist: 'checklist', opening: 'list5', plans: 'plans', week: 'days', today: 'today', review: 'steps', weekcmp: 'progress', progress: 'progress'};
 // помощники лёгкого пакета: одна строка — одна партия / один зевок, с подписью
 function aiSGame(g) {   // «#2 28.09 — ПОРАЖЕНИЕ: точность 71%, миттельшпиль 68%, зевков 6, до эндшпиля НЕ дошли»
@@ -7650,6 +7652,9 @@ var AI_SIMPLE = {
     var last = games.slice(-10), out = [aiSWindow(10, last), AL('Фазы: ', 'Phases: ') + aiSPhases(last) + '.', AL('Партии:', 'Games:')];
     last.forEach(function(g) { out.push('- ' + aiSGame(g)); });
     out.push(AL('Самые частые зевки: ', 'Most frequent blunders: ') + aiSTypes(last, 3, true).join('; ') + '.');
+    if (CUR.stage) CUR.colors.forEach(function(c) { if (!c.done) out.push(AL('Цель этапа: партии ' + COLOR_WORD[c.color] + ' против Stockfish ' + CUR.stage.engine + ', нужно ещё минимум ', 'Stage goal: games as ' + COLOR_EN[c.color] + ' vs Stockfish ' + CUR.stage.engine + ', at least ') + gamesToGoal(c) + AL(' хороших партий.', ' more good games needed.')); var gc = !c.done && aiGoalCond(c); if (gc) out.push(gc); });   // что мешает цели — готово (Sonnet: без этого «мешает миттельшпиль», а не победы и слабые поражения)
+    if (aiCurOps()) out.push(aiCurOps());
+    var th = aiSTheme(); if (th) out.push(th);
     return out;
   },
   // «Разбор последней партии»: 3 момента уже отобраны (перелом, упущенный мат, самый дорогой зевок), каждый — одной строкой

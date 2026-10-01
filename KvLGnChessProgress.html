@@ -6729,7 +6729,10 @@ function applyHush() {
   // скрытый режим (глаз у аватарки): «Анализ» недоступен; открытый анализ сменяется показателями
   $('analysisBtn').disabled = hush.mode;
   $('analysisBtn').title = hush.mode ? 'Недоступно в скрытом режиме' : chartMode === 'analysis' ? 'Вернуться к показателям' : 'Разбор партий на доске: ходы, зевки, график перевеса';
-  if (hush.mode && chartMode === 'analysis') setMode('metrics');
+  // при выходе из скрытого режима анализ возвращается как был (партия, ход, линза, мастер — в an); запоминается и между перезагрузками
+  if (hush.mode && chartMode === 'analysis') { anHushBack = true; setMode('metrics'); }
+  else if (!hush.mode && anHushBack) { anHushBack = false; setMode('analysis'); }
+  try { if (anHushBack) localStorage.setItem('anHushBack', '1'); else localStorage.removeItem('anHushBack'); } catch (e) {}
   placeChartBtns();   // глаз графика мог появиться / пропасть
   renderAnBadge();
   renderTitle();
@@ -6744,6 +6747,8 @@ function applyHush() {
   hushPrev = {head: hush.head, chart: hush.chart, table: hush.table};
 }
 var SECT_NAME = {head: 'шапку', chart: 'график', table: 'партии'};
+var anHushBack = false;   // анализ был открыт, когда включили скрытый режим — вернуть его при выходе
+try { anHushBack = localStorage.getItem('anHushBack') === '1'; } catch (e) {}
 function saveHush() { try { localStorage.setItem('hush', JSON.stringify(hush)); } catch (err) {} }
 var EYE_SVG = $('eyeBtn').innerHTML;
 $('eyeAll').innerHTML = EYE_SVG;

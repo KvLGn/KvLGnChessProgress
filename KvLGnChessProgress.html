@@ -183,7 +183,7 @@
   .tbl-head .chart-title { margin: 0; }
   .hush-q { color: var(--fg-mute) !important; letter-spacing: 2px; }
   body.hush-head .vd-card { cursor: default; }
-  body.hush-head .vd-card:hover { background: linear-gradient(90deg, rgba(129,140,248,0.08) 0%, rgba(129,140,248,0.02) 100%); }
+  body.hush-head .vd-card:hover { background: linear-gradient(90deg, rgba(99,102,241,0.14) 0%, rgba(99,102,241,0.04) 100%); }
   body.hush-head .vd-go { visibility: hidden; }
   body.hush-chart .records-btn, body.hush-chart #cf .f-btn { opacity: 0.45; cursor: not-allowed; }
   body.hush-chart .records-btn:hover { background: none; }
@@ -799,17 +799,17 @@
     flex: 0 0 240px; min-width: 0; width: 240px;
     display: flex; flex-direction: column; justify-content: space-between;
     padding: 8px 14px;
-    border-left: 3px solid rgba(129,140,248,0.55);   /* «Итоги» — индиго, между фиолетовыми «Задачами» и синими «Дебютами» (был салатовый #4ade80) */
+    border-left: 3px solid rgba(99,102,241,0.75);   /* «Итоги» — индиго, между фиолетовыми «Задачами» и синими «Дебютами» (был салатовый #4ade80) */
     border-radius: 0 10px 10px 0;
-    background: linear-gradient(90deg, rgba(129,140,248,0.08) 0%, rgba(129,140,248,0.02) 100%);
+    background: linear-gradient(90deg, rgba(99,102,241,0.14) 0%, rgba(99,102,241,0.04) 100%);
     color: var(--fg);
     cursor: pointer; user-select: none; outline: none;
     transition: background 0.15s, opacity 0.25s;
   }
-  .vd-card:hover, .vd-card:focus-visible, .side-row.vd-open .vd-card { background: linear-gradient(90deg, rgba(129,140,248,0.13) 0%, rgba(129,140,248,0.04) 100%); }
-  .vd-head { display: flex; justify-content: space-between; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #a5b4fc; }
+  .vd-card:hover, .vd-card:focus-visible, .side-row.vd-open .vd-card { background: linear-gradient(90deg, rgba(99,102,241,0.22) 0%, rgba(99,102,241,0.08) 100%); }
+  .vd-head { display: flex; justify-content: space-between; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #818cf8; }
   .vd-go { color: var(--fg-mute); letter-spacing: 0; font-size: 13px; line-height: 1; transition: transform 0.25s; }
-  .side-row.vd-open .vd-go { transform: rotate(180deg); color: #a5b4fc; }
+  .side-row.vd-open .vd-go { transform: rotate(180deg); color: #818cf8; }
   .vd-main { font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   /* карусель итогов: слайды сменяются снизу вверх */
   .vd-car { position: relative; height: 54px; overflow: hidden; }
@@ -832,7 +832,7 @@
     z-index: 16;
     display: flex; flex-direction: column; gap: 6px;
     padding: 8px 14px 10px;
-    border: 1px solid rgba(129,140,248,0.18);
+    border: 1px solid rgba(99,102,241,0.3);
     border-radius: 10px;
     background: #171a2b;
     opacity: 0; transform: translateX(28px); pointer-events: none; visibility: hidden;
@@ -842,8 +842,8 @@
   .profile-row { position: relative; }
   .vd-detail.vdx { left: 0; right: 0; top: 0; bottom: auto; min-height: 100%; max-height: 640px; z-index: 30; padding: 14px 18px 12px; gap: 10px; border-radius: 14px;
     background: linear-gradient(180deg, #1b1e30 0%, #161827 100%); box-shadow: 0 16px 40px rgba(0,0,0,0.5); }
-  .vdx-head { display: flex; align-items: center; gap: 18px; padding-bottom: 10px; border-bottom: 1px solid rgba(129,140,248,0.14); }
-  .vdx-h { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #a5b4fc; }
+  .vdx-head { display: flex; align-items: center; gap: 18px; padding-bottom: 10px; border-bottom: 1px solid rgba(99,102,241,0.22); }
+  .vdx-h { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #818cf8; }
   .vdx-stage { font-size: 13px; color: var(--fg); font-weight: 600; }
   .vdx-goal { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--fg-dim); }
   .vdx-goal b { color: var(--fg); }

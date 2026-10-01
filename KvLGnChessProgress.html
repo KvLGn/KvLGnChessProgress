@@ -6909,7 +6909,10 @@ function gsIndex() {
   add('Сервис', '📋', 'Справка', 'готовые вопросы для ИИ или человека: совет, план на неделю, разбор поражений, правка плана', 'сводка ии ai нейросеть chatgpt промпт копировать', copySummary);
   add('Сервис', '⟳', 'Как обновить данные', 'запусти progress/update.bat · обновлено: ' + (window.GAMES_UPDATED || '—'), 'обновить данные update bat', function() { gsFlash($('footer')); });
   add('Сервис', '↑', 'Наверх', 'к началу страницы', 'наверх начало вверх', function() { window.scrollTo({top: 0, behavior: 'smooth'}); });
-  add('Сервис', '↓', 'К таблице партий', 'список партий и фильтры', 'таблица вниз партии', function() { gsFlash($('filters')); });
+  add('Сервис', '↓', 'К графику', 'показатели, активность, анализ — блок как есть', 'график показатели активность анализ', function() {
+    window.scrollTo({top: $('chartBox').closest('.section').getBoundingClientRect().top + window.scrollY - 12, behavior: 'smooth'}); });
+  add('Сервис', '↓', 'К последним партиям', 'таблица партий и фильтры', 'таблица последние партии вниз', function() {
+    window.scrollTo({top: $('tableTitle').getBoundingClientRect().top + window.scrollY - 12, behavior: 'smooth'}); });
 
   // итоги по вкладкам
   buildVerdicts().forEach(function(v) {
@@ -7009,7 +7012,7 @@ function mnPlace(it) {
   if (g === 'Дебюты') return ['op', /в таблице/.test(sub) ? 'Сыгранные' : 'По плану'];
   if (g === 'Итоги') return ['vd', sub === 'проседает' ? 'Проседает' : sub === 'хорошо' ? 'Хорошо' : 'Что делать'];
   if (g === 'Lichess') return ['li', 'Lichess'];
-  if (g === 'Сервис') return ['sv', /Наверх|К таблице/.test(t) ? 'Навигация' : 'Сервис'];
+  if (g === 'Сервис') return ['sv', /^(Наверх|К графику|К последним партиям)$/.test(t) ? 'Навигация' : 'Сервис'];
   return ['sv', 'Другое'];
 }
 // порядок подгрупп внутри групп (не названные — в конце, как пришли)

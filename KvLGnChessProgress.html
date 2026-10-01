@@ -1284,6 +1284,12 @@
   }
   .f-search:focus { border-color: #818cf8; }
   .f-list { max-height: 260px; overflow-y: auto; margin-top: 6px; }
+  /* «Мой план | Lichess | Все» в заголовке колонки «Дебют» и в списке «Партии» анализа */
+  .th-seg { display: inline-flex; gap: 2px; margin-left: 10px; padding: 2px; vertical-align: middle; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; text-transform: none; letter-spacing: 0; }
+  .th-seg button { font: 600 10.5px Inter, sans-serif; color: var(--fg-mute); background: none; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; }
+  .th-seg button:hover { color: var(--fg); }
+  .th-seg button.on { background: var(--bg-card-hover); color: var(--fg); }
+  .an-head .th-seg { margin-left: auto; align-self: center; }
   /* «Lichess | Мой план» — какие названия дебютов в списке */
   .f-seg { display: flex; gap: 2px; margin-top: 6px; padding: 2px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
   .f-seg button { flex: 1; font: 600 11px Inter, sans-serif; color: var(--fg-mute); background: none; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; }
@@ -1797,7 +1803,7 @@
         <th>№ партии</th>
         <th></th>
         <th>Дата</th>
-        <th>Дебют</th>
+        <th>Дебют <span class="th-seg" id="tblOpSeg" role="group" aria-label="Какие названия дебютов в таблице"></span></th>
         <th>Соперник</th>
         <th>Результат</th>
         <th>ИР</th>
@@ -3633,6 +3639,17 @@ function renderGames() {
   $('nextPage').disabled = currentPage >= pages - 1;
 }
 
+// переключатель названий дебютов в заголовке таблицы
+function renderTblOpSeg() { $('tblOpSeg').innerHTML = opSegHtml(tblOpNames, ['plan', 'lichess', 'all']); }
+$('tblOpSeg').addEventListener('click', function(e) {
+  var b = e.target.closest('[data-opn]');
+  if (!b) return;
+  e.stopPropagation();
+  tblOpNames = b.getAttribute('data-opn');
+  try { localStorage.setItem('tblOpNames', tblOpNames); } catch (err) {}
+  renderTblOpSeg();
+  renderGames();
+});
 $('prevPage').addEventListener('click', function() { currentPage--; renderGames(); });
 $('nextPage').addEventListener('click', function() { currentPage++; renderGames(); });
 
@@ -4646,7 +4663,7 @@ function anBoardSvg(board, o) {
 /* --- колонки --- */
 // партии: номер, дата, результат, точки типов зевков и их число, дебют, цвет и соперник
 function anListHtml(list, g) {
-  var head = '<div class="an-head">Партии <span>' + list.length + '</span></div>';
+  var head = '<div class="an-head">Партии <span>' + list.length + '</span><span class="th-seg an-opseg">' + opSegHtml(anOpNames, ['plan', 'lichess']) + '</span></div>';
   if (!list.length) return head + '<div class="an-list-in"><div class="an-empty">' + (games.length ? 'Нет партий под фильтр графика' : 'Партий пока нет') + '</div></div>';
   return head + '<div class="an-list-in">' + list.map(function(x) {
     var R = RESULT[x.result], bl = x.bl || [];
@@ -4657,7 +4674,8 @@ function anListHtml(list, g) {
         '<span class="an-res" style="color:' + R.color + ';background:' + R.bg + '">' + R.letter + '</span>' +
         '<span class="an-g-bl" title="Зевков: ' + bl.length + (bl.length ? ' — ' + esc(blSummary(bl)) : '') + '">' +
           (anFresh(x) ? anBang('Новая партия (последние сутки) — есть что разобрать') : '') + dots + ' ' + (bl.length || '—') + '</span></span>' +
-      '<span class="an-g-op" title="' + esc(x.opening) + '">' + esc(x.opening) + '</span>' +
+      '<span class="an-g-op" title="' + esc('Lichess: ' + x.opening + ' · план: ' + (planOpName(x) || 'вне плана')) + '">' +
+        esc(anOpNames === 'plan' ? planOpName(x) || 'вне плана' : x.opening) + '</span>' +
       '<span class="an-g-sub">' + KNIGHT[x.color] + ' ' + COLOR_WORD[x.color] + ' · ' + esc(x.engine) + '</span></button>';
   }).join('') + '</div>';
 }
@@ -4830,6 +4848,15 @@ function anOpen(g, ply, lens) {
   if (was) renderAnalysis();
 }
 $('anBox').addEventListener('click', function(e) {
+  var o = e.target.closest('.an-opseg [data-opn]');
+  if (o) {   // названия дебютов в списке партий: мой план / Lichess
+    anOpNames = o.getAttribute('data-opn');
+    try { localStorage.setItem('anOpNames', anOpNames); } catch (err) {}
+    var keep = $('anBox').querySelector('.an-list-in'), top = keep ? keep.scrollTop : 0;
+    renderAnalysis();
+    if ($('anBox').querySelector('.an-list-in')) $('anBox').querySelector('.an-list-in').scrollTop = top;
+    return;
+  }
   var t = e.target.closest('.an-pick .win-toggle, [data-lens], [data-master], .an-g, .an-m, .an-mv, .an-mc, [data-nav], .an-graph svg');
   if (!t) return;
   if (t.classList.contains('win-toggle')) { e.stopPropagation(); t.parentNode.classList.toggle('open'); return; }   // выпадающий список линз
@@ -5111,8 +5138,28 @@ function planOpening(g) {
   return byFirst.length === 1 ? {plan: byFirst[0]} : {maybe: cur};
 }
 var CK_L = '<i class="ck ck-l" title="по данным Lichess">✓</i>', CK_P = '<i class="ck ck-p" title="по твоему плану (data/plan.js)">✓</i>';
+// какие названия дебюта показывать: 'all' — Lichess и план (как было), 'plan' — только мой план, 'lichess' — только Lichess
+var OP_NAMES = [['plan', 'Мой план'], ['lichess', 'Lichess'], ['all', 'Все']];
+var tblOpNames = 'all', anOpNames = 'lichess';   // таблица партий / список «Партии» в «Анализе»
+try { tblOpNames = localStorage.getItem('tblOpNames') || 'all'; anOpNames = localStorage.getItem('anOpNames') || 'lichess'; } catch (e) {}
+function opSegHtml(cur, keys) {
+  return OP_NAMES.filter(function(o) { return keys.indexOf(o[0]) >= 0; }).map(function(o) {
+    return '<button type="button" class="' + (o[0] === cur ? 'on' : '') + '" data-opn="' + o[0] + '">' + o[1] + '</button>';
+  }).join('');
+}
+// дебют по плану одной строкой: «Итальянская», бот начал необычно — «Сицилианская? · Славянская?», вне плана — null
+function planOpName(g) {
+  var P = planOpening(g);
+  return P.both ? P.both.name : P.plan ? P.plan.name : P.maybe ? P.maybe.map(function(o) { return o.name + '?'; }).join(' · ') : null;
+}
 function openingCell(g) {
   var P = planOpening(g), L = esc(g.opening);
+  if (tblOpNames === 'lichess') return L;
+  if (tblOpNames === 'plan') {
+    if (P.both || P.plan) return esc((P.both || P.plan).name) + CK_P;
+    if (P.maybe) return '<span class="op-plan maybe" title="Бот начал необычным ходом — какой дебют из плана, не определить. По Lichess: ' + L + '">' + esc(planOpName(g)) + '</span>';
+    return '<span class="op-plan maybe" title="По Lichess: ' + L + '">вне плана</span>';
+  }
   if (P.both) return L + CK_L + CK_P;
   if (P.plan) return L + CK_L + '<span class="op-plan"> · ' + esc(P.plan.name) + CK_P + '</span>';
   if (P.maybe) return L + CK_L + '<span class="op-plan maybe" title="Бот начал необычным ходом — какой дебют из плана, не определить"> · ' +
@@ -6735,6 +6782,7 @@ renderWindow();
 renderChartFilter();
 renderMetricInputs();
 renderFilterBar();
+renderTblOpSeg();   // переключатель «Мой план | Lichess | Все» в заголовке колонки «Дебют»
 renderGames();
 if (chartMode !== 'metrics') setMode(chartMode);
 applyHush();

@@ -7109,6 +7109,15 @@ function aiAwaySummary(o, A) {   // «Итого: 7 партий; мой ход 
     'Total: ' + A.away.length + ' games; my move differed from the masters in ' + dev + ' of ' + A.away.length + '; middlegame in these games ' + aiPct(avg(A.away, 'mid')) + ' on average' +
       (b.length ? ' (with the opening on the board — ' + aiPct(avg(b, 'mid')) + ')' : '') + '.');
 }
+function aiAwayFreq(A) {   // «Самый частый ответ бота — Sicilian Defense (2). Одинаково часто, по 1 партии: …»
+  var by = {}, out = [];
+  A.keys.forEach(function(k) { var n = A.grp[k].length; (by[n] = by[n] || []).push(k); });
+  var ns = Object.keys(by).map(Number).sort(function(a, b) { return b - a; });
+  if (!ns.length) return out;
+  if (by[ns[0]].length === 1 && A.keys.length > 1) out.push(AL('Самый частый ответ бота — ', 'The bot\'s most frequent reply is ') + by[ns[0]][0] + ' (' + ns[0] + ').');
+  ns.forEach(function(n) { if (by[n].length > 1) out.push(AL('Одинаково часто, по ' + n + ' ' + plural(n, 'партии', 'партии', 'партий') + ': ', 'Equally often, ' + n + ' game' + (n === 1 ? '' : 's') + ' each: ') + by[n].join(', ') + '.'); });
+  return out;
+}
 function aiAwayDev(gl) {   // мои отходы от мастеров в группе: «2. Bc4 — мастера чаще Nf3 (83%, мастера); 3. Bc4 — …»
   var c = {};
   var MS_EN = {m: 'masters', l: 'Lichess 2000+', a: 'Lichess 1800+'};
@@ -7131,6 +7140,7 @@ AI_DATA.opAway = function() {
     var gl = A.grp[k], dev = aiAwayDev(gl);
     out.push('– ' + k + ': ' + gl.length + ' (' + aiWL(gl) + AL('), миттельшпиль ', '), middlegame ') + aiPct(avg(gl, 'mid')) + AL('; партии ', '; games ') + gl.map(aiGid).join(', ') + (dev ? AL('; мой отход: ', '; my deviation: ') + dev : ''));
   });
+  out = out.concat(aiAwayFreq(A));
   return out;
 };
 // 15. планы после дебюта: что происходит в миттельшпиле моих партий этого дебюта
@@ -7426,6 +7436,7 @@ var AI_SIMPLE = {
     out.push(AL('Партии по плану «' + o.name + '», где бот ответил иначе (' + A.away.length + '), по ответу бота:', 'Planned ' + opEn(o) + ' games where the bot replied differently (' + A.away.length + '), by the bot\'s reply:'));
     out.push(aiAwaySummary(o, A));
     A.keys.forEach(function(k) { var gl = A.grp[k], dev = aiAwayDev(gl); out.push('– ' + k + ': ' + gl.length + ' (' + aiWL(gl) + ')' + (dev ? AL('; мой отход: ', '; my deviation: ') + dev : '')); });
+    out = out.concat(aiAwayFreq(A));
     return out;
   },
   plans: function() {

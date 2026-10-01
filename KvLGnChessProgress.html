@@ -6904,11 +6904,23 @@ function gsIndex() {
   function ext(title, sub, keys, url) { add('Lichess', '↗', title, sub, keys, function() { window.open(url, '_blank'); }); }
   if (CUR.stage) ext('Сыграть с Stockfish ' + CUR.stage.engine, 'откроется окно игры с компьютером — выбери уровень ' + CUR.stage.engine + ' и ' + ((CUR.colors.filter(function(c) { return !c.done; })[0] || CUR.colors[0]).color === 'white' ? 'белые' : 'чёрные'), 'играть сыграть stockfish бот компьютер', 'https://lichess.org/#ai');
   ext('Задачи: микс', 'тренировка на Lichess', 'задачи микс тренировка', 'https://lichess.org/training/mix');
+  // слабые места — первыми: темы задач ниже среднего перфоманса (худшая первой; не меньше 3, не больше 7) и слабая фаза партий
   if (P2 && P2.themeStats && P2.global) {
-    var weakest = Object.keys(P2.themeStats).filter(function(k) { return !PZ_SKIP[k] && P2.themeStats[k].nb >= 5; })
-      .sort(function(a, b) { return P2.themeStats[a].perf - P2.themeStats[b].perf; })[0];
-    if (weakest) ext('Задачи по слабой теме: ' + ((P2.themeNames || {})[weakest] || weakest), 'перфоманс ' + P2.themeStats[weakest].perf + ' — самая слабая тема', 'задачи слабая тема тренировать', 'https://lichess.org/training/' + weakest);
+    var gp = P2.global.perf, ranked = Object.keys(P2.themeStats).filter(function(k) { return !PZ_SKIP[k] && P2.themeStats[k].nb >= 5; })
+      .sort(function(a, b) { return P2.themeStats[a].perf - P2.themeStats[b].perf; });
+    var below = ranked.filter(function(k) { return P2.themeStats[k].perf < gp; });
+    ranked.slice(0, Math.min(7, Math.max(3, below.length))).forEach(function(k) {
+      var t = P2.themeStats[k];
+      ext('Слабая тема: ' + ((P2.themeNames || {})[k] || PZ_NAMES[k] || k), 'перфоманс ' + t.perf + ' (средний ' + gp + ') · ' + t.nb + ' задач · ' + Math.round(t.first / t.nb * 100) + '% с 1-й попытки',
+        'задачи слабая тема тренировать ' + k, 'https://lichess.org/training/' + k);
+    });
   }
+  (function() {   // слабая фаза по последним 10 партиям — заметно ниже остальных
+    var last = games.slice(-10), PH = [['debut', 'opening', 'дебют'], ['mid', 'middlegame', 'миттельшпиль'], ['end', 'endgame', 'эндшпиль']];
+    var ph = PH.map(function(p) { return {k: p[1], ru: p[2], v: avg(last, p[0])}; }).filter(function(x) { return x.v !== null; }).sort(function(a, b) { return a.v - b.v; });
+    if (ph.length >= 2 && ph[ph.length - 1].v - ph[0].v >= 10)
+      ext('Слабая фаза: ' + ph[0].ru, 'точность ' + Math.round(ph[0].v) + '% против ' + Math.round(ph[ph.length - 1].v) + '% в фазе «' + ph[ph.length - 1].ru + '» · задачи этой фазы', 'слабая фаза задачи ' + ph[0].ru, 'https://lichess.org/training/' + ph[0].k);
+  })();
   var OO = window.OPENINGS || {};
   (OO.current || []).concat(OO.next || []).forEach(function(o) {
     (o.match || []).slice(0, 1).forEach(function(m) {
@@ -6984,7 +6996,7 @@ function gsSections(it) {
   if (/^(Задачи|Студии|Итоги|Темы задач)$/.test(g)) return ['head'];
   if (g === 'Дебюты') return /в таблице/.test(it.sub) ? ['table'] : ['head'];
   if (g === 'Партии') return ['table'];
-  if (g === 'Lichess') return /^Анализ/.test(t) ? ['table'] : /^(Задачи по|Сыграть)/.test(t) ? ['head'] : [];
+  if (g === 'Lichess') return /^Анализ/.test(t) ? ['table'] : /^(Задачи по|Сыграть|Слабая тема)/.test(t) ? ['head'] : /^Слабая фаза/.test(t) ? ['chart'] : [];
   return [];
 }
 
@@ -7022,7 +7034,7 @@ function mnPlace(it) {
   if (g === 'Студии') return ['op', 'Студии мастеров'];
   if (g === 'Дебюты') return ['op', /в таблице/.test(sub) ? 'Сыгранные' : 'По плану'];
   if (g === 'Итоги') return ['vd', sub === 'проседает' ? 'Проседает' : sub === 'хорошо' ? 'Хорошо' : 'Что делать'];
-  if (g === 'Lichess') return ['li', 'Lichess'];
+  if (g === 'Lichess') return ['li', /^Слабая (тема|фаза)/.test(t) ? 'Слабые места' : 'Lichess'];
   if (g === 'Сервис') return ['sv', /^(К графику|К последним партиям)$/.test(t) ? 'Навигация' : 'Сервис'];
   return ['sv', 'Другое'];
 }
@@ -7030,7 +7042,7 @@ function mnPlace(it) {
 var MN_SUB_ORDER = ['Быстро', 'Вкладки', 'Мастера', 'Показатели', 'Сравнения', 'Линии', 'Активность', 'Дни',
   'Открыть', 'Результат и цвет', 'Даты', 'Мой дебют', 'Режим партии', 'Зевки и маты', 'Сброс',
   'Таблица', 'Все партии', 'Цифры', 'Партии', 'Тренировки', 'Темы', 'По плану', 'Студии мастеров', 'Сыгранные',
-  'Проседает', 'Хорошо', 'Что делать', 'Lichess', 'Сервис', 'Навигация'];
+  'Проседает', 'Хорошо', 'Что делать', 'Слабые места', 'Lichess', 'Сервис', 'Навигация'];
 var mn = {g: null, items: [], tree: {}};
 // дерево меню из текущих данных (пересобирается при каждом открытии — новые партии и скрытие учитываются сами)
 function mnBuild() {

@@ -7063,7 +7063,7 @@ function aiSPhases(list) {   // «дебют 73%, миттельшпиль 60%, 
 }
 function aiSTypes(list, n) {   // типы зевков от частых к редким, с пояснением
   var c = {}; list.forEach(function(g) { (g.bl || []).forEach(function(b) { c[b.t] = (c[b.t] || 0) + 1; }); });
-  return Object.keys(c).sort(function(a, b) { return c[b] - c[a]; }).slice(0, n || 9).map(function(t, i) { return (i + 1) + ') ' + aiBlType(t) + ' — ' + c[t] + ' (' + AL(BL_MEAN[t][0], BL_MEAN[t][1]) + ')'; });
+  return Object.keys(c).sort(function(a, b) { return c[b] - c[a]; }).slice(0, n || 9).map(function(t) { return '– ' + aiBlType(t) + ' — ' + c[t] + ' (' + AL(BL_MEAN[t][0], BL_MEAN[t][1]) + ')'; });
 }
 function aiSTheme() { var wt = aiWeakThemes(1), P = window.PUZZLES || {}; return wt.length ? AL('Самая слабая тема задач: ', 'The weakest puzzle theme: ') + wt[0].replace(/^1\) /, '').replace(AL(' — самая слабая', ' — the weakest'), '') + AL(' (общий перфоманс ', ' (overall performance ') + (P.global ? P.global.perf : '—') + ').' : ''; }
 function aiSWindow(n, list) { return AL('Все числа ниже — за последние ' + n + ' ' + plural(n, 'партию', 'партии', 'партий') + ' (' + aiWL(list) + ').', 'All numbers below are for the last ' + n + ' games (' + aiWL(list) + ').'); }

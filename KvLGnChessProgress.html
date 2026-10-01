@@ -2032,11 +2032,22 @@ function gamesToGoal(c) {
   }
   return RULE.blocks * RULE.games;
 }
+function winsToGoal(c, k) {   // сколько из k следующих партий минимум должны быть победами (остальные — честные поражения); перебор раскладок
+  var win = {result: 'win', acc: 100, blunders: 0}, loss = {result: 'lose', acc: 100, blunders: 0}, best = k;
+  for (var m = 0; m < (1 << k); m++) {
+    var w = 0, t = c.rel.slice();
+    for (var i = 0; i < k; i++) { var isW = (m >> i) & 1; w += isW; t.push(isW ? win : loss); }
+    if (w < best && t.length >= RULE.blocks * RULE.games && splitBlocks(t).every(function(b) { return b.ok; })) best = w;
+  }
+  return best;
+}
 function toGoalText(c, lang) {
-  var k = gamesToGoal(c);
+  var k = gamesToGoal(c), w = winsToGoal(c, k), N = RULE.blocks * RULE.games;
   return lang === 'en'
-    ? 'To reach the goal: at least ' + k + ' more game' + (k === 1 ? '' : 's') + ' vs this engine, and all of them must be good (wins or decent losses, accuracy around ' + RULE.medianAcc + '%+, at most ' + RULE.lossMaxBlunders + ' blunders). A weak loss blocks the goal while it is among the last ' + RULE.blocks * RULE.games + ' games.'
-    : 'Чтобы выполнить цель: минимум ещё ' + k + ' ' + plural(k, 'партия', 'партии', 'партий') + ' против этого бота, и все должны быть хорошими (победы или достойные поражения, точность около ' + RULE.medianAcc + '%+, не больше ' + RULE.lossMaxBlunders + ' зевков). Слабое поражение не даёт выполнить цель, пока оно среди последних ' + RULE.blocks * RULE.games + ' партий.';
+    ? 'To reach the goal: at least ' + k + ' more game' + (k === 1 ? '' : 's') + ' vs this engine; of them at least ' + w + ' win' + (w === 1 ? '' : 's') + (w < k ? ', the rest only honest losses (accuracy ≥ ' + RULE.lossMinAcc + '% and at most ' + RULE.lossMaxBlunders + ' blunders), with at most ' + (RULE.games - RULE.wins) + ' non-win' + (RULE.games - RULE.wins === 1 ? '' : 's') + ' in each set' : '') +
+      '; median accuracy in each set of ' + RULE.games + ' ≥ ' + RULE.medianAcc + '%. The blunder and accuracy limits apply only to losses — a win counts with any number of blunders. A weak loss blocks the goal while it is among the last ' + N + ' games counting towards it.'
+    : 'Чтобы выполнить цель: минимум ещё ' + k + ' ' + plural(k, 'партия', 'партии', 'партий') + ' против этого бота; из них не меньше ' + w + ' ' + plural(w, 'победы', 'побед', 'побед') + (w < k ? ', остальные — только честные поражения (точность ≥ ' + RULE.lossMinAcc + '% и не больше ' + RULE.lossMaxBlunders + ' зевков), и в каждой пятёрке не больше ' + (RULE.games - RULE.wins) + ' ' + plural(RULE.games - RULE.wins, 'поражения', 'поражений', 'поражений') : '') +
+      '; медиана точности в каждой пятёрке ≥ ' + RULE.medianAcc + '%. Лимиты по зевкам и точности — только для поражений: победа засчитывается при любом числе зевков. Слабое поражение не даёт выполнить цель, пока оно среди последних ' + N + ' партий, идущих в цель.';
 }
 var SPEED_RU = {correspondence: 'без часов (переписка)', classical: 'классика', rapid: 'рапид', blitz: 'блиц', bullet: 'пуля', ultraBullet: 'ультрапуля'};
 var SPEED_EN = {correspondence: 'no clock (correspondence)', classical: 'classical', rapid: 'rapid', blitz: 'blitz', bullet: 'bullet', ultraBullet: 'ultrabullet'};
@@ -6841,6 +6852,13 @@ function aiWeekHead(W) {   // что и как сравнивается — пе
   if (W.n < 3) out.push(AL('Мало партий для сравнения (' + W.n + ') — выводы ненадёжны, так и скажи.', 'Too few games to compare (' + W.n + ') — conclusions are unreliable, say so.'));
   return out;
 }
+function aiGoalWin(c) {
+  var gl = [].concat.apply([], c.blocks.map(function(b) { return b.games; }));
+  if (!gl.length) return null;
+  var a = '#' + (games.indexOf(gl[0]) + 1), z = '#' + (games.indexOf(gl[gl.length - 1]) + 1), N = RULE.blocks * RULE.games;
+  return AL('Пятёрки собираются из последних ' + N + ' партий, идущих в цель (сейчас ' + a + '–' + z + '); каждая новая такая партия сдвигает окно на одну.',
+            'The sets are built from the last ' + N + ' games counting towards the goal (now ' + a + '–' + z + '); each new such game shifts the window by one.');
+}
 function aiGoalCond(c) {   // «Условия (белыми): медиана точности — выполнена (71%, 86%); победы — 5 из 10 … — не выполнено; поражения — …»
   var B = c.blocks.filter(function(b) { return b.games.length; });
   if (!B.length) return null;
@@ -7154,7 +7172,7 @@ var AI_DATA = {
         b.games.forEach(function(g) { out.push('    ' + aiGame(g)); });
       });
     });
-    CUR.colors.forEach(function(c) { if (!c.done) { var gc = aiGoalCond(c); if (gc) out.push(gc); out.push((CUR.colors.length > 1 ? AL(COLOR_WORD[c.color] + ': ', 'as ' + COLOR_EN[c.color] + ': ') : '') + toGoalText(c, aiLang)); } });
+    CUR.colors.forEach(function(c) { if (!c.done) { var gw = aiGoalWin(c), gc = aiGoalCond(c); if (gw) out.push(gw); if (gc) out.push(gc); out.push((CUR.colors.length > 1 ? AL(COLOR_WORD[c.color] + ': ', 'as ' + COLOR_EN[c.color] + ': ') : '') + toGoalText(c, aiLang)); } });
     out.push(aiGoalPace());
     return out;
   },
@@ -7586,7 +7604,7 @@ var AI_SIMPLE = {
       'Stage goal: 2 sets of 5 in a row vs Stockfish ' + CUR.stage.engine + '; each needs 4+ wins of 5, median overall accuracy of at least ' + RULE.medianAcc + '%, losses with accuracy of at least ' + RULE.lossMinAcc + '% and at most ' + RULE.lossMaxBlunders + ' blunders.')];
     CUR.colors.forEach(function(c) {
       c.blocks.forEach(function(b, i) { out.push(AL('Пятёрка ', 'Set ') + (i + 1) + ': ' + blockDesc(b)); });
-      if (!c.done) { var gc = aiGoalCond(c); if (gc) out.push(gc); out.push(AL('Нужно ещё минимум ', 'At least ') + gamesToGoal(c) + AL(' партий, и все хорошие.', ' more games needed, all of them good.')); }
+      if (!c.done) { var gc = aiGoalCond(c); if (gc) out.push(gc); out.push(toGoalText(c, aiLang)); }
     });
     out.push(aiGoalPace() + '.');
     return out;

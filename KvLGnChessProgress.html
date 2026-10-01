@@ -6802,7 +6802,7 @@ function humanTextInner(ask, isPlan, dataKey, item) {
     var refs = AI_REFS.slice().sort(function(a, b) { return b.n - a.n; }).slice(0, 3);
     var q = item ? (aiLang === 'en' ? item.hEn : item.h) : null;
     q = typeof q === 'function' ? q(aiCtx()) : q || ask;
-    out.push(AL('Привет! Учусь играть в шахматы, на Lichess я KvLGn (lichess.org/@/KvLGn). Хочу спросить совета.', 'Hi! I am learning chess, on Lichess I am KvLGn (lichess.org/@/KvLGn). I would like some advice.'), '');
+    out.push(AL('Привет! Учусь играть в шахматы и хочу спросить совета.', 'Hi! I am learning chess and would like some advice.'), '');
     out.push(AL('Вопрос: ', 'Question: ') + q, '');
     out.push(AL('Коротко обо мне:', 'About me in short:'));
     out = out.concat(aiAbout().map(function(t) { return '• ' + t; }));

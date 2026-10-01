@@ -2809,9 +2809,11 @@ function mrBar(label, v, color, delta) {
 // на уровне начала отчёта, а если места над графиком мало — график сдвигается вниз на недостающее; 'off' — закрыта
 function mrInfoFit(w, mode) {
   var pnl = w.querySelector('.mr-info');
-  w.style.minHeight = ''; w.style.paddingTop = ''; if (pnl) pnl.style.transform = '';
+  w.style.minHeight = ''; w.style.paddingTop = ''; if (pnl) { pnl.style.transform = ''; pnl.style.minHeight = ''; }
   if (!pnl || mode === 'off') return;
   if (mode === 'cover') { w.style.minHeight = pnl.offsetHeight + 'px'; return; }
+  // поднята: высота панели — только по содержимому (иначе min-height: 100% растянет её вместе с отступом блока на график)
+  pnl.style.minHeight = '0';
   var head = w.closest('.mr').querySelector('.mr-head');
   var dy = w.getBoundingClientRect().top - head.getBoundingClientRect().top;   // от начала отчёта до графика
   w.style.paddingTop = Math.max(0, pnl.offsetHeight + 8 - dy) + 'px';

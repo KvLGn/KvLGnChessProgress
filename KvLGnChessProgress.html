@@ -776,6 +776,7 @@
   .opd-col { min-width: 0; }
   .opd-name { font-size: 13px; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .opd-name .op-kn { font-size: 12px; }
+  .opd-away { font-size: 11px; color: var(--fg-mute); margin-top: 2px; }
   .opd-row { font-size: 11px; color: var(--fg-dim); line-height: 1.5; }
   .opd-row .w { color: var(--green); font-weight: 600; }
   .opd-row .l { color: var(--red); font-weight: 600; }
@@ -5621,19 +5622,34 @@ function opMatch(o, name) {
   return (o.match || []).some(function(m) { return (name || '').toLowerCase().indexOf(m.toLowerCase()) >= 0; });
 }
 // партии этим цветом в этом дебюте + задачи из этого дебюта
+// изучаемый дебют — по плану (planOpening, как подбор мастера в «Анализе»): за белых каждая партия этим цветом — попытка дебюта,
+// за чёрных — по первому ходу бота (vs). board — где дебют действительно получился на доске (название Lichess), away — куда бот увёл остальные.
+// Следующие / в планах / изученные (их нет в current) — по названию Lichess, как раньше
 function opStats(o) {
-  var gl = games.filter(function(g) { return g.color === o.color && opMatch(o, g.opening); });
+  var isCur = ((window.OPENINGS || {}).current || []).indexOf(o) >= 0;
+  var board = games.filter(function(g) { return g.color === o.color && opMatch(o, g.opening); });
+  var gl = isCur ? games.filter(function(g) { var pl = planOpening(g); return pl.both === o || pl.plan === o; }) : board;
+  var away = {};
+  gl.forEach(function(g) { if (board.indexOf(g) < 0) { var k = g.opening.split(':')[0]; away[k] = (away[k] || 0) + 1; } });
   var w = gl.filter(function(g) { return g.result === 'win'; }).length;
   var l = gl.filter(function(g) { return g.result === 'lose'; }).length;
   var pz = ((window.PUZZLES || {}).attempts || []).filter(function(a) { return opMatch(o, a.op); });
-  return {games: gl, w: w, l: l, d: gl.length - w - l, debut: avg(gl, 'debut'),
+  return {games: gl, w: w, l: l, d: gl.length - w - l, debut: avg(gl, 'debut'), byPlan: isCur,
+          board: board.filter(function(g) { return gl.indexOf(g) >= 0; }), away: away,
           pz: pz.length, pzOk: pz.filter(function(a) { return a.win; }).length};
 }
 function opName(o) { return esc(o.name) + ' <span class="op-kn">' + KNIGHT[o.color] + '</span>'; }
 function opGamesLine(st) {
   if (!st.games.length) return 'партий пока нет';
-  return st.games.length + ' ' + plural(st.games.length, 'партия', 'партии', 'партий') + ' · ' +
-    Math.round(st.w / st.games.length * 100) + '% побед';
+  var onBoard = st.byPlan && st.board.length < st.games.length;
+  return '<span' + (st.byPlan ? ' title="Партии по плану: каждая партия этим цветом' + (onBoard ? '. На доске дебют получился в ' + st.board.length + ', в остальных бот ответил иначе' : '') + '"' : '') + '>' +
+    st.games.length + ' ' + plural(st.games.length, 'партия', 'партии', 'партий') + ' · ' + Math.round(st.w / st.games.length * 100) + '% побед' +
+    (onBoard ? ' · на доске ' + st.board.length : '') + '</span>';
+}
+// «Sicilian Defense 2, French Defense 1, …» — куда бот уводил партию из дебюта плана
+function opAwayText(st) {
+  var k = Object.keys(st.away).sort(function(a, b) { return st.away[b] - st.away[a]; });
+  return k.map(function(x) { return x + ' ' + st.away[x]; }).join(', ');
 }
 
 function renderOpeningCard() {
@@ -5711,6 +5727,8 @@ function renderOpeningDetail() {
         ? st.games.length + ' ' + plural(st.games.length, 'партия', 'партии', 'партий') + ' · <span class="w">' + st.w + 'W</span> <span class="l">' + st.l + 'L</span>' +
           (st.d ? ' ' + st.d + 'D' : '') + (st.debut !== null ? ' · дебют ' + Math.round(st.debut) + '%' : '')
         : 'партий пока нет') + '</div>' +
+      (st.byPlan && st.board.length < st.games.length ? '<div class="opd-row">На доске — ' + st.board.length + ' · <span class="w">' + st.board.filter(function(g) { return g.result === 'win'; }).length + 'W</span> <span class="l">' + st.board.filter(function(g) { return g.result === 'lose'; }).length + 'L</span>' +
+        '<div class="opd-away" title="' + esc('Бот ответил иначе: ' + opAwayText(st)) + '">бот уводил в другие дебюты — ' + (st.games.length - st.board.length) + '</div></div>' : '') +
       '<div class="opd-row">' + (st.pz ? 'Задачи ' + st.pz + ' · <span class="w">' + st.pzOk + '✓</span> <span class="l">' + (st.pz - st.pzOk) + '✗</span>' : 'задач по дебюту нет') + '</div>' +
       '<div class="opd-row opd-links"><span class="lbl">Студии</span><span class="list">' + studyLinks(o) + '</span></div>' +
     '</div>';
@@ -6256,7 +6274,7 @@ function aiSummary() {
   L.push('');
   L.push('## Дебюты');
   var O = window.OPENINGS || {};
-  function on(list) { return (list || []).map(function(o) { var st = opStats(o); return o.name + ' (' + COLOR_WORD[o.color] + (st.games.length ? ', ' + st.games.length + ' ' + plural(st.games.length, 'партия', 'партии', 'партий') + ', ' + st.w + 'W/' + st.l + 'L' : '') + ')'; }).join('; ') || '—'; }
+  function on(list) { return (list || []).map(function(o) { var st = opStats(o); return o.name + ' (' + COLOR_WORD[o.color] + (st.games.length ? ', ' + (st.byPlan ? 'по плану ' : '') + st.games.length + ' ' + plural(st.games.length, 'партия', 'партии', 'партий') + ', ' + st.w + 'W/' + st.l + 'L' + (st.byPlan && st.board.length < st.games.length ? '; на доске получился в ' + st.board.length + ', в остальных бот ответил иначе: ' + opAwayText(st) : '') : '') + ')'; }).join('; ') || '—'; }
   L.push('Изучаю: ' + on(O.current));
   L.push('Далее: ' + on(O.next));
   L.push('В планах: ' + on(O.planned));
@@ -6689,7 +6707,15 @@ function aiMateStat(list) {   // по партиям: в скольких был
 }
 function aiInGoal(g) { var S = CUR.stage; return !!S && g.engine === 'Stockfish ' + S.engine && S.colors.indexOf(g.color) >= 0; }
 function aiOp() { return ((window.OPENINGS || {}).current || [])[0]; }
-function aiOpGames() { var o = aiOp(); return o ? games.filter(function(g) { return g.color === o.color && opMatch(o, g.opening); }) : []; }
+function aiOpGames() { var o = aiOp(); return o ? opStats(o).games : []; }   // по плану — как карточка «Дебюты» и подбор мастера в «Анализе»
+// «Итальянская на доске получилась в 4 из 11 партий по плану (…); в остальных бот ответил иначе: Sicilian Defense 2, …»
+function aiBoardLine(o) {
+  var st = opStats(o), n = st.games.length, b = st.board, w = b.filter(function(g) { return g.result === 'win'; }).length, l = b.filter(function(g) { return g.result === 'lose'; }).length;
+  if (!st.byPlan || !n) return '';
+  if (b.length === n) return AL('Дебют «' + o.name + '» получился на доске во всех ' + n + ' партиях по плану.', 'The ' + opEn(o) + ' appeared on the board in all ' + n + ' planned games.');
+  return AL('Дебют «' + o.name + '» на доске получился в ' + b.length + ' из ' + n + ' партий по плану (' + w + ' ' + plural(w, 'победа', 'победы', 'побед') + ', ' + l + ' ' + plural(l, 'поражение', 'поражения', 'поражений') + '); в остальных бот ответил иначе: ',
+            'The ' + opEn(o) + ' appeared on the board in ' + b.length + ' of ' + n + ' planned games (' + w + ' won, ' + l + ' lost); in the rest the bot replied differently: ') + opAwayText(st) + '.';
+}
 function themeName(k) { var P = window.PUZZLES || {}; return AL((P.themeNames || {})[k] || PZ_NAMES[k] || k, k.replace(/([a-z])([A-Z0-9])/g, '$1 $2').toLowerCase()); }
 function aiWeakThemes(n) {
   var P = window.PUZZLES;
@@ -6934,7 +6960,8 @@ var AI_DATA = {
     var o = aiOp(), gl = aiOpGames(), att = (window.PUZZLES || {}).attempts || [];
     if (!o) return [AL('Изучаемый дебют не задан', 'No opening being studied')];
     var from = isoDay(addDays(gameToday(), -13)), pz = att.filter(function(a) { return a.day >= from && opMatch(o, a.op); });
-    var out = [AL('Партии в дебюте «' + o.name + '»: всего ' + gl.length + (gl.length > 8 ? ', ниже последние 8' : '') + ':', 'Games in the ' + opEn(o) + ': ' + gl.length + ' in total' + (gl.length > 8 ? ', the last 8 below' : '') + ':')];
+    var out = [AL('Партии по плану дебюта «' + o.name + '» (каждая партия ' + COLOR_WORD[o.color] + '): всего ' + gl.length + (gl.length > 8 ? ', ниже последние 8' : '') + '.', 'Planned games of the ' + opEn(o) + ' (every game as ' + COLOR_EN[o.color] + '): ' + gl.length + ' in total' + (gl.length > 8 ? ', the last 8 below' : '') + '.')];
+    var bl = aiBoardLine(o); if (bl) out.push(bl);
     if (!gl.length) out.push(AL('партий пока нет', 'no games yet'));
     if (gl.length > 1) out.push(AL('Порядок ниже — по тому, как долго партия шла как у мастеров: сначала дольше всего.', 'Order below — by how long the game followed the masters: longest first.'));
     aiSortBy(gl.slice(-8), aiMsDepth, true).forEach(function(g) { out.push(aiGame(g)); var ms = aiMs(g); if (ms) out.push('  ' + ms); });
@@ -6986,11 +7013,12 @@ var AI_DATA = {
 };
 // 15. планы после дебюта: что происходит в миттельшпиле моих партий этого дебюта
 AI_DATA.plans = function() {
-  var o = aiOp(), all = aiOpGames(), gl = all.slice(-8), other = games.slice(-20).filter(function(g) { return all.indexOf(g) < 0; }), out = [];
+  var o = aiOp(), all = aiOpGames(), gl = all.slice(-8), out = [];
   if (!o) return [AL('Изучаемый дебют не задан', 'No opening being studied')];
   if (!gl.length) return [AL('Партий в дебюте «' + o.name + '» пока нет', 'No games in the ' + opEn(o) + ' yet')];
-  out.push(AL('Миттельшпиль в моих партиях дебюта «' + o.name + '» (последние ' + gl.length + '): точность ', 'Middlegame in my ' + opEn(o) + ' games (last ' + gl.length + '): accuracy ') + aiPct(avg(gl, 'mid')) +
-    AL('; в других дебютах (из последних 20 партий): ', '; in other openings (of the last 20 games): ') + aiPct(avg(other, 'mid')) + '.');
+  var st = opStats(o), on = st.board, off = all.filter(function(g) { return on.indexOf(g) < 0; });
+  out.push(AL('Миттельшпиль в партиях по плану дебюта «' + o.name + '»: когда дебют получился на доске (' + on.length + ') — ', 'Middlegame in planned ' + opEn(o) + ' games: when it appeared on the board (' + on.length + ') — ') + aiPct(avg(on, 'mid')) +
+    (off.length ? AL('; когда бот увёл в другой дебют (' + off.length + ') — ', '; when the bot steered into another opening (' + off.length + ') — ') + aiPct(avg(off, 'mid')) : '') + '.');
   out.push(AL('Партии ниже — от худшего миттельшпиля к лучшему:', 'Games below — from the worst middlegame to the best:'));
   aiSortBy(gl, function(g) { return g.mid; }).forEach(function(g) {
     var dv = g.div || {}, mb = (g.bl || []).filter(function(b) { return b.p === 'mid'; });
@@ -7018,9 +7046,10 @@ AI_DATA.nextstage = function() {
 AI_DATA.openings = function() {
   var last = games.slice(-20), O = window.OPENINGS || {}, out = [AL('Дебюты в последних ' + last.length + ' партиях (название Lichess):', 'Openings in the last ' + last.length + ' games (Lichess name):')].concat(aiFamilies(last));
   (O.current || []).forEach(function(o) {
-    var gl = games.filter(function(g) { return g.color === o.color && opMatch(o, g.opening); });
-    out.push(AL('Изучаю «' + o.name + '» (' + COLOR_WORD[o.color] + '): партий ' + gl.length, 'Studying the ' + opEn(o) + ' (as ' + COLOR_EN[o.color] + '): ' + gl.length + ' games') + (gl.length ? ' (' + aiWL(gl) + AL(', точность ', ', accuracy ') + aiPct(avg(gl, 'acc')) + ')' : '') +
+    var gl = opStats(o).games;
+    out.push(AL('Изучаю «' + o.name + '» (' + COLOR_WORD[o.color] + '): партий по плану ' + gl.length, 'Studying the ' + opEn(o) + ' (as ' + COLOR_EN[o.color] + '): ' + gl.length + ' planned games') + (gl.length ? ' (' + aiWL(gl) + AL(', точность ', ', accuracy ') + aiPct(avg(gl, 'acc')) + ')' : '') +
       ((o.studies || []).length ? AL('; студии: ', '; studies: ') + o.studies.map(function(st) { return st.master; }).join(', ') : AL('; студий нет', '; no studies')) + '.');
+    var bl = aiBoardLine(o); if (bl) out.push('  ' + bl);
     gl.slice(-3).forEach(function(g) { var ms = aiMs(g); if (ms) out.push('  ' + aiGid(g) + ': ' + ms); });
   });
   function names(list) { return (list || []).map(function(o) { return aiOpName(o) + ' (' + AL(COLOR_WORD[o.color], COLOR_EN[o.color]) + ')'; }).join(', ') || '—'; }
@@ -7237,7 +7266,8 @@ var AI_SIMPLE = {
   opening: function() {
     var o = aiOp(), gl = aiOpGames(), att = (window.PUZZLES || {}).attempts || [], out = [];
     if (!o) return [AL('Изучаемый дебют не задан.', 'No opening being studied.')];
-    out.push(AL('Изучаю: «' + o.name + '» (' + COLOR_WORD[o.color] + '). Партий в нём: ', 'Studying: the ' + opEn(o) + ' (as ' + COLOR_EN[o.color] + '). Games in it: ') + gl.length + (gl.length ? ' (' + aiWL(gl) + AL('), точность дебюта ', '), opening accuracy ') + aiPct(avg(gl, 'debut')) : '') + '.');
+    out.push(AL('Изучаю: «' + o.name + '» (' + COLOR_WORD[o.color] + '). Партий по плану: ', 'Studying: the ' + opEn(o) + ' (as ' + COLOR_EN[o.color] + '). Planned games: ') + gl.length + (gl.length ? ' (' + aiWL(gl) + AL('), точность дебюта ', '), opening accuracy ') + aiPct(avg(gl, 'debut')) : '') + '.');
+    var bl = aiBoardLine(o); if (bl) out.push(bl);
     if (gl.length > 1) out.push(AL('Партии ниже — по тому, как долго шли как у мастеров: сначала дольше всего.', 'Games below — by how long they followed the masters: longest first.'));
     aiSortBy(gl.slice(-5), aiMsDepth, true).forEach(function(g) { var ms = aiMs(g); out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + ', ' + g.opening + (ms ? '; ' + ms.replace(/^[^:]+: /, '') : '')); });
     var from = isoDay(addDays(gameToday(), -13)), pz = att.filter(function(a) { return a.day >= from && opMatch(o, a.op); });
@@ -7257,10 +7287,12 @@ var AI_SIMPLE = {
     return out;
   },
   plans: function() {
-    var o = aiOp(), all = aiOpGames(), gl = all.slice(-5), other = games.slice(-20).filter(function(g) { return all.indexOf(g) < 0; }), out = [];
+    var o = aiOp(), all = aiOpGames(), gl = all.slice(-5), out = [];
     if (!o) return [AL('Изучаемый дебют не задан.', 'No opening being studied.')];
     if (!gl.length) return [AL('Партий в изучаемом дебюте пока нет.', 'No games in the studied opening yet.')];
-    out.push(AL('Миттельшпиль в партиях дебюта «' + o.name + '»: ', 'Middlegame in my ' + opEn(o) + ' games: ') + aiPct(avg(gl, 'mid')) + AL('; в других дебютах (последние 20 партий): ', '; in other openings (last 20 games): ') + aiPct(avg(other, 'mid')) + '.');
+    var st = opStats(o), on = st.board, off = all.filter(function(g) { return on.indexOf(g) < 0; });
+    out.push(AL('Миттельшпиль: когда «' + o.name + '» получилась на доске (' + on.length + ' партий) — ', 'Middlegame: when the ' + opEn(o) + ' appeared on the board (' + on.length + ' games) — ') + aiPct(avg(on, 'mid')) +
+      (off.length ? AL('; когда бот увёл в другой дебют (' + off.length + ') — ', '; when the bot steered into another opening (' + off.length + ') — ') + aiPct(avg(off, 'mid')) : '') + '.');
     out.push(AL('Партии — от худшего миттельшпиля к лучшему:', 'Games — from the worst middlegame to the best:'));
     aiSortBy(gl, function(g) { return g.mid; }).forEach(function(g) { out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + ', ' + g.opening + AL(': миттельшпиль ', ': middlegame ') + aiPct(g.mid) + AL(', зевков в нём ', ', blunders in it ') + (g.bl || []).filter(function(b) { return b.p === 'mid'; }).length); });
     return out;

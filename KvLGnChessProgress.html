@@ -6969,9 +6969,16 @@ function gsIndex() {
   // темы задач
   var P = window.PUZZLES;
   if (P && P.themeStats) {
-    Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k]; }).forEach(function(k) {
+    // от слабых к сильным; первые 5–7 (5+ задач, ниже среднего — сколько есть, но не меньше 5) — отдельной группой «Слабые темы задач»
+    var gpT = P.global ? P.global.perf : Infinity;
+    var tks = Object.keys(P.themeStats).filter(function(k) { return !PZ_SKIP[k]; }).sort(function(a, b) { return P.themeStats[a].perf - P.themeStats[b].perf; });
+    var rel = tks.filter(function(k) { return P.themeStats[k].nb >= 5; });
+    var weakN = Math.min(7, Math.max(5, rel.filter(function(k) { return P.themeStats[k].perf < gpT; }).length)), weakSet = {};
+    rel.slice(0, weakN).forEach(function(k) { weakSet[k] = true; });
+    tks.forEach(function(k) {
       var s = P.themeStats[k], name = (P.themeNames || {})[k] || PZ_NAMES[k] || k;
-      add('Темы задач', '🧩', name, s.nb + ' задач · перфоманс ' + s.perf + ' · тренировать на Lichess', k, function() { window.open('https://lichess.org/training/' + k, '_blank'); });
+      add(weakSet[k] ? 'Слабые темы задач' : 'Темы задач', '🧩', name, s.nb + ' ' + plural(s.nb, 'задача', 'задачи', 'задач') + ' · перфоманс ' + s.perf + (P.global ? ' (средний ' + P.global.perf + ')' : '') + ' · тренировать на Lichess',
+        k + ' слабая тема', function() { window.open('https://lichess.org/training/' + k, '_blank'); });
     });
   }
   // пункты скрытых частей (шапка / график / партии) в поиск не попадают
@@ -6993,7 +7000,7 @@ function gsSections(it) {
   }
   if (/^(Виды графика|Сравнения|Активность|Дни|Анализ)$/.test(g)) return ['chart'];
   if (g === 'Фильтры' || g === 'Режим партии') return ['chart', 'table'];
-  if (/^(Задачи|Студии|Итоги|Темы задач)$/.test(g)) return ['head'];
+  if (/^(Задачи|Студии|Итоги|Темы задач|Слабые темы задач)$/.test(g)) return ['head'];
   if (g === 'Дебюты') return /в таблице/.test(it.sub) ? ['table'] : ['head'];
   if (g === 'Партии') return ['table'];
   if (g === 'Lichess') return /^Анализ/.test(t) ? ['table'] : /^(Задачи по|Сыграть|Слабая тема)/.test(t) ? ['head'] : /^Слабая фаза/.test(t) ? ['chart'] : [];
@@ -7031,6 +7038,7 @@ function mnPlace(it) {
   if (g === 'Партии') return ['gm', 'Все партии'];
   if (g === 'Задачи') return ['pz', 'Тренировки'];
   if (g === 'Темы задач') return ['pz', 'Темы'];
+  if (g === 'Слабые темы задач') return ['pz', 'Слабые темы'];
   if (g === 'Студии') return ['op', 'Студии мастеров'];
   if (g === 'Дебюты') return ['op', /в таблице/.test(sub) ? 'Сыгранные' : 'По плану'];
   if (g === 'Итоги') return ['vd', sub === 'проседает' ? 'Проседает' : sub === 'хорошо' ? 'Хорошо' : 'Что делать'];
@@ -7040,7 +7048,7 @@ function mnPlace(it) {
 }
 // порядок подгрупп внутри групп (не названные — в конце, как пришли)
 var MN_SUB_ORDER = ['Быстро', 'Вкладки', 'Мастера', 'Показатели', 'Сравнения', 'Линии', 'Активность', 'Дни',
-  'Открыть', 'Результат и цвет', 'Даты', 'Мой дебют', 'Режим партии', 'Зевки и маты', 'Сброс',
+  'Слабые темы', 'Открыть', 'Результат и цвет', 'Даты', 'Мой дебют', 'Режим партии', 'Зевки и маты', 'Сброс',
   'Таблица', 'Все партии', 'Цифры', 'Партии', 'Тренировки', 'Темы', 'По плану', 'Студии мастеров', 'Сыгранные',
   'Проседает', 'Хорошо', 'Что делать', 'Слабые места', 'Lichess', 'Сервис', 'Навигация'];
 var mn = {g: null, items: [], tree: {}};

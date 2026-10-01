@@ -3519,8 +3519,11 @@ function datesInput(f, e) {
   if (q) { var k = q.getAttribute('data-dq'); f.dates = f.dates && f.dates.q === k ? null : dateQuick(k); return true; }
   var inp = e.target.closest('.f-date');
   if (inp && e.type !== 'click') {
-    var d = f.dates ? {from: f.dates.from, to: f.dates.to} : {from: null, to: null};
-    d[inp.getAttribute('data-db')] = inp.value || null;
+    var d = f.dates ? {from: f.dates.from, to: f.dates.to} : {from: null, to: null}, side = inp.getAttribute('data-db');
+    d[side] = inp.value || null;
+    // выбрал «с», а «по» пусто — сразу один день (для периода меняешь «по», для «с … и дальше» очищаешь «по»)
+    if (side === 'from' && d.from && !d.to) d.to = d.from;
+    if (d.from && d.to && d.to < d.from) d.to = d.from;   // «по» раньше «с» — подтягиваем
     f.dates = d.from || d.to ? d : null;
     return true;
   }

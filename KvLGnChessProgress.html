@@ -754,7 +754,7 @@
   .op-slide { flex: 0 0 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .op-sl-lbl { color: var(--fg-mute); }
   .op-dots { flex-shrink: 0; display: flex; gap: 3px; }
-  .op-cur { position: relative; overflow: hidden; }
+  .op-cur { position: relative; overflow: hidden; flex: none; }   /* карточка — flex-столбик: без flex:none блок тянется на всю высоту */
   .op-ctrack { display: flex; }
   .op-cslide { flex: 0 0 100%; min-width: 0; }
   .op-cdots { position: absolute; right: 0; top: 9px; display: flex; gap: 3px; }
@@ -5676,11 +5676,12 @@ function renderOpeningCard() {
   var cs = O.current, n = cs.length;
   if (opCurIdx >= n) opCurIdx = 0;
   // слайд = название + строка цифр этого дебюта; при нескольких — карусель вбок, первый слайд дублируется в конце для бесшовного круга
-  var slides = cs.map(function(o) { return '<div class="op-cslide"><div class="op-main" title="Изучаю сейчас">' + opName(o) + '</div><div class="op-line">' + opGamesLine(opStats(o)) + '</div></div>'; });
+  function inner(o) { return '<div class="op-main" title="Изучаю сейчас">' + opName(o) + '</div><div class="op-line">' + opGamesLine(opStats(o)) + '</div>'; }
+  var slides = cs.map(function(o) { return '<div class="op-cslide">' + inner(o) + '</div>'; });
   $('opCard').innerHTML = head +
     (n > 1 ? '<div class="op-cur"><div class="op-ctrack" style="transform:translateX(' + (-100 * opCurIdx) + '%)">' + slides.join('') + slides[0] + '</div>' +
       '<div class="op-cdots">' + cs.map(function(_, k) { return '<i' + (k === opCurIdx ? ' class="on"' : '') + '></i>'; }).join('') + '</div></div>'
-           : slides[0]) +
+           : inner(cs[0])) +   // один дебют — без обёртки, как раньше: карточка — столбик, обёртка растянулась бы на всю высоту
     '<div class="op-line op-next">' + opCarousel(O) + '</div>' +
     '<div class="op-sub">В планах: ' + (O.planned || []).length + ((O.done || []).length ? ' · изучено: ' + O.done.length : '') + '</div>';
   startOpCarousel();

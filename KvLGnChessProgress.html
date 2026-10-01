@@ -2295,6 +2295,7 @@ document.addEventListener('click', function(e) {
   if (!b) return;
   e.stopPropagation();
   blMode = !blMode;
+  if (blMode && cmpMode === 'view') cmpBlOpen = true;   // сравнение уже открыто — «Зевки» сразу раскрыты
   renderWindow();
 }, true);
 function statLine(label, color, value, dotOpacity) {
@@ -2374,7 +2375,7 @@ $('cmpBtn').addEventListener('click', function(e) {
   }
   if (e.target.closest('.cmp-x')) { cmpMode = null; cmpSet = {}; selCols = {}; renderWindow(); return; }   // крестик — отмена сравнения и выбора колонок   // крестик — отмена сравнения
   if (!cmpMode) { cmpMode = 'pick'; cmpSet = {}; }
-  else if (cmpMode === 'pick') cmpMode = cmpCount() ? 'view' : null;
+  else if (cmpMode === 'pick') { cmpMode = cmpCount() ? 'view' : null; if (cmpMode === 'view' && blMode) cmpBlOpen = true; }
   else cmpMode = 'pick';
   renderWindow();
 });
@@ -2412,7 +2413,7 @@ function cmpBlLabel(label) { return label + '<span class="cmp-caret">▾</span>'
 function cmpBlRows(A, B) {
   if (!cmpBlOpen) return '';
   function per(list, t) { return list.length ? list.reduce(function(s, g) { return s + (g.bl || []).filter(function(b) { return b.t === t; }).length; }, 0) / list.length : null; }
-  var types = BL_ORDER.filter(function(t) { return per(A, t) || per(B, t); });
+  var types = BL_ORDER.filter(function(t) { return (per(A, t) || per(B, t)) && !(blMode && blHidden[t]); });   // в режиме зевков — как в легенде графика
   if (!types.length) return '<div class="cmp-row cmp-sub"><span class="cmp-lbl" style="color:var(--fg-mute)">зевков нет</span></div>';
   var max = Math.max.apply(null, [1].concat(types.map(function(t) { return Math.max(per(A, t) || 0, per(B, t) || 0); })));
   function fmt(v) { return v === null ? '—' : String(Math.round(v * 10) / 10); }
@@ -2434,7 +2435,8 @@ document.addEventListener('click', function(e) {
 });
 function cmpHtml() {
   var A = statsGames(), B = cmpGames();
-  var rows = CMP_ROWS.map(function(r) {
+  var order = blMode ? CMP_ROWS.filter(function(r) { return r.k === 'blunders'; }).concat(CMP_ROWS.filter(function(r) { return r.k !== 'blunders'; })) : CMP_ROWS;   // режим зевков — «Зевки» первыми
+  var rows = order.map(function(r) {
     var a = avg(A, r.k), b = avg(B, r.k);
     function fmt(v) { return v === null ? '—' : (r.pct ? v.toFixed(1) + '<small>%</small>' : (Math.round(v * 10) / 10)); }
     var d = a === null || b === null ? null : a - b, dTxt = '', cls = '';
@@ -7984,6 +7986,7 @@ function gsCompareGames(A, B) {
   A.forEach(function(g) { selCols[g.id] = true; });
   B.forEach(function(g) { cmpSet[g.id] = true; });
   cmpMode = 'view';
+  if (blMode) cmpBlOpen = true;
   selDays = {}; aCmpMode = null; aCmpSet = {};
   renderWindow();
 }

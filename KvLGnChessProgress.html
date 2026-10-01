@@ -970,7 +970,7 @@
   .vdx-head .vd-rd-btn:hover { border-color: #818cf8; color: #c7d2fe; }
   .vdx-head .vd-rd-btn + .vd-close { margin-left: 0; }
   .vd-detail.vdx.rd-on { height: 640px; }   /* схема — той же высоты, что списки, без прыжка при переключении */
-  .rd { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 26px; }
+  .rd { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); grid-template-rows: minmax(0, 1fr); gap: 26px; }   /* слева пункты, справа схема */
   .rd-left { min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
   .rd-bar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: center; margin-bottom: 4px; }
   .rd-seg { display: inline-flex; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
@@ -6532,8 +6532,8 @@ function rdHtml() {
       }).join('');
     }).join('') + '</div><div class="rd-note">От 3 до 8 параметров.</div>';
   }
-  return '<div class="rd"><div class="rd-left">' + bar + svg + '<div class="rd-tip"></div></div>' +
-    '<div class="rd-right">' + leg + '<div class="rd-note">' + note + '</div>' + tbl + ck + '</div></div>';
+  return '<div class="rd"><div class="rd-right">' + leg + '<div class="rd-note">' + note + '</div>' + tbl + ck + '</div>' +
+    '<div class="rd-left">' + bar + svg + '<div class="rd-tip"></div></div></div>';
 }
 // подсказка у точки: настоящее значение, было, лучшее / худшее или цель
 $('vdDetail').addEventListener('mouseover', function(e) {

@@ -6803,6 +6803,13 @@ function aiBreak(lang) { return aiMin() >= 120 ? (lang === 'en' ? 'a 5–10 minu
 // свежесть данных: партии и задачи подтягиваются раз в час и нерегулярно — без этой строки нейросеть решит, что сегодня ещё ничего не сыграно
 function aiFresh() { var u = window.GAMES_UPDATED; return u ? AL('Данные обновлены ' + u + ' — партии и задачи после этого времени сюда не попали.', 'Data updated ' + u + ' — games and puzzles after that time are not included.') : null; }
 function aiVarNote() { return AL('Название варианта складывается из ходов обеих сторон; ответ соперника выбирает бот — его нельзя «избегать», к нему можно только готовиться.', 'A variation name comes from both sides’ moves; the opponent’s reply is chosen by the bot — it cannot be "avoided", only prepared for.'); }
+function aiDurLine() {
+  var d = games.slice(-10).map(function(g) { return g.dur; }).filter(function(x) { return x > 0; }).map(function(x) { return Math.round(x / 60); });
+  if (!d.length) return null;
+  var m = Math.round(d.reduce(function(a, b) { return a + b; }, 0) / d.length);
+  return AL('Партия длится в среднем ' + m + ' мин (последние ' + d.length + ' партий, от ' + Math.min.apply(null, d) + ' до ' + Math.max.apply(null, d) + ' мин).',
+            'A game takes ' + m + ' min on average (last ' + d.length + ' games, from ' + Math.min.apply(null, d) + ' to ' + Math.max.apply(null, d) + ' min).');
+}
 function aiCurOps() { var cs = (window.OPENINGS || {}).current || []; return cs.length ? AL('Изучаю дебют: ', 'Studying the opening: ') + cs.map(function(o) { return AL(o.name, opEn(o)); }).join(', ') + '.' : null; }
 var AI_CUR_OP = null;   // дебют пункта, для которого собирается пакет (пункты «Дебюты» — по каждому изучаемому дебюту)
 function aiOp() { return AI_CUR_OP || ((window.OPENINGS || {}).current || [])[0]; }
@@ -6998,6 +7005,7 @@ var AI_DATA = {
       (att.length ? AL(' (решено ', ' (solved ') + att.filter(function(a) { return a.win; }).length + ')' : '') + '.'];
     if (aiFresh()) out.unshift(aiFresh());
     tg.forEach(function(g) { out.push('- ' + aiGame(g)); });
+    if (aiDurLine()) out.push(aiDurLine());
     out.push(AL('Серия: ', 'Streak: ') + st.current + AL(' дн. подряд с партиями (рекорд ', ' days in a row with games (record ') + st.best + ').');
     out.push(AL('Последние 5 партий — ', 'Last 5 games — ') + aiAvgLine(games.slice(-5)) + '.');
     out.push(AL('Зевки в последних 5 партиях: ', 'Blunders in the last 5 games: ') + aiBlTypes(games.slice(-5)) + '.');
@@ -7015,6 +7023,7 @@ var AI_DATA = {
     var out = [AL('За последние 7 дней: партий ' + g7 + ', задач ' + p7 + ', дней с партиями ' + d7 + ' из 7.', 'Last 7 days: ' + g7 + ' games, ' + p7 + ' puzzles, ' + d7 + ' of 7 days with games.')];
     if (rows.length) out = out.concat([AL('По дням за 14 дней (день: партий / задач), начиная с первого дня с занятиями:', 'By day over 14 days (day: games / puzzles), from the first active day:')], rows);
     out.push(AL('Зевки в последних 10 партиях: ', 'Blunders in the last 10 games: ') + aiBlTypes(games.slice(-10)) + '.');
+    if (aiDurLine()) out.push(aiDurLine());
     var wt = aiWeakThemes(5); if (wt.length) out.push(AL('Слабые темы задач (перфоманс): ', 'Weak puzzle themes (performance): ') + wt.join(', ') + '.');
     return out;
   },
@@ -7417,6 +7426,7 @@ var AI_SIMPLE = {
     out.push(AL('Самые частые зевки в последних 5 партиях: ', 'Most frequent blunders in the last 5 games: ') + aiSTypes(last, 2, true).join('; ') + '.');
     var th = aiSTheme(); if (th) out.push(th);
     if (aiCurOps()) out.push(aiCurOps());
+    if (aiDurLine()) out.push(aiDurLine());
     if (CUR.stage) out.push(AL('Цель этапа: играть против Stockfish ' + CUR.stage.engine + ', нужно ещё минимум ', 'Stage goal: play vs Stockfish ' + CUR.stage.engine + ', at least ') + gamesToGoal(CUR.colors[0]) + AL(' хороших партий.', ' more good games needed.'));
     return out;
   },
@@ -7428,6 +7438,7 @@ var AI_SIMPLE = {
     out.push(AL('Самые частые зевки (последние 10): ', 'Most frequent blunders (last 10): ') + aiSTypes(last, 3, true).join('; ') + '.');
     var wt = aiWeakThemes(3); if (wt.length) out.push(AL('Слабые темы задач (от самой слабой): ', 'Weak puzzle themes (weakest first): ') + wt.slice(0, 3).join(', ') + '.');
     if (aiCurOps()) out.push(aiCurOps());
+    if (aiDurLine()) out.push(aiDurLine());
     if (CUR.stage) out.push(AL('Цель этапа: партии белыми против Stockfish ' + CUR.stage.engine + ', нужно ещё минимум ', 'Stage goal: games as white vs Stockfish ' + CUR.stage.engine + ', at least ') + gamesToGoal(CUR.colors[0]) + AL(' хороших партий.', ' more good games needed.'));
     return out;
   },

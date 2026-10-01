@@ -6487,16 +6487,26 @@ function aiGameBl(g) {
   return '\n  ' + AL(n + ' ' + plural(n, 'зевок', 'зевка', 'зевков') + ':', n + ' blunder' + (n === 1 ? '' : 's') + ':') +
     bl.slice(0, mx).map(function(b) { return '\n  - ' + aiBl(g, b); }).join('') + (n > mx ? AL('\n  - и ещё ' + (n - mx), '\n  - and ' + (n - mx) + ' more') : '');
 }
-// зевок: «ход 9. cxd6, лучше a4 — позиционная, миттельшпиль, −3.6 пешки»
+// зевок: «ход 9. cxd6, движок советовал a4 — позиционная (материал не терялся, ухудшилась позиция), миттельшпиль, оценка упала на 3.6»
+// смысл типа — в той же строке: слабые модели не связывают тип с определением из другого места
+var BL_MEAN = {
+  mateAllowed: ['после хода у соперника появился мат', 'after the move the opponent had a forced mate'],
+  mateMissed:  ['был мат, а сыгран другой ход', 'there was a mate, another move was played'],
+  hang:        ['после хода фигуру можно выгодно взять', 'after the move a piece could be taken for free'],
+  tactic:      ['материал ушёл за 2 хода соперника — вилка, связка', 'material was lost within 2 opponent moves — fork, pin'],
+  missedWin:   ['лучший ход выигрывал материал', 'the best move won material'],
+  other:       ['материал не терялся, ухудшилась позиция', 'no material lost, the position got worse']
+};
 function aiBl(g, b) {
-  var p = blPly(g, b);
-  return AL('ход ', 'move ') + anMoveNo(p) + b.s + (b.b ? AL(', движок советовал ', ', the engine suggested ') + b.b : '') + ' — ' + aiBlType(b.t) + (b.p ? ', ' + aiPhase(b.p) : '') +
-    (typeof b.d === 'number' ? ', −' + b.d + ' ' + AL(b.d % 1 ? 'пешки' : plural(b.d, 'пешка', 'пешки', 'пешек'), 'pawns') : '') + (PLAIN ? ' (' + aiLink(g, p) + ')' : '');
+  var p = blPly(g, b), m = BL_MEAN[b.t];
+  return AL('ход ', 'move ') + anMoveNo(p) + b.s + (b.b ? AL(', движок советовал ', ', the engine suggested ') + b.b : '') + ' — ' + aiBlType(b.t) + (m ? ' (' + AL(m[0], m[1]) + ')' : '') + (b.p ? ', ' + aiPhase(b.p) : '') +
+    (typeof b.d === 'number' ? AL(', оценка упала на ' + b.d, ', evaluation dropped by ' + b.d) : '') + (PLAIN ? ' (' + aiLink(g, p) + ')' : '');
 }
 function aiTurn(g) {
   var t = mrTurn(g);
   if (!t || !g.ev) return '';
-  return AL('Перелом: ', 'Turning point: ') + aiMove(g, t.p) + ' (' + (anMine(g, t.p) ? AL('мой ход', 'my move') : AL('ход соперника', 'opponent\'s move')) + ')' +
+  return AL('Перелом: ', 'Turning point: ') + aiMove(g, t.p) + ' (' + (anMine(g, t.p) ? AL('мой ход', 'my move') : AL('ход бота', 'the bot\'s move')) + ', ' +
+    (t.d > 0 ? AL('оценка изменилась в мою пользу', 'the evaluation turned in my favour') : AL('оценка изменилась в пользу бота', 'the evaluation turned in the bot\'s favour')) + ')' +
     AL(', оценка ', ', evaluation ') + aiEv(g.ev[t.p - 1] || 0) + ' → ' + aiEv(g.ev[t.p] || 0) + (PLAIN ? ' (' + aiLink(g, t.p) + ')' : aiFen(g, t.p));
 }
 // ошибки бота в партии: наказал / пропустил, при пропуске — мой ответ и что было лучше
@@ -6505,8 +6515,8 @@ function aiOpp(g) {
   return mrOppBlunders(g).map(function(o) {
     var mine = (g.jd || []).filter(function(j) { return j[0] === o.q + 1; })[0], better = mine ? (mine[2] || '').split(' ')[0] : '';
     var mineBest = mine && mine[1] !== 'B' && (mine[2] || '') ? mine[2].split(' ')[0] : '';
-    return {kept: o.kept, line: AL('бот: ', 'bot: ') + aiMove(g, o.q) + ' — ' + (o.kept ? AL('наказал', 'punished') + ' (' + aiMove(g, o.q + 1) + (mineBest ? AL(' — перевес сохранился, хотя движок советовал ', ' — the advantage was kept, though the engine suggested ') + mineBest : '') + ')' :
-      AL('пропустил: ответил ', 'missed: replied ') + (sans[o.q] ? aiMove(g, o.q + 1) : '—') + (better ? AL(', движок советовал ', ', the engine suggested ') + better : '') + (PLAIN ? ' (' + aiLink(g, o.q) + ')' : aiFen(g, o.q + 1)))};
+    return {kept: o.kept, line: AL('ошибка бота ', 'bot\'s mistake ') + aiMove(g, o.q) + ' → ' + (o.kept ? AL('я наказал ходом ', 'I punished it with ') + aiMove(g, o.q + 1) + (mineBest ? AL(' (перевес сохранился, хотя движок советовал ', ' (the advantage was kept, though the engine suggested ') + mineBest + ')' : '') :
+      AL('я пропустил её: сыграл ', 'I missed it: played ') + (sans[o.q] ? aiMove(g, o.q + 1) : '—') + (better ? AL(', движок советовал ', ', the engine suggested ') + better : '') + (PLAIN ? ' (' + aiLink(g, o.q) + ')' : aiFen(g, o.q + 1)))};
   });
 }
 function aiMates(g) {
@@ -6593,8 +6603,8 @@ function aiOppStat(list) {
   if (!all.length) return AL('ошибок бота не было', 'the bot made no blunders');
   var k = all.filter(function(o) { return o.kept; }).length;
   var pc = function(x) { return Math.round(x / all.length * 100) + '%'; };
-  return AL('бот ошибся ' + all.length + ' ' + plural(all.length, 'раз', 'раза', 'раз') + ': наказал ' + k + ' (' + pc(k) + '), пропустил ' + (all.length - k) + ' (' + pc(all.length - k) + ')',
-            'the bot blundered ' + all.length + ' times: punished ' + k + ' (' + pc(k) + '), missed ' + (all.length - k) + ' (' + pc(all.length - k) + ')');
+  return AL('бот ошибся ' + all.length + ' ' + plural(all.length, 'раз', 'раза', 'раз') + ': я наказал ' + k + ' (' + pc(k) + '), я пропустил ' + (all.length - k) + ' (' + pc(all.length - k) + ')',
+            'the bot blundered ' + all.length + ' times: I punished ' + k + ' (' + pc(k) + '), I missed ' + (all.length - k) + ' (' + pc(all.length - k) + ')');
 }
 // дебюты списка партий по семействам (название Lichess до двоеточия): «Italian Game — 4: 2 победы, 2 поражения, точность 70%», частые первыми
 function aiFamilies(list) {

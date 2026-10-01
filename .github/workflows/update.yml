@@ -1,5 +1,7 @@
 # Каждый час забирает свежие данные с Lichess и публикует их на GitHub Pages.
 # Токен Lichess — в Settings → Secrets and variables → Actions → LICHESS_TOKEN.
+# Расписание GitHub не гарантирует: запуски по cron бывают задержаны на часы или пропущены — тогда помогает update.bat с ПК
+# или кнопка «Run workflow».
 name: Обновление данных с Lichess
 
 on:
@@ -18,9 +20,9 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -40,7 +42,15 @@ jobs:
           git add data scripts/cache
           if git diff --cached --quiet; then
             echo "Нет изменений"
-          else
-            git commit -m "Обновление данных $(TZ=Europe/Moscow date '+%d.%m.%Y %H:%M')"
-            git push
+            exit 0
           fi
+          git commit -m "Обновление данных $(TZ=Europe/Moscow date '+%d.%m.%Y %H:%M')"
+          # пока шло обновление, с ПК могли отправить правки (так упал запуск 30.09 15:53 UTC):
+          # подтягиваем их поверх и отправляем снова; при споре в файлах данных побеждают данные этого запуска (они свежее)
+          for i in 1 2 3; do
+            if git pull --rebase -X theirs && git push; then exit 0; fi
+            git rebase --abort 2>/dev/null || true
+            sleep 15
+          done
+          echo "Не удалось отправить данные после 3 попыток"
+          exit 1

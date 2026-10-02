@@ -5055,7 +5055,7 @@ $('recScope').addEventListener('click', function(e) {
 
 function renderRecords() {
   var periodLabel = chartMode === 'activity'
-    ? (actSelCount() ? 'выбрано дней: ' + actSelCount() : PERIOD_SCOPE[period]) + (actRes ? ' · ' + resRowMeta().label.toLowerCase() : '')
+    ? (actSelCount() ? 'выбрано дней: ' + actSelCount() : PERIOD_SCOPE[period]) + ''   // выделенный результат видно по кнопкам внизу — в подписи не повторяем
     : winActualLabel();
   $('recScope').innerHTML =
     '<button data-scope="period" class="' + (recScope === 'period' ? 'on' : '') + '">' + periodLabel + '</button>' +
@@ -5135,15 +5135,15 @@ function groupDays(list) {
 
 function dayLabel(iso) { var d = fromIso(iso); return DOW[d.getDay()] + ' ' + ddmm(d); }
 
-function dayCard(x, best) {
+function dayCard(x, best, byAcc) {   // byAcc — выделен один результат (только победы / поражения): день выбран по точности, крупно — точность
   return '<div class="rec-card ' + (best ? 'best' : 'worst') + '">' +
-    '<div class="rec-head">' + (best ? '▲ Лучший день' : '▼ Худший день') + '</div>' +
+    '<div class="rec-head">' + (best ? '▲ Лучший день' : '▼ Худший день') + (byAcc ? ' по точности' : '') + '</div>' +
     '<div class="rec-meta">' + dayLabel(x.day) + '</div>' +
-    '<div class="rec-big"><span class="w">' + x.w + 'W</span> / <span class="l">' + x.l + 'L</span>' +
-      (x.d ? ' / ' + x.d + 'D' : '') + '</div>' +
+    (byAcc ? '<div class="rec-big"><span class="' + (best ? 'w' : 'l') + '">' + (x.acc === null ? '—' : x.acc.toFixed(1) + '%') + '</span></div>'
+      : '<div class="rec-big"><span class="w">' + x.w + 'W</span> / <span class="l">' + x.l + 'L</span>' + (x.d ? ' / ' + x.d + 'D' : '') + '</div>') +
     '<div class="rec-row">' +
       '<span>Партий ' + x.games.length + '</span>' +
-      '<span style="color:#9ca3af">Точность ' + (x.acc === null ? '—' : x.acc.toFixed(1) + '%') + '</span>' +
+      (byAcc ? '' : '<span style="color:#9ca3af">Точность ' + (x.acc === null ? '—' : x.acc.toFixed(1) + '%') + '</span>') +
       '<span style="color:#f87171">Зевков в среднем ' + (x.bl === null ? '—' : x.bl.toFixed(1)) + '</span>' +
     '</div>' +
   '</div>';
@@ -5161,24 +5161,28 @@ function activityRecordsHtml() {
     : periodRange(0).games;
   list = byRes(list);
   var days = groupDays(list);
-  // партий нет — карточки остаются на местах с «—», экран всегда одинаковый
+  // выделен один результат (только победы / поражения / ничьи) — сравнивать по W/L и винрейту бессмысленно (всегда 100% / 0%): считаем по точности
+  var oneRes = actRes && Object.keys(actRes).length === 1 ? Object.keys(actRes)[0] : null;
+  var RES_DAYS = {win: 'с победами', lose: 'с поражениями', draw: 'с ничьими'};
+  // партий нет — карточки остаются на местах с «—», экран всегда одинаковый (подписи — те же, что при фильтре)
   if (!days.length) {
+    var none = oneRes ? {win: 'побед', lose: 'поражений', draw: 'ничьих'}[oneRes] + ' пока нет' : 'пока нет партий', acc = oneRes ? ' по точности' : '';
     return '<div class="rec-view">' +
       '<div class="rec-grid">' +
-        emptyCard(true, '▲ Лучший день', 'сыграй партию, чтобы появился') +
-        emptyCard(false, '▼ Худший день', 'сыграй партию, чтобы появился') +
+        emptyCard(true, '▲ Лучший день' + acc, oneRes ? none : 'сыграй партию, чтобы появился') +
+        emptyCard(false, '▼ Худший день' + acc, oneRes ? none : 'сыграй партию, чтобы появился') +
       '</div>' +
       '<div class="rec-section">🏆 Рекорды</div>' +
       '<div class="rec-tiles">' +
-        ['Больше всего партий за день', 'Самая длинная серия', 'Самая активная неделя', 'Лучшая неделя по винрейту']
-          .map(function(label) { return tile(label, '—', 'пока нет партий'); }).join('') +
+        ['Больше всего партий за день', oneRes ? 'Серия дней ' + RES_DAYS[oneRes] : 'Самая длинная серия', 'Самая активная неделя', oneRes ? 'Лучшая неделя по точности' : 'Лучшая неделя по винрейту']
+          .map(function(label) { return tile(label, '—', none); }).join('') +
       '</div>' +
     '</div>';
   }
 
-  // лучший: больше (W − L), затем выше точность; худший: больше (L − W), затем ниже точность
-  var byBest = days.slice().sort(function(a, b) { return ((b.w - b.l) - (a.w - a.l)) || ((b.acc || 0) - (a.acc || 0)); });
-  var byWorst = days.slice().sort(function(a, b) { return ((b.l - b.w) - (a.l - a.w)) || ((a.acc || 0) - (b.acc || 0)); });
+  // лучший: больше (W − L), затем выше точность; худший: больше (L − W), затем ниже точность (oneRes — только точность)
+  var byBest = days.slice().sort(function(a, b) { return oneRes ? (b.acc || 0) - (a.acc || 0) : ((b.w - b.l) - (a.w - a.l)) || ((b.acc || 0) - (a.acc || 0)); });
+  var byWorst = days.slice().sort(function(a, b) { return oneRes ? (a.acc || 0) - (b.acc || 0) : ((b.l - b.w) - (a.l - a.w)) || ((a.acc || 0) - (b.acc || 0)); });
   var best = byBest[0], worst = byWorst[0];
 
   // больше всего партий за день
@@ -5204,25 +5208,27 @@ function activityRecordsHtml() {
   function weekRange(k) { var m = fromIso(k); return ddmm(m) + ' – ' + ddmm(addDays(m, 6)); }
   var activeWeek = wl.slice().sort(function(a, b) { return b.games.length - a.games.length; })[0];
   var MIN_WEEK = 3;   // винрейт недели из 1–2 партий ничего не говорит
+  var wkVal = function(w) { return oneRes ? avg(w.games, 'acc') || 0 : winrate(w.games); };
   var wrWeeks = wl.filter(function(w) { return w.games.length >= MIN_WEEK; })
-    .sort(function(a, b) { return winrate(b.games) - winrate(a.games); });
+    .sort(function(a, b) { return wkVal(b) - wkVal(a); });
+  var wkLabel = oneRes ? 'Лучшая неделя по точности' : 'Лучшая неделя по винрейту';
 
   var sameDay = best.day === worst.day;
   return '<div class="rec-view">' +
     '<div class="rec-grid">' +
-      dayCard(best, true) +
-      (sameDay ? emptyCard(false, '▼ Худший день', 'нужно хотя бы 2 игровых дня') : dayCard(worst, false)) +
+      dayCard(best, true, !!oneRes) +
+      (sameDay ? emptyCard(false, '▼ Худший день' + (oneRes ? ' по точности' : ''), 'нужно хотя бы 2 игровых дня') : dayCard(worst, false, !!oneRes)) +
     '</div>' +
     // рекорды — нейтральный блок, не продолжение колонок «лучший / худший»
     '<div class="rec-section">🏆 Рекорды</div>' +
     '<div class="rec-tiles">' +
       tile('Больше всего партий за день', busiest.games.length, dayLabel(busiest.day)) +
-      tile('Самая длинная серия', bestRun + ' ' + plural(bestRun, 'день', 'дня', 'дней'),
+      tile(oneRes ? 'Серия дней ' + RES_DAYS[oneRes] : 'Самая длинная серия', bestRun + ' ' + plural(bestRun, 'день', 'дня', 'дней'),
            bestFrom === bestTo ? dayLabel(bestFrom) : ddmm(fromIso(bestFrom)) + ' – ' + ddmm(fromIso(bestTo))) +
       tile('Самая активная неделя', activeWeek.games.length + ' ' + plural(activeWeek.games.length, 'партия', 'партии', 'партий'), weekRange(activeWeek.from)) +
       (wrWeeks.length
-        ? tile('Лучшая неделя по винрейту', Math.round(winrate(wrWeeks[0].games)) + '%', weekRange(wrWeeks[0].from) + ' · ' + wrWeeks[0].games.length + ' ' + plural(wrWeeks[0].games.length, 'партия', 'партии', 'партий'))
-        : tile('Лучшая неделя по винрейту', '—', 'нужно ' + MIN_WEEK + '+ партии за неделю')) +
+        ? tile(wkLabel, oneRes ? avg(wrWeeks[0].games, 'acc').toFixed(1) + '%' : Math.round(winrate(wrWeeks[0].games)) + '%', weekRange(wrWeeks[0].from) + ' · ' + wrWeeks[0].games.length + ' ' + plural(wrWeeks[0].games.length, 'партия', 'партии', 'партий'))
+        : tile(wkLabel, '—', 'нужно ' + MIN_WEEK + '+ партии за неделю')) +
     '</div>' +
   '</div>';
 }

@@ -1009,6 +1009,45 @@
   .rd-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
   .rd-tbl th { font: 600 10px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); text-align: right; padding: 0 0 6px 10px; }
   .rd-tbl th:first-child, .rd-tbl td:first-child { text-align: left; padding-left: 0; }
+  /* «≈» — цифра посчитана по 1–2 партиям; строка бледнее */
+  .rd-dq { display: inline-block; margin-right: 3px; font-weight: 700; color: #facc15; cursor: help; }
+  .rd-tbl tr.dub td:not(:first-child) { opacity: 0.6; }
+  .rd-tbl tr.dub td .rd-dq { opacity: 1; }
+  /* «?» в шапке таблицы схемы — подсказка по значкам */
+  .rd-help-b { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--border); background: none; color: var(--fg-mute); font: 700 10px Inter, sans-serif; cursor: pointer; padding: 0; line-height: 16px; letter-spacing: 0; }
+  .rd-help-b:hover, .rd-help-b.on { color: var(--fg); border-color: #818cf8; }
+  .rd-help-b:disabled { opacity: 0.3; cursor: default; color: var(--fg-mute); border-color: var(--border); }   /* особых пометок нет — объяснять нечего */
+  .rd { position: relative; }
+  .rd-help { position: absolute; z-index: 60; width: 330px; border: 1px solid rgba(129,140,248,0.35); border-radius: 10px; padding: 10px 8px 10px 12px; font-size: 11.5px; line-height: 1.45; color: var(--fg-dim);
+    background: #1b1e2c; box-shadow: 0 12px 32px rgba(0,0,0,0.45); opacity: 0; transform: translateY(-4px); transition: opacity 0.15s, transform 0.15s; }
+  .rd-help.show { opacity: 1; transform: none; }
+  .rd-help-in { overscroll-behavior: contain; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; padding-right: 4px; }
+  .rd-help-arr { position: absolute; top: -6px; width: 10px; height: 10px; background: #1b1e2c; border-left: 1px solid rgba(129,140,248,0.35); border-top: 1px solid rgba(129,140,248,0.35); transform: rotate(45deg); }
+  .rd-help-h { display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: var(--fg); font-size: 12px; }
+  .rd-help-x { background: none; border: 0; color: var(--fg-mute); font-size: 15px; cursor: pointer; padding: 0 2px; }
+  .rd-help-x:hover { color: var(--fg); }
+  /* заголовок раздела — заметнее строк: светлее, жирнее, с линией снизу во всю ширину */
+  .rd-help-s { margin: 14px 0 4px; padding-bottom: 5px; border-bottom: 1px solid rgba(129,140,248,0.35); font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #a5b4fc; }
+  /* строки разделены тонкой линией, значок — в «плашке» слева: видно, где кончается одно объяснение и начинается другое */
+  .rd-help-r { display: grid; grid-template-columns: 70px 1fr; gap: 10px; align-items: start; padding: 7px 0; border-top: 1px solid rgba(255,255,255,0.06); }
+  .rd-help-s + .rd-help-r { border-top: 0; }
+  /* что есть сейчас на схеме — текст светлее, чего нет — приглушено */
+  .rd-help-r.off { opacity: 0.35; }
+  .rd-help-r { margin: 0 -8px; padding-left: 8px; padding-right: 8px; }   /* фон наведения шире влево, текст на месте */
+  .rd-help-r.now { color: var(--fg); cursor: pointer; border-radius: 6px; }
+  .rd-help-r.now:hover { background: rgba(255,255,255,0.04); }
+  /* показать на экране: короткая подсветка (рамка + фон, без свечения), у подписей осей — мигание */
+  @keyframes rdFlash { 0%, 60% { background: rgba(129,140,248,0.22); outline-color: rgba(165,180,252,0.9); } 100% { background: transparent; outline-color: transparent; } }
+  .rd-flash { outline: 1px solid transparent; outline-offset: 1px; border-radius: 4px; animation: rdFlash 2.2s ease-out; }
+  .rd-flash-w { display: inline-block; padding: 1px 4px; margin: -1px -4px; line-height: 1.3; }   /* обёртка значения в ячейке — рамка точно по нему */
+  @keyframes rdFlashT { 0%, 30%, 60% { opacity: 1; } 15%, 45% { opacity: 0.25; } }
+  text.rd-flash { outline: 0; animation: rdFlashT 1.6s ease-in-out; }
+  .rd-help-k { white-space: nowrap; justify-self: start; padding: 1px 7px; border-radius: 5px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07); line-height: 1.5; }
+  .rd-na { color: var(--fg-mute); font-weight: 400; opacity: 0.7; cursor: help; }   /* «нет данных» — серый прочерк, отдельно от минуса у чисел */
+  .rd-help-k .rd-help-g { display: inline-block; padding: 0 8px; margin: 0 -7px; border-radius: 4px; font-weight: 600; color: var(--fg); }   /* образец подсвеченной партии */
+  .rd-help-g.bad { background: rgba(248,113,113,0.12); box-shadow: inset 2px 0 0 #f87171; }
+  .rd-help-g.warn { background: rgba(250,204,21,0.15); box-shadow: inset 2px 0 0 #facc15; }
+  .rd-goal-out { color: var(--fg-mute); font-size: 11px; }
   .rd-tbl td { padding: 5px 0 5px 10px; text-align: right; color: var(--fg); border-top: 1px solid rgba(46,50,68,0.6); white-space: nowrap; }
   .rd-tbl td:first-child { color: var(--fg-dim); white-space: normal; }
   .rd-tbl td.was { color: var(--fg-mute); }
@@ -1134,6 +1173,8 @@
   .rd.with-list .rd-tbl th { letter-spacing: 0.5px; }
   .rd.with-list .rd-tbl td:first-child { white-space: nowrap; }   /* названия в одну строку */
   .rd.with-list .rd-tbl th, .rd.with-list .rd-tbl td { padding-left: 6px; }   /* таблица | список параметров | схема */
+  .rd-tbl th { padding-top: 7px; padding-bottom: 7px; vertical-align: middle; line-height: 18px; }   /* «?» и заголовки — по центру полосы шапки */
+  .rd-tbl th .rd-help-b { vertical-align: middle; display: block; }
   .rd-pop { min-height: 0; overflow-y: auto; border-right: 1px solid rgba(46,50,68,0.7); padding: 0 16px 0 0;
     scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
   .rd-pop-h { font: 600 10px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); margin: 2px 2px 6px; }
@@ -6631,6 +6672,77 @@ var RD_NUM_KINDS = [['diff', 'Разница', 'у фиолетовых точе
 var RD_MOVE_KEYS = ['firstBl', 'theory'];   // оси в ходах — их цифры включает галочка «Ходы»
 if (!RD.openG || typeof RD.openG !== 'object') RD.openG = {};
 var rdOpenG = RD.openG;
+var rdHelpOpen = false;   // открыта ли подсказка «?» над таблицей схемы
+// карточка «?» — поверх таблицы, под кнопкой; не вылезает за край окна, хвостик смотрит на «?»
+function rdHelpPlace() {
+  var b = $('vdDetail').querySelector('.rd-help-b'), c = $('vdDetail').querySelector('.rd-help');
+  if (!b || !c) return;
+  // координаты — от блока схемы (.rd): у панели «Итогов» есть transform, fixed там считался бы не от окна
+  var box = c.offsetParent || c.parentNode, o = box.getBoundingClientRect(), r = b.getBoundingClientRect(), w = c.offsetWidth;
+  var left = Math.max(0, Math.min(r.left - o.left - 14, box.clientWidth - w));
+  c.style.left = left + 'px'; c.style.top = (r.bottom - o.top + 9) + 'px';
+  var P = $('vdDetail').getBoundingClientRect();   // низ карточки — не ниже панели «Итогов» (с отступом); длинная подсказка прокручивается внутри
+  c.querySelector('.rd-help-in').style.maxHeight = Math.max(120, P.bottom - r.bottom - 9 - 14 - 22) + 'px';
+  c.querySelector('.rd-help-arr').style.left = (r.left - o.left + r.width / 2 - left - 6) + 'px';
+  var V = $('vdDetail'), has = function(sel) { return !!V.querySelector(sel); }, lg = (V.querySelector('.rd-legend') || {}).textContent || '';
+  var on = {ar: has('.rd-tbl .rd-ar'), diff: has('.rd-tbl td.up, .rd-tbl td.down'), dq: has('.rd-tbl .rd-dq'), na: has('.rd-tbl .rd-na'),
+    axr: has('text.rd-lbl[style*="f87171"]'), axy: has('text.rd-lbl[style*="fbbf24"]'), gr: has('.rdd-g.bad'), gy: has('.rdd-g.warn'),
+    few: has('.rd-legend .rd-few'), part: lg.indexOf('неполный отрезок') >= 0, goal: has('.rd-goal-out')};
+  c.querySelectorAll('.rd-help-r').forEach(function(r) { var k = r.getAttribute('data-hk'); r.classList.toggle('now', !!on[k]); r.classList.toggle('off', !on[k]); });
+  c.classList.add('show');
+}
+// клик по яркой строке подсказки — закрыть её и коротко подсветить на экране то, о чём строка (значки, оси, партии, подписи под схемой)
+var RD_HELP_SEL = {ar: '.rd-tbl .rd-ar', diff: '.rd-tbl td.up, .rd-tbl td.down', dq: '.rd-tbl .rd-dq', na: '.rd-tbl .rd-na',
+  axr: 'text.rd-lbl[style*="f87171"]', axy: 'text.rd-lbl[style*="fbbf24"]', gr: '.rdd-g.bad', gy: '.rdd-g.warn',
+  few: '.rd-legend .rd-few', part: '.rd-legend span', goal: '.rd-goal-out'};
+function rdHelpShow(k) {
+  var keep = k === 'axr' || k === 'axy';   // оси видны рядом с подсказкой — она остаётся открытой, кликать можно сколько угодно
+  if (!keep) { rdHelpOpen = false; rdRerender(); }
+  var V = $('vdDetail'), els = [].slice.call(V.querySelectorAll(RD_HELP_SEL[k] || '_'));
+  if (k === 'part') els = els.filter(function(e) { return e.textContent.indexOf('неполный отрезок') >= 0; });
+  // подсветка обволакивает только значение, а не всю ячейку: содержимое ячейки — во временную обёртку
+  els = els.map(function(e) { return e.tagName === 'SPAN' && e.closest('td') ? e.closest('td') : e; });   // стрелки — вместе с числом слева
+  els = els.filter(function(e, i) { return els.indexOf(e) === i; }).map(function(e) {
+    if (e.tagName !== 'TD') return e;
+    var w = document.createElement('span'); w.className = 'rd-flash-w';
+    while (e.firstChild) w.appendChild(e.firstChild);
+    e.appendChild(w); return w;
+  });
+  if (!els.length) return;
+  // если внизу (партии) — докрутить к ним только колонку таблицы, страницу не трогаем (scrollIntoView дёргал и окно)
+  var sc = !keep && els[0].closest('.rd-right, .rd-pop');
+  if (sc) { var er = els[0].getBoundingClientRect(), cr = sc.getBoundingClientRect(); if (er.top < cr.top || er.bottom > cr.bottom) sc.scrollTo({top: sc.scrollTop + er.top - cr.top - (cr.height - er.height) / 2, behavior: 'smooth'}); }
+  els.forEach(function(e) {   // повторный клик — мигание начинается заново (свой таймер у каждого элемента)
+    clearTimeout(e._rdFlT); e.classList.remove('rd-flash'); void e.getBoundingClientRect(); e.classList.add('rd-flash');
+    e._rdFlT = setTimeout(function() { e.classList.remove('rd-flash'); }, 2200);
+  });
+}
+function rdHelpClose() { if (!rdHelpOpen) return false; rdHelpOpen = false; rdRerender(); return true; }
+window.addEventListener('resize', function() { if (rdHelpOpen) rdHelpPlace(); });
+document.addEventListener('scroll', function() { if (rdHelpOpen) rdHelpPlace(); }, true);   // таблица или страница прокрутилась — карточка едет за «?»
+function rdHelpHtml(D) {
+  var base = D.goal ? 'требования правила' : D.hasB ? (D.vs ? 'партий другим цветом' : '«было»') : 'среднего';
+  var li = function(a, b, k) { return '<div class="rd-help-r" data-hk="' + k + '"><span class="rd-help-k">' + a + '</span><span>' + b + '</span></div>'; };
+  setTimeout(rdHelpPlace, 0);   // карточка выпадает из «?»: место считается после отрисовки
+  return '<div class="rd-help" role="dialog"><i class="rd-help-arr"></i><div class="rd-help-in">' +
+    '<div class="rd-help-h">Что значат значки <button type="button" class="rd-help-x" data-rdhelp aria-label="Закрыть">×</button></div>' +
+    '<div class="rd-help-s">Таблица</div>' +
+    li('<span class="rd-ar up">▲</span> <span class="rd-ar down">▼</span>', 'у значения — лучше / хуже ' + base, 'ar') +
+    li('<span style="color:var(--green)">+5%</span> <span style="color:var(--red)">−5%</span>', 'разница: на сколько лучше / хуже; у параметров в % — в пунктах (74% − 71% = +3%)', 'diff') +
+    li('<span class="rd-dq">≈</span>', 'посчитано по 1–2 партиям, где этот параметр есть (например, защита — только партии с −3 и хуже): цифра неточная, в «Слабее всего» не попадает', 'dq') +
+    li('<span class="rd-na" title="Нет данных">—</span>', 'серый прочерк вместо числа — <b>нет данных</b>: по этим партиям параметр не посчитать (например, партии не дошли до эндшпиля, коротких матов меньше двух)', 'na') +
+    '<div class="rd-help-s">Схема</div>' +
+    li('<b style="color:#f87171">ОСЬ</b>', 'красное название оси — «Слабее всего»: хуже ' + base + ' на 5% и больше', 'axr') +
+    li('<b style="color:#facc15">ОСЬ</b>', 'жёлтое — тоже хуже, но меньше', 'axy') +
+    '<div class="rd-help-s">Партии в разборе параметра</div>' +
+    li('<span class="rd-help-g bad">#№</span>', 'красная партия — хуже ' + base + ', а сам параметр в «Слабее всего»', 'gr') +
+    li('<span class="rd-help-g warn">#№</span>', 'жёлтая партия — хуже ' + base + ', параметр не в «Слабее всего»', 'gy') +
+    '<div class="rd-help-s">Под схемой</div>' +
+    li('<span style="color:#facc15">⚠</span>', '1–2 партии в отрезке (или в «было») — слишком мало для выводов', 'few') +
+    li('4 из 5', 'неполный отрезок: самый старый кусок короче выбранного (листаем от последней партии назад)', 'part') +
+    li('10 из 11', 'в «Цели этапа» — сколько партий идёт в цель; остальные (другой соперник, цвет) не считаются', 'goal') +
+    '</div></div>';
+}
 var rdPick = null;   // ключ параметра, по которому открыт подробный разбор под таблицей (не сохраняется)   // какие группы в списке параметров раскрыты / свёрнуты — сохраняется (vdRadar.v1); не трогал группу — раскрыта, если в ней что-то выбрано
 function rdSave() { try { localStorage.setItem('vdRadar.v1', JSON.stringify(RD)); } catch (e) {} }
 function rdAvg(list, f) { var v = list.map(f).filter(function(x) { return x !== null && x !== undefined; }); return v.length ? v.reduce(function(a, b) { return a + b; }, 0) / v.length : null; }
@@ -6818,8 +6930,17 @@ function rdSel(list) {
   var ws = [];
   for (var i = W; i <= n; i++) ws.push(list.slice(i - W, i));
   var end = n - pg * W, A = list.slice(Math.max(0, end - W), end), B = list.slice(Math.max(0, end - 2 * W), Math.max(0, end - W));
-  return {A: A, B: B, first: list.slice(0, W), wins: ws, ok: A.length >= 3, W: W, canBack: end - W >= 3, page: pg};
+  // правило периодов: режем от последней партии назад шагами по W; самый старый кусок может быть неполным (даже 1 партия) — показываем с предупреждением
+  return {A: A, B: B, first: list.slice(0, W), wins: ws, ok: A.length >= 1, W: W, canBack: end - W >= 1, page: pg};
 }
+// по скольким партиям посчитан параметр: партии, где он есть (m.fn по одной партии не null); групповые параметры (разброс и т. п.) — все партии отрезка
+function rdCnt(m, l) {
+  if (!l || !l.length) return 0;
+  var k = l.filter(function(g) { return m.fn([g]) !== null; }).length;
+  return !k && m.fn(l) !== null ? l.length : k;
+}
+var RD_DUB = 3;   // меньше — цифра сомнительная: «≈» в таблице, в «Слабее всего» не попадает
+function rdDub(n, v) { return v !== null && v !== undefined && n < RD_DUB; }
 function rdData() {
   var goal = RD.scale === 'goal' && !rdGoalOff();
   var list = goal ? [].concat.apply([], CUR.colors.map(function(c) { return c.rel; })).sort(function(a, b) { return a.n - b.n; }) : games.slice();
@@ -6853,14 +6974,29 @@ function rdData() {
       var Aw = A.filter(function(g) { return g.color === 'white'; }), Ab = A.filter(function(g) { return g.color === 'black'; });
       var aw = RD.colors && Aw.length ? m.fn(Aw) : null, ab = RD.colors && Ab.length ? m.fn(Ab) : null;
       return {m: m, a: a, b: b0, avg: avgAll, rel: rel(a), ra: r(a), rb: r(b0), lo: lo, aw: aw, ab: ab, rw: r(aw), rbk: r(ab), relW: rel(aw), relBk: rel(ab),
+        na: rdCnt(m, A), nb: b0 === null ? 0 : rdCnt(m, vs ? Bv : B),
         relB: b0 === null || a === null ? null : (m.low ? -1 : 1) * (a - b0) / Math.max(Math.abs(avgAll === null ? b0 : avgAll), floor)};   // сейчас против «было», в тех же единицах
     }
-    return {m: m, a: a, b: b, ra: r(a), rb: B.length ? r(b) : null, lo: lo, hi: hi};
+    return {m: m, a: a, b: b, ra: r(a), rb: B.length ? r(b) : null, lo: lo, hi: hi, na: rdCnt(m, A), nb: rdCnt(m, B)};
   });
   var colors = RD.colors && !goal;
-  return {n: n, W: W, axes: axes, goal: goal, hasB: vs ? Bv.length > 0 : RD.prev && !colors && B.length > 0, avgMode: !goal, colors: colors, sel: Sl,
+  var goalOut = !goal ? [] : games.filter(function(g) { return (RD.side === 'all' || g.color === RD.side) && list.indexOf(g) < 0; });
+  return {n: n, W: W, axes: axes, goal: goal, goalOut: goalOut, nAll: goal ? n + goalOut.length : n, hasB: vs ? Bv.length > 0 : RD.prev && !colors && B.length > 0, avgMode: !goal, colors: colors, sel: Sl,
     vs: vs, vsSide: vsSide, vsN: Bv.length,
     nW: A.filter(function(g) { return g.color === 'white'; }).length, nB: A.filter(function(g) { return g.color === 'black'; }).length};
+}
+// «Цель этапа»: сколько партий не идёт в цель и почему (другой соперник, цвет, до начала этапа)
+function rdGoalOutHtml(D) {
+  var out = D.goalOut || [];
+  if (!out.length) return '';
+  var why = function(g) {
+    var S = CUR.stage;
+    if (S && g.engine !== 'Stockfish ' + S.engine) return g.engine;
+    if (S && S.colors.indexOf(g.color) < 0) return g.color === 'white' ? 'белыми' : 'чёрными';
+    return 'до начала этапа';
+  };
+  return '<span class="rd-goal-out">партии этапа: ' + (D.nAll - out.length) + ' из ' + D.nAll + ' · ' +
+    (out.length <= 3 ? out.map(function(g) { return '№' + g.n + ' — ' + esc(why(g)); }).join(', ') : 'остальные ' + out.length + ' — другой соперник, цвет или до начала этапа') + ', в цель не ' + (out.length === 1 ? 'идёт' : 'идут') + '</span>';
 }
 function rdHtml() {
   var D = rdData(), S = 360, C = S / 2, R0 = 146;
@@ -6969,7 +7105,7 @@ function rdHtml() {
   var dm = function(iso) { return iso ? iso.slice(8) + '.' + iso.slice(5, 7) : ''; };
   var nG = function(l) { return l ? ' · ' + l.length + ' ' + plural(l.length, 'партия', 'партии', 'партий') : ''; };
   var nowTxt = byT ? Sl2.label + nG(Sl2.A)
-    : Sl2.ok ? (Sl2.page ? rdNums(Sl2.A) + nG(Sl2.A) : 'последние ' + Sl2.W + ' ' + plural(Sl2.W, 'партия', 'партии', 'партий') + ' (' + rdNums(Sl2.A) + ')') : '';
+    : Sl2.ok ? (Sl2.page ? rdNums(Sl2.A) + (Sl2.A.length < Sl2.W ? ' · ' + Sl2.A.length + ' из ' + Sl2.W + ' — неполный отрезок' : nG(Sl2.A)) : 'последние ' + Sl2.W + ' ' + plural(Sl2.W, 'партия', 'партии', 'партий') + ' (' + rdNums(Sl2.A) + ')') : '';
   var cap = byT ? 'последние ' + Sl2.P + ' ' + plural(Sl2.P, 'день', 'дня', 'дней') + (Sl2.A ? ' (' + Sl2.A.length + ' ' + plural(Sl2.A.length, 'партия', 'партии', 'партий') + ')' : '') + ' против ' + Sl2.P + ' до них' + (Sl2.B ? ' (' + Sl2.B.length + ')' : '')
     : Sl2.ok ? 'последние ' + Sl2.W + ' ' + plural(Sl2.W, 'партия', 'партии', 'партий') + ' против ' + Sl2.W + ' перед ними' : '';
   var side = '<div class="rd-side"><button type="button" class="rd-side-btn' + (rdSideMenu ? ' open' : '') + '" data-rdsd title="Какие партии: белыми, чёрными или все">' + rdSideIcon(RD.side) + '</button>' +
@@ -6987,7 +7123,7 @@ function rdHtml() {
     '<button type="button" class="rd-pg" data-rdpg="-1"' + (rdPage ? ' title="Отрезок позже"' : ' disabled title="Это последний отрезок"') + '>›</button></span><span></span></div>';
   var vsWord = D.vs ? (D.vsSide === 'white' ? 'белыми' : 'чёрными') : '';
   var prevTxt = D.vs ? vsWord + (D.vsN ? nG(new Array(D.vsN)) : ' · пока нет партий') : byT ? Sl2.prevLabel + nG(Sl2.B)
-    : Sl2.ok && Sl2.B && Sl2.B.length ? rdNums(Sl2.B) + nG(Sl2.B) : '';
+    : Sl2.ok && Sl2.B && Sl2.B.length ? rdNums(Sl2.B) + (Sl2.B.length < Sl2.W ? ' · ' + Sl2.B.length + ' из ' + Sl2.W + ' — неполный отрезок' : nG(Sl2.B)) : '';
   // «Сравнение с прошлыми» бледнеет по состоянию vs (а не по данным) — одинаково с партиями этого цвета и без
   var tg = '<div class="rd-tg">' +
     '<button type="button" data-rdtg="prev"' + (D.colors || (RD.vs && RD.side !== 'all' && !D.goal) ? ' disabled' : '') + ' class="' + (RD.prev ? 'on' : '') + '" title="Сравнить последние партии с такими же до них: серая фигура — «было»">Сравнение с прошлыми</button>' +
@@ -7002,7 +7138,7 @@ function rdHtml() {
       '<span><i class="dash"></i>' + esc(nowTxt) + ' · среднее за все ' + D.n + ' ' + plural(D.n, 'партию', 'партии', 'партий') + '</span>'
     : '<span><i style="background:' + RD_SIDE_FILL[RD.side][1] + '"></i><b>' + esc(nowTxt) + '</b>' + (RD.side !== 'all' ? ' · ' + (RD.side === 'white' ? 'белыми' : 'чёрными') : '') + '</span>' +
     (D.vs ? '<span><i style="background:' + RD_SIDE_FILL[D.vsSide][1] + '"></i>' + esc(prevTxt) + '</span>' : D.hasB ? '<span><i style="background:#9ca3af"></i>' + esc(prevTxt) + '</span>' : '') +
-    (D.goal ? '<span><i class="dash" style="border-color:#4ade80"></i>требование правила этапа</span>'
+    (D.goal ? '<span><i class="dash" style="border-color:#4ade80"></i>требование правила этапа</span>' + rdGoalOutHtml(D)
       : D.hasB ? '' : '<span><i class="dash"></i>твой средний уровень — за все ' + D.n + ' ' + plural(D.n, 'партию', 'партии', 'партий') + '</span>');
   bar = tg;   // сверху — переключатели сравнения в ряд; подписи цветов — под схемой
   var fewA = Sl2.A && Sl2.A.length && Sl2.A.length < 3, nBcmp = D.vs ? D.vsN : Sl2.B ? Sl2.B.length : 0, fewB = D.hasB && nBcmp < 3;   // в vs сравнение — с другим цветом
@@ -7010,29 +7146,38 @@ function rdHtml() {
     : fewB ? (D.vs ? vsWord : 'в «было»') + ' ' + nBcmp + ' ' + plural(nBcmp, 'партия', 'партии', 'партий') + ' — сравнение ненадёжное' : '';
   var legHtml = D.empty ? '<div class="rd-legend"><span class="rd-hint" style="margin:0">' + emptyMsg + '</span></div>'
     : leg ? '<div class="rd-legend">' + (fewTxt ? '<span class="rd-few">⚠ ' + fewTxt + '</span>' : '') + leg + '</div>' : '';
-  var fmt = function(x, v) { return v === null || v === undefined ? '—' : x.m.fmt(v); };
+  var fmt = function(x, v) { return v === null || v === undefined ? '<span class="rd-na" title="Нет данных: по этим партиям параметр не посчитать">—</span>' : x.m.fmt(v); };   // не «—»: путается с минусом
+  var dq = function(n, v) { return rdDub(n, v) ? '<span class="rd-dq" title="Посчитано по ' + n + ' ' + plural(n, 'партии', 'партиям', 'партиям') + ' (где этот параметр есть) — мало для выводов">≈</span>' : ''; };
+  var dqc = function(x) { return rdDub(x.na, x.a) || (D.hasB && rdDub(x.nb, x.b)) ? ' dub' : ''; };
   var arr = function(better) { return better === null || better === undefined ? '' : ' <span class="rd-ar ' + (better ? 'up' : 'down') + '">' + (better ? '▲' : '▼') + '</span>'; };
   var rows = axes.map(function(x) {
     var d = x.a !== null && x.b !== null ? x.a - x.b : null, better = d === null || Math.abs(d) < 1e-9 ? null : (x.m.low ? d < 0 : d > 0);
-    return '<tr><td title="' + esc(x.m.more || '') + '">' + esc(x.m.label) + '</td><td>' + fmt(x, x.a) + (D.hasB ? arr(better) : '') + '</td>' + (D.hasB ? '<td class="was">' + fmt(x, x.b) + '</td>' : '') +
+    return '<tr class="' + dqc(x).trim() + '"><td title="' + esc(x.m.more || '') + '">' + esc(x.m.label) + '</td><td>' + dq(x.na, x.a) + fmt(x, x.a) + (D.hasB ? arr(better) : '') + '</td>' + (D.hasB ? '<td class="was">' + dq(x.nb, x.b) + fmt(x, x.b) + '</td>' : '') +
       '<td class="was">' + (D.goal ? fmt(x, x.m.goal) : fmt(x, x.m.low ? x.hi : x.hi)) + '</td></tr>';
   }).join('');
   if (D.avgMode) rows = axes.map(function(x) {
     var q = D.hasB ? x.relB : x.rel, cls = q === null || Math.abs(q) < 0.005 ? 'same' : q > 0 ? 'up' : 'down';
-    return '<tr data-rdk="' + x.m.k + '" class="' + (rdPick === x.m.k ? 'on' : '') + '"><td title="' + esc(x.m.more || '') + '">' + esc(x.m.label) + '</td><td>' + fmt(x, x.a) + arr(cls === 'same' ? null : q > 0) + '</td><td class="was">' + fmt(x, D.hasB ? x.b : x.avg) + '</td><td class="' + cls + '">' +
-      (q === null ? '—' : cls === 'same' ? '=' : rdDiff(x.m, q, x.a, D.hasB ? x.b : x.avg)) + '</td></tr>';
+    return '<tr data-rdk="' + x.m.k + '" class="' + (rdPick === x.m.k ? 'on' : '') + dqc(x) + '"><td title="' + esc(x.m.more || '') + '">' + esc(x.m.label) + '</td><td>' + dq(x.na, x.a) + fmt(x, x.a) + arr(cls === 'same' ? null : q > 0) + '</td><td class="was">' + (D.hasB ? dq(x.nb, x.b) : '') + fmt(x, D.hasB ? x.b : x.avg) + '</td><td class="' + cls + '">' +
+      (q === null ? '<span class="rd-na" title="Нет данных">—</span>' : cls === 'same' ? '=' : rdDiff(x.m, q, x.a, D.hasB ? x.b : x.avg)) + '</td></tr>';
   }).join('');
   if (D.colors) rows = axes.map(function(x) {
     var d = x.relW === null || x.relBk === null ? null : x.relW - x.relBk, cls = d === null || Math.abs(d) < 0.005 ? 'same' : d > 0 ? 'up' : 'down';   // белые против чёрных, в тех же единицах, что разница со средним
     return '<tr data-rdk="' + x.m.k + '" class="' + (rdPick === x.m.k ? 'on' : '') + '"><td title="' + esc(x.m.more || '') + '">' + esc(x.m.label) + '</td><td>' + fmt(x, x.aw) + '</td><td class="was">' + fmt(x, x.ab) + '</td><td class="' + cls + '">' +
-      (d === null ? '—' : cls === 'same' ? '=' : rdDiff(x.m, d, x.aw, x.ab)) + '</td></tr>';
+      (d === null ? '<span class="rd-na" title="Нет данных">—</span>' : cls === 'same' ? '=' : rdDiff(x.m, d, x.aw, x.ab)) + '</td></tr>';
   }).join('');
-  var tbl = !k ? '' : D.colors ? '<table class="rd-tbl"><tr><th></th><th>белыми</th><th>чёрными</th><th title="белыми лучше (+) или хуже (−), чем чёрными">разница</th></tr>' + rows + '</table>'
-    : D.avgMode ? '<table class="rd-tbl"><tr><th></th><th>сейчас</th><th>' + (D.vs ? vsWord : D.hasB ? 'было' : 'среднее') + '</th><th title="на сколько лучше (+) или хуже (−) ' + (D.hasB ? 'прошлого периода' : 'среднего') + '">разница</th></tr>' + rows + '</table>'
-    : '<table class="rd-tbl"><tr><th></th><th>сейчас</th>' + (D.hasB ? '<th>было</th>' : '') + '<th>' + (D.goal ? 'нужно' : 'лучшее') + '</th></tr>' + rows + '</table>';
+  // «?» нужен, только когда на экране есть особые пометки: ≈, прочерк «нет данных», ⚠, неполный отрезок, партии вне цели этапа
+  var nul = function(v) { return v === null || v === undefined; };
+  var needHelp = !D.empty && (axes.some(function(x) { return rdDub(x.na, x.a) || (D.hasB && rdDub(x.nb, x.b)) || nul(x.a) || (D.hasB ? nul(x.b) : D.avgMode && nul(x.avg)); }) ||
+    !!fewTxt || (RD.by !== 'time' && Sl2.ok && ((Sl2.A && Sl2.A.length < Sl2.W) || (D.hasB && Sl2.B && Sl2.B.length && Sl2.B.length < Sl2.W))) || !!(D.goalOut && D.goalOut.length));
+  if (!needHelp) rdHelpOpen = false;
+  var helpBtn = '<button type="button" class="rd-help-b' + (rdHelpOpen ? ' on' : '') + '" data-rdhelp' + (needHelp ? ' title="Что значат значки"' : ' disabled') + '>?</button>';
+  var tbl = !k ? '' : D.colors ? '<table class="rd-tbl"><tr><th>' + helpBtn + '</th><th>белыми</th><th>чёрными</th><th title="белыми лучше (+) или хуже (−), чем чёрными">разница</th></tr>' + rows + '</table>'
+    : D.avgMode ? '<table class="rd-tbl"><tr><th>' + helpBtn + '</th><th>сейчас</th><th>' + (D.vs ? vsWord : D.hasB ? 'было' : 'среднее') + '</th><th title="на сколько лучше (+) или хуже (−) ' + (D.hasB ? 'прошлого периода' : 'среднего') + '">разница</th></tr>' + rows + '</table>'
+    : '<table class="rd-tbl"><tr><th>' + helpBtn + '</th><th>сейчас</th>' + (D.hasB ? '<th>было</th>' : '') + '<th>' + (D.goal ? 'нужно' : 'лучшее') + '</th></tr>' + rows + '</table>';
   // в «Цели этапа» список параметров остаётся на месте (раскладка не меняется), но тусклый и не нажимается: оси задаёт правило
   return '<div class="rd with-list">' + rdPopHtml(D.goal) +
-    '<div class="rd-left">' + bar + svg + legHtml + by + '<div class="rd-tip"></div></div>' + '<div class="rd-right">' + tbl + (k >= 3 && !D.empty ? rdWeakHtml(D) : '') + (D.avgMode && k >= 3 && !D.empty ? rdDetailHtml(D) : '') + '</div></div>';
+    '<div class="rd-left">' + bar + svg + legHtml + by + '<div class="rd-tip"></div></div>' + '<div class="rd-right">' + tbl + (k >= 3 && !D.empty ? rdWeakHtml(D) : '') + (D.avgMode && k >= 3 && !D.empty ? rdDetailHtml(D) : '') + '</div>' +
+    (rdHelpOpen ? rdHelpHtml(D) : '') + '</div>';
 }
 // выпадающий список: готовые наборы сверху, ниже группы — клик раскрывает, галочки (3–8 параметров)
 // подробно по выбранному параметру: итог, столбики по всем партиям (период — фиолетовым, пунктир — обычный уровень),
@@ -7041,13 +7186,16 @@ function rdDetailHtml(D) {
   var x = D.axes.filter(function(a) { return a.m.k === rdPick; })[0];
   if (!x) return '<div class="rd-hint">Нажми на точку схемы или строку таблицы — здесь появится разбор по партиям</div>';
   var m = x.m, f = function(v) { return v === null || v === undefined ? '—' : m.fmt(v); };
+  // с чем сравниваем партии: при «Сравнении с прошлыми» / vs — со значением «было» (прошлый отрезок / другой цвет), иначе — со средним за все партии
+  var cmpB = D.hasB && x.b !== null && x.b !== undefined, base = cmpB ? x.b : x.avg, baseRel = cmpB ? x.relB : x.rel;
+  var baseWord = cmpB ? (D.vs ? (D.vsSide === 'white' ? 'белыми' : 'чёрными') : 'было') : 'среднее';
   var all = games.slice(), inA = {};
   (D.sel.A || []).forEach(function(g) { inA[g.id] = true; });
   var vals = all.map(function(g) { return {g: g, v: m.fn([g])}; }), has = vals.filter(function(o) { return o.v !== null; });
   var head = '<div class="rdd-h"><b>' + esc(m.label) + '</b>' + (m.low ? ' <span>▼ меньше — лучше</span>' : '') + '<button class="rdd-x" type="button" aria-label="Закрыть">×</button></div>' +
     (m.more ? '<div class="rdd-more">' + esc(m.more) + '</div>' : '') +
-    '<div class="rdd-sum">сейчас <b>' + f(x.a) + '</b>' + (x.rel === null || Math.abs(x.rel) < 0.005 ? '' : ' <span class="rd-ar ' + (x.rel > 0 ? 'up' : 'down') + '">' + (x.rel > 0 ? '▲' : '▼') + '</span>') + (m.unit ? ' ' + m.unit : '') + ' · среднее ' + f(x.avg) +
-      (x.rel === null ? '' : Math.abs(x.rel) < 0.005 ? ' · на уровне среднего' : ' · <span class="' + (x.rel > 0 ? 'up' : 'down') + '">' + rdDiffWords(m, x.rel, x.a, x.avg) + '</span>') + '</div>';
+    '<div class="rdd-sum">сейчас <b>' + f(x.a) + '</b>' + (baseRel === null || baseRel === undefined || Math.abs(baseRel) < 0.005 ? '' : ' <span class="rd-ar ' + (baseRel > 0 ? 'up' : 'down') + '">' + (baseRel > 0 ? '▲' : '▼') + '</span>') + (m.unit ? ' ' + m.unit : '') + ' · ' + baseWord + ' ' + f(base) +
+      (baseRel === null || baseRel === undefined ? '' : Math.abs(baseRel) < 0.005 ? ' · ' + (cmpB ? 'так же' : 'на уровне среднего') : ' · <span class="' + (baseRel > 0 ? 'up' : 'down') + '">' + (cmpB ? rdDiff(m, baseRel, x.a, base) + (baseRel > 0 ? ' лучше' : ' хуже') : rdDiffWords(m, x.rel, x.a, x.avg)) + '</span>') + '</div>';
   if (!has.length) return '<div class="rdd">' + head + '<div class="rd-hint">По одной партии этот параметр не считается — он только по группе партий.</div></div>';
   // столбики: высота — значение партии; фиолетовые — партии периода
   var W = 300, H = 64, n = vals.length, bw = W / n, mx = Math.max.apply(null, has.map(function(o) { return o.v; })), mn = Math.min(0, Math.min.apply(null, has.map(function(o) { return o.v; })));
@@ -7060,18 +7208,18 @@ function rdDetailHtml(D) {
   }).join('');
   // невидимые колонки на всю высоту — наведение по всей колонке, а не только по столбику
   bars += vals.map(function(o, i) { return '<rect class="rdd-hit" data-rddi="' + i + '" x="' + (i * bw).toFixed(1) + '" y="0" width="' + bw.toFixed(1) + '" height="' + H + '" fill="transparent"/>'; }).join('');
-  rdDetailVals = vals.map(function(o) { return {g: o.g, v: o.v, inA: !!inA[o.g.id]}; }); rdDetailX = x;
-  var avgY = x.avg === null ? null : y(x.avg);
+  rdDetailVals = vals.map(function(o) { return {g: o.g, v: o.v, inA: !!inA[o.g.id]}; }); rdDetailX = x; rdDetailBase = {v: base, w: baseWord, cmp: cmpB};
+  var avgY = base === null || base === undefined ? null : y(base);
   var chart = '<div class="rdd-cw"><div class="rdd-tip"></div><svg class="rdd-chart" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + bars +
     (avgY === null ? '' : '<line x1="0" x2="' + W + '" y1="' + avgY.toFixed(1) + '" y2="' + avgY.toFixed(1) + '" stroke="#9ca3af" stroke-dasharray="4 3" stroke-width="1" vector-effect="non-scaling-stroke"/>') + '</svg></div>' +
-    '<div class="rdd-axis"><span>#1</span><span>фиолетовые — период · пунктир — среднее</span><span>#' + all[all.length - 1].n + '</span></div>';
+    '<div class="rdd-axis"><span>#1</span><span>фиолетовые — период · пунктир — ' + (cmpB ? (D.vs ? 'партии ' + baseWord : 'прошлый период') : 'среднее') + '</span><span>#' + all[all.length - 1].n + '</span></div>';
   var RES = {win: ['W', 'var(--green)'], lose: ['L', 'var(--red)'], draw: ['D', 'var(--fg-dim)']};
   // цвет партий — как цвет параметра: параметр из «Слабее всего» (красный) — партии хуже среднего красные, любой другой — жёлтые
   var redParam = rdWeak(D).some(function(o) { return o.x.m.k === m.k; });
   var row = function(o, tag) {
     var r = RES[o.g.result] || RES.draw;
-    var worse = o.v !== null && x.avg !== null && Math.abs(o.v - x.avg) > 1e-9 && (m.low ? o.v > x.avg : o.v < x.avg);
-    return '<button class="rdd-g' + (worse ? (redParam ? ' bad' : ' warn') : '') + '" type="button" data-rdg-open="' + o.g.id + '" title="' + (worse ? 'Хуже среднего · ' : '') + esc(rdGoHint(m.k)) + '">' + (tag ? '<span class="rdd-tag ' + (tag === 'лучшая' ? 'best' : 'worst') + '">' + tag + '</span>' : '') +
+    var worse = o.v !== null && base !== null && base !== undefined && Math.abs(o.v - base) > 1e-9 && (m.low ? o.v > base : o.v < base);
+    return '<button class="rdd-g' + (worse ? (redParam ? ' bad' : ' warn') : '') + '" type="button" data-rdg-open="' + o.g.id + '" title="' + (worse ? (cmpB ? (D.vs ? 'Хуже, чем партии ' + baseWord : 'Хуже прошлого периода') : 'Хуже среднего') + ' · ' : '') + esc(rdGoHint(m.k)) + '">' + (tag ? '<span class="rdd-tag ' + (tag === 'лучшая' ? 'best' : 'worst') + '">' + tag + '</span>' : '') +
       '<span class="rdd-n">#' + o.g.n + '</span><span class="rdd-d">' + o.g.date + '</span><b style="color:' + r[1] + '">' + r[0] + '</b><span class="rdd-v">' + f(o.v) + '</span><span class="rdd-go">›</span></button>';
   };
   var inPeriod = vals.filter(function(o) { return inA[o.g.id]; }).reverse();
@@ -7081,7 +7229,7 @@ function rdDetailHtml(D) {
     (sorted.length > 1 ? '<div class="rdd-sub">За всё время</div>' + row(sorted[0], 'лучшая') + row(sorted[sorted.length - 1], 'худшая') : '') + '</div>';
 }
 // подсказка у столбика разбора: партия, результат, соперник, значение и сравнение с обычным
-var rdDetailVals = [], rdDetailX = null;
+var rdDetailVals = [], rdDetailX = null, rdDetailBase = {v: null, w: 'среднее', cmp: false};   // база сравнения партий: среднее или «было»
 function rddHide() {
   var t = $('vdDetail').querySelector('.rdd-tip'); if (t) t.style.display = 'none';
   $('vdDetail').querySelectorAll('.rdd-bar.hov').forEach(function(b) { b.classList.remove('hov'); });
@@ -7098,10 +7246,11 @@ $('vdDetail').addEventListener('mousemove', function(e) {
   if (o.v !== null && bar) bar.classList.add('hov');
   var f = function(v) { return v === null || v === undefined ? '—' : m.fmt(v); }, g = o.g;
   var res = {win: ['Победа', 'var(--green)'], lose: ['Поражение', 'var(--red)'], draw: ['Ничья', 'var(--fg-dim)']}[g.result] || ['—', 'var(--fg-dim)'];
-  var d = o.v === null || x.avg === null ? null : (o.v - x.avg) / Math.max(Math.abs(x.avg), m.fmt === rdPct ? 10 : /партию/.test(m.unit || '') ? 0.5 : 1) * (m.low ? -1 : 1);
+  var bv = rdDetailBase.v, bw = rdDetailBase.w;
+  var d = o.v === null || bv === null || bv === undefined ? null : (o.v - bv) / Math.max(Math.abs(x.avg === null ? bv : x.avg), m.fmt === rdPct ? 10 : /партию/.test(m.unit || '') ? 0.5 : 1) * (m.low ? -1 : 1);
   tip.innerHTML = '<b>#' + g.n + ' · ' + g.date + '</b> · <span style="color:' + res[1] + '">' + res[0] + '</span> · ' + esc(g.engine || '') + (o.inA ? ' <span style="color:#c4b5fd">· в периоде</span>' : '') +
     '<div>' + esc(m.label) + ': <b>' + (o.v === null ? 'нет значения' : f(o.v)) + '</b>' + (o.v !== null && m.unit && !/партию/.test(m.unit) ? ' ' + m.unit : '') +
-    (d === null ? '' : ' · среднее ' + f(x.avg) + (Math.abs(d) < 0.005 ? ' — на уровне среднего' : ' — <span style="color:' + (d > 0 ? 'var(--green)' : 'var(--red)') + '">' + rdDiffWords(m, d, o.v, x.avg) + '</span>')) + '</div>' +
+    (d === null ? '' : ' · ' + bw + ' ' + f(bv) + (Math.abs(d) < 0.005 ? (rdDetailBase.cmp ? ' — так же' : ' — на уровне среднего') : ' — <span style="color:' + (d > 0 ? 'var(--green)' : 'var(--red)') + '">' + (rdDetailBase.cmp ? rdDiff(m, d, o.v, bv) + (d > 0 ? ' лучше' : ' хуже') : rdDiffWords(m, d, o.v, bv)) + '</span>')) + '</div>' +
     (o.v === null ? '<div style="color:var(--fg-mute)">' + (m.k === 'end' || m.k === 'blEnd' ? 'партия не дошла до эндшпиля' : m.k === 'mid' || m.k === 'blMid' ? 'партия не дошла до миттельшпиля' : 'по этой партии параметр не посчитать') + '</div>' : '');
   tip.style.display = 'block';
   var cb = cw.getBoundingClientRect(), hb = hit.getBoundingClientRect();
@@ -7136,6 +7285,7 @@ var RD_TIPS = {
 function rdWeak(D, cnt, min) {   // min — порог «хуже на …» (по умолчанию 5%)
   var list = D.axes.map(function(x) {
     var bad = D.goal ? (x.ra === null || x.ra >= 1 ? null : 1 - x.ra) : (function(q) { return q === null || q === undefined || q > -(min === undefined ? 0.05 : min) ? null : -q; })(D.hasB ? x.relB : x.rel);
+    if (rdDub(x.na, x.a) || (D.hasB && rdDub(x.nb, x.b))) bad = null;   // по 1–2 партиям «проседает» не кричим
     return {x: x, bad: bad};
   }).filter(function(o) { return o.bad !== null; });
   return list.sort(function(a, b) { return b.bad - a.bad; }).slice(0, cnt || 2);
@@ -7216,6 +7366,7 @@ function toggleVerdict(open) {
   var row = $('sideRow');
   if (open === undefined) open = !row.classList.contains('vd-open');
   if (hush.head && open) return;   // в скрытом режиме итоги не открываются
+  if (!open) rdHelpOpen = false;   // закрыли «Итоги» — подсказка «?» при следующем открытии закрыта
   if (open) {
     if (row.classList.contains('open')) togglePuzzleDetail(false);
     if (row.classList.contains('op-open')) toggleOpeningDetail(false);
@@ -7241,7 +7392,7 @@ document.addEventListener('keydown', function(e) {
   else if (dayView) exitDayView();
 });
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape' && $('sideRow').classList.contains('vd-open')) toggleVerdict(false);
+  if (e.key === 'Escape' && $('sideRow').classList.contains('vd-open')) { if (!rdHelpClose()) toggleVerdict(false); }
 });
 // панель итогов живёт на уровне шапки (.profile-row): иначе при закрытии она на миг «прыгала» в размер ряда карточек
 document.querySelector('.profile-row').appendChild($('vdDetail'));
@@ -7263,10 +7414,17 @@ $('vdCard').addEventListener('keydown', function(e) {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleVerdict(); }
 });
 $('vdDetail').addEventListener('click', function(e) {
+  if (rdHelpOpen && !e.target.closest('.rd-help') && !e.target.closest('[data-rdhelp]')) {
+    if (e.target.closest('.vd-rd-btn, .vd-close')) rdHelpOpen = false;   // «Список» / × — сразу делают своё, подсказка закрывается вместе с ними
+    else { rdHelpClose(); return; }   // клик мимо карточки «?» — только закрыть её
+  }
   if (e.target.closest('.vd-close')) { toggleVerdict(false); return; }
-  if (e.target.closest('.vd-rd-btn')) { RD.on = !RD.on; rdSave(); renderVerdictDetail(); return; }
+  if (e.target.closest('.vd-rd-btn')) { RD.on = !RD.on; rdHelpOpen = false; rdSave(); renderVerdictDetail(); return; }
   var rb = e.target.closest('[data-rds]');
   if (rb) { RD.scale = rb.getAttribute('data-rds'); rdSave(); renderVerdictDetail(); return; }
+  var hr = e.target.closest('.rd-help-r.now'); if (hr) { rdHelpShow(hr.getAttribute('data-hk')); return; }
+  var hb = e.target.closest('[data-rdhelp]'); if (hb && hb.disabled) return;
+  if (hb) { rdHelpOpen = !rdHelpOpen; rdRerender(); return; }
   if (e.target.closest('.rdd-x')) { rdPick = null; rdRerender(); return; }
   var vsb = e.target.closest('[data-rdvs]');
   if (vsb) { if (!vsb.disabled) { RD.vs = !RD.vs; rdPick = null; rdSave(); renderVerdictDetail(); } return; }

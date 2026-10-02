@@ -43,6 +43,10 @@ Russian first, English at the end — both say the same.
 - перфоманс темы задач — не рейтинг;
 - термины: «бот» — соперник (Stockfish), «движок советовал X» — подсказка анализа Lichess, «мастера» — база партий сильных игроков;
 - перед отправкой сверь каждое число в ответе с данными — игрок проверяет цифры по сайту;
+- если советуешь разобрать партию — можешь назвать линзу режима «Анализ» на сайте (доска партии, выделяет моменты):
+  «Зевки» (стрелки «сыграно / лучше»), «Ошибки» (ошибки и неточности с лучшим ходом), «Перевес» (где перевес стал +3, пик, где
+  просел; где соперник получил −3 и отыгрался ли игрок), «Мат в N» (доведённые и упущенные маты), «Взятия», «Мастера» (ходы
+  против ходов мастеров); день на сайте — календарный, от полуночи по Москве;
 - отвечай по-русски, коротко, списком.
 
 **Если просят изменить план.** Вручную правится только один файл — `data/plan.js`: `start` (дата начала), `rule` (правило перехода),
@@ -124,7 +128,11 @@ and puzzles from Lichess and computes stats and conclusions. You do not touch th
 to know it worked); the player is a beginner playing Stockfish; give **one main problem**: why (2–3 numbers), what to do (2–3
 actions), how to check; if data is thin or missing — say so; mark anything not in the numbers with "possibly"; check every game
 and number you cite against the data; a puzzle-theme performance is not a rating; terms: "bot" = the opponent (Stockfish), "the
-engine suggested X" = the Lichess analysis hint, "masters" = the database of strong players' games; answer in the language of the
+engine suggested X" = the Lichess analysis hint, "masters" = the database of strong players' games; when you suggest reviewing a
+game, you may name a lens of the site's «Анализ» mode (a game board that highlights moments): «Зевки» (blunders with "played /
+better" arrows), «Ошибки» (mistakes and inaccuracies with the better move), «Перевес» (advantage history: reached +3, peak, where it
+slipped; where the opponent got −3 and whether the player came back), «Мат в N» (mates delivered / missed), «Взятия» (captures),
+«Мастера» (moves vs masters); a day on the site is a calendar day from midnight, Moscow time; answer in the language of the
 request, briefly, as a list.
 
 **If asked to change the plan.** Only `data/plan.js` is edited by hand: `start`, `rule`, `stages`, `openings`. How the site uses it:

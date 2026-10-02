@@ -529,7 +529,7 @@
   /* кнопка включённого режима («Активность» / «Анализ») становится зелёной «Показатели» — ведёт обратно */
   .mode-activity .activity-btn, .mode-analysis .analysis-btn { color: var(--green); border-color: var(--green); }
   .mode-activity .activity-btn:hover, .mode-analysis .analysis-btn:hover { background: var(--green-bg); }
-  /* скрытый режим (глаз у аватарки): «Анализ» недоступен */
+  /* скрытый режим или скрытый график: «Анализ» недоступен */
   .analysis-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .analysis-btn:disabled:hover { background: transparent; }
   /* «!» — свежая партия (последние сутки) с зевками или матом: угол кнопки «Анализ», список партий, список линз, моменты */
@@ -5162,7 +5162,7 @@ function setMode(m) {
   // кнопка включённого режима — зелёная «Показатели» (обратно), другая — своё название
   $('activityBtn').textContent = m === 'activity' ? 'Показатели' : 'Активность';
   $('analysisBtn').querySelector('.an-btn-t').textContent = m === 'analysis' ? 'Показатели' : 'Анализ';
-  if (!hush.mode) $('analysisBtn').title = m === 'analysis' ? 'Вернуться к показателям' : 'Разбор партий на доске: ходы, зевки, график перевеса';
+  if (!hush.mode && !hush.chart) $('analysisBtn').title = m === 'analysis' ? 'Вернуться к показателям' : 'Разбор партий на доске: ходы, зевки, график перевеса';
   if (typeof placeChartBtns === 'function') placeChartBtns();
   if (typeof renderAnBadge === 'function') renderAnBadge();
   // режим «Рекорды» сохраняется при переключении показатели ⇄ активность
@@ -10000,12 +10000,13 @@ function applyHush() {
     delete hushSnap.table;
   }
   if (!hush.chart && hushPrev.chart) restoreHush('chart');
-  // скрытый режим (глаз у аватарки): «Анализ» недоступен; открытый анализ сменяется показателями
-  $('analysisBtn').disabled = hush.mode;
-  $('analysisBtn').title = hush.mode ? '' : chartMode === 'analysis' ? 'Вернуться к показателям' : 'Разбор партий на доске: ходы, зевки, график перевеса';
+  // скрытый режим или скрытый график (свой глаз): «Анализ» недоступен; открытый анализ сменяется показателями
+  var anOff = hush.mode || hush.chart;
+  $('analysisBtn').disabled = anOff;
+  $('analysisBtn').title = anOff ? '' : chartMode === 'analysis' ? 'Вернуться к показателям' : 'Разбор партий на доске: ходы, зевки, график перевеса';
   // при выходе из скрытого режима анализ возвращается как был (партия, ход, линза, мастер — в an); запоминается и между перезагрузками
-  if (hush.mode && chartMode === 'analysis') { anHushBack = true; setMode('metrics'); }
-  else if (!hush.mode && anHushBack) { anHushBack = false; setMode('analysis'); }
+  if (anOff && chartMode === 'analysis') { anHushBack = true; setMode('metrics'); }
+  else if (!anOff && anHushBack) { anHushBack = false; setMode('analysis'); }
   try { if (anHushBack) localStorage.setItem('anHushBack', '1'); else localStorage.removeItem('anHushBack'); } catch (e) {}
   placeChartBtns();   // глаз графика мог появиться / пропасть
   renderAnBadge();

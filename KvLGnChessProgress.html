@@ -1511,6 +1511,22 @@
   .an-box.an-wide .an-mom { display: none; }
   .an-box.an-wide .an-moves { grid-column: 2 / span 2; }
   .an-mpick { margin-left: 10px; }
+  /* «i» у линзы: при наведении — расшифровка записи ходов */
+  .an-ni { position: relative; align-self: center; flex-shrink: 0; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--fg-mute); color: var(--fg-mute);
+    font: italic 700 10px/14px Georgia, serif; letter-spacing: 0; text-transform: none; text-align: center; cursor: help; margin-left: 2px; position: relative; top: -3px; }
+  .an-ni.right { margin-left: auto; margin-right: -4px; top: -1px; }   /* «Мастера»: правый край — по краю карточки хода под заголовком */
+  .an-ni:hover, .an-ni:focus { color: var(--fg); border-color: var(--fg-dim); outline: none; }
+  .an-ni-tip { display: none; position: absolute; top: calc(100% + 8px); left: -8px; z-index: 40; width: 250px; padding: 9px 11px; border-radius: 8px;
+    background: #1b1e2c; border: 1px solid var(--border); box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+    font: 400 11.5px/1.45 Inter, sans-serif; font-style: normal; color: var(--fg-dim); text-align: left; cursor: default; }
+  .an-ni.right .an-ni-tip { left: auto; right: -8px; }
+  .an-ni:hover .an-ni-tip, .an-ni:focus .an-ni-tip { display: block; }
+  /* внутри заголовка «Ходов»: у его span — свой серый цвет и разрядка, здесь их сбрасываем */
+  .an-head .an-ni-tip, .an-head .an-ni-tip * { letter-spacing: 0; text-transform: none; }
+  .an-head .an-ni-h { display: block; margin-bottom: 5px; font-weight: 700; color: var(--fg); }
+  .an-head .an-ni-r { display: grid; grid-template-columns: 70px 1fr; gap: 8px; padding: 2px 0; color: var(--fg-dim); }
+  .an-head .an-ni-r span { color: var(--fg-dim); }
+  .an-head .an-ni-r b { color: var(--fg); font-weight: 700; white-space: nowrap; }
   .an-mvs.ms-t.ms-w { grid-template-columns: 26px 1fr 1.3fr 1fr; }
   .an-mvs.ms-t.ms-b { grid-template-columns: 26px 1fr 1fr 1.3fr; }
   .an-th { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); padding-left: 7px; align-self: end; }
@@ -5382,11 +5398,11 @@ function anMistakeMoments(g, P) {
   return (g.jd || []).filter(function(j) { return AN_JD[j[1]] && anMine(g, j[0]) && j[0] <= P.n; }).map(function(j) {
     var p = j[0], K = AN_JD[j[1]], m = P.moves[p - 1], best = (j[2] || '').split(' ')[0];
     var d = g.ev && typeof g.ev[p - 1] === 'number' && typeof g.ev[p] === 'number' ? (g.ev[p - 1] - g.ev[p]) / 10 : null;
-    var loss = d !== null && d > 0 ? ' · −' + d.toFixed(1) + ' пешки' : '';
+    var loss = d !== null && d > 0 ? ' <span style="white-space:nowrap">(−' + d.toFixed(1) + '&nbsp;пешки)</span>' : '';   // цена хода — сразу после сыгранного, потом «лучше»
     return {p: p, at: p - 1, color: K.c, tint: 'bad', san: m.san, short: K.s,
       title: anMoveNo(p) + esc(m.san) + ' · <em>' + K.s + '</em>',
-      before: K.ru + ' на этом ходу: <span class="bad">сыграно ' + esc(m.san) + '</span>' + (best ? ', <span class="good">лучше ' + esc(best) + '</span>' : '') + loss,
-      after: K.ru + (best ? ' — лучше было <b>' + esc(best) + '</b>' : '') + loss + (j[2] ? '<br><span style="color:var(--fg-mute)">линия движка: ' + esc(anSanLine(p, j[2])) + '</span>' : ''),
+      before: K.ru + ' на этом ходу: <span class="bad">сыграно ' + esc(m.san) + loss + '</span>' + (best ? ', <span class="good">лучше ' + esc(best) + '</span>' : ''),
+      after: K.ru + ': <span class="bad">сыграно ' + esc(m.san) + loss + '</span>' + (best ? ', лучше было <b>' + esc(best) + '</b>' : '') + (j[2] ? '<br><span style="color:var(--fg-mute)">линия движка: ' + esc(anSanLine(p, j[2])) + '</span>' : ''),
       arrows: anArrows(P, p, K.c, best)};
   });
 }
@@ -5700,6 +5716,16 @@ function anMovesHtml(g, P, v, moments) {
   for (var p = 1; p <= P.n; p += 2) out.push('<span class="an-no">' + (p + 1) / 2 + '.</span>' + mv(p) + mv(p + 1));
   return out.join('');
 }
+// «i» в заголовке «Ходов» у правого края (вровень с карточкой хода): при наведении — что значат значки в записи ходов
+function anNoteI(right) {
+  var r = function(k, t) { return '<span class="an-ni-r"><b>' + k + '</b><span>' + t + '</span></span>'; };
+  return '<span class="an-ni' + (right ? ' right' : '') + '" tabindex="0" aria-label="Обозначения в записи ходов">i<span class="an-ni-tip">' +
+    '<span class="an-ni-h">Запись ходов</span>' +
+    r('+', 'шах') + r('#', 'мат') + r('x', 'взятие: exd5 — пешка e бьёт на d5') +
+    r('O-O', 'короткая рокировка') + r('O-O-O', 'длинная рокировка') +
+    r('K, Q, R, B, N', 'король, ферзь, ладья, слон, конь; без буквы — пешка') +
+    r('=Q', 'пешка превратилась в ферзя') + r('9. / 9…', 'ход белых / ход чёрных') + '</span></span>';
+}
 function anMovesCol(g, P, v, moments) {
   var ply = an.ply, L = anLens();
   return '<div class="an-moves-in"><div class="an-head">Ходы <span>' + Math.ceil(P.n / 2) + '</span>' +
@@ -5707,7 +5733,7 @@ function anMovesCol(g, P, v, moments) {
       '<div class="win-menu">' + AN_LENSES.map(function(x) {
         var fr = anFresh(g), bang = fr && fr[x.k] ? anBang('В этой партии (последние сутки) есть ' + (x.k === 'bl' ? 'зевки' : 'мат')) : '';
         return '<button class="win-opt' + (x.k === L.k ? ' on' : '') + '" data-lens="' + x.k + '" title="' + esc(x.hint) + '">' + x.label + bang + '</button>';
-      }).join('') + '</div></span>' + (L.k === 'ms' ? anMasterPick(g) : '') + '</div>' +
+      }).join('') + '</div></span>' + (L.k === 'ms' ? anMasterPick(g) : '') + anNoteI(true) + '</div>' +
     (L.k === 'all' ? '' : anInfoHtml(g, P, v)) + (L.k === 'ms' ? '<div class="an-ms-sum" title="До какого хода сверка шла по каждому источнику">' + esc(anMasterSummary(g, moments)) + '</div>' : '') +
     '<div class="an-mvs' + (L.k === 'ms' ? ' ms-t ms-' + (g.color === 'white' ? 'w' : 'b') : '') + '">' + anMovesHtml(g, P, v, moments) + '</div>' +
     '<div class="an-nav">' +

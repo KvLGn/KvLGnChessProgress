@@ -17,7 +17,7 @@ const { Chess } = await import('chess.js');   // позиции партий —
 
 const USER = 'KvLGn';
 const TZ = 'Europe/Moscow';
-const DAY_CUTOFF_HOUR = 5;   // партии до 05:00 относятся к предыдущему игровому дню
+const DAY_CUTOFF_HOUR = 0;   // день — календарный, от полуночи по Москве (до 02.10.2026 было 5: ночные партии шли в предыдущий день)
 const AVG_EVERY = 10;        // средние в логе — каждые 10 партий секции
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -49,7 +49,7 @@ function readToken() {
 const dayFmt = new Intl.DateTimeFormat('ru-RU', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
 const stampFmt = new Intl.DateTimeFormat('ru-RU', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-// игровой день: сдвигаем на DAY_CUTOFF_HOUR назад и берём дату по Москве
+// день партии / задачи: дата по Москве (сдвиг DAY_CUTOFF_HOUR — 0, календарный день)
 const timeFmt = new Intl.DateTimeFormat('ru-RU', { timeZone: TZ, hour: '2-digit', minute: '2-digit' });
 function gameDay(ts) {
   const [d, m, y] = dayFmt.format(new Date(ts - DAY_CUTOFF_HOUR * 3600e3)).split('.');
@@ -223,7 +223,7 @@ function writeGameLog(games, pending, stamp) {
     '- Новая секция для каждой комбинации соперник + цвет (например: Stockfish 3 — Белые, Stockfish 3 — Чёрные, Stockfish 4 — Белые)',
     '- Средние считаются отдельно по каждой секции',
     `- Средние записываются каждые ${AVG_EVERY} партий внутри секции, и при закрытии секции (переход на следующий уровень)`,
-    `- Дата — игровой день по Москве: партии до 0${DAY_CUTOFF_HOUR}:00 относятся к предыдущему дню`,
+    '- Дата — календарный день по Москве (от полуночи до полуночи)',
     '- \\# — сквозной номер партии (как на дашборде)',
   ];
 

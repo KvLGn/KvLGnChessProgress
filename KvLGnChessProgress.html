@@ -1706,6 +1706,12 @@
   .game-row.r-draw td:first-child { box-shadow: inset 3px 0 0 rgba(156,163,175,0.7); }
   .game-row:hover, .game-row:focus-visible { background: rgba(255,255,255,0.035); }
   .game-row.open { background: rgba(255,255,255,0.04); }
+  /* открытая партия: линия цвета результата сверху строки и снизу под раскрытой карточкой (вариант «рамка»; можно оставить одну) */
+  #gameRows .r-win { --rc: rgba(34,197,94,0.75); } #gameRows .r-lose { --rc: rgba(239,68,68,0.75); } #gameRows .r-draw { --rc: rgba(156,163,175,0.75); }
+  .game-row.open td { box-shadow: inset 0 2px 0 var(--rc); }
+  .game-row.open td:first-child { box-shadow: inset 3px 0 0 var(--rc), inset 0 2px 0 var(--rc); }
+  .game-row.open + .game-detail td { box-shadow: inset 0 -2px 0 var(--rc); }
+  .game-row.open + .game-detail:has(+ .game-row.open) td { box-shadow: none; }   /* две раскрытые подряд — между ними одна линия (верхняя у следующей), а не двойная */
   .badge { border: 1px solid currentColor; border-color: color-mix(in srgb, currentColor 35%, transparent); }
   .detail-inner {
     padding: 8px 20px 8px 42px;
@@ -2906,13 +2912,13 @@ document.addEventListener('keydown', function(e) {
 /* ---------- chart ---------- */
 var chartGames = [];
 
-// партии за последние 14 игровых дней, включая сегодня (день начинается в 05:00, как в update.mjs)
+// партии за последние 14 дней, включая сегодня (календарный день по Москве, как в update.mjs)
 var RECENT_DAYS = 14;
 function renderRecentCount() {
   function iso(d) {
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
-  var today = new Date(Date.now() - 5 * 3600e3);
+  var today = gameToday();
   var from = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (RECENT_DAYS - 1));
   var k = games.filter(function(g) { return g.day && g.day >= iso(from); }).length;
   return k + ' ' + plural(k, 'партия', 'партии', 'партий') + ' за последние 2 недели';
@@ -3870,7 +3876,7 @@ function renderMetricInputs() {
   }).join('');
 }
 
-/* даты — период «с … по …» (игровой день g.day, как везде) и быстрые кнопки; общий для таблицы (filt.dates) и графика (cfilt.dates) */
+/* даты — период «с … по …» (день g.day — календарный, по Москве) и быстрые кнопки; общий для таблицы (filt.dates) и графика (cfilt.dates) */
 var DATE_QUICK = [['today', 'Сегодня'], ['yday', 'Вчера'], ['7', '7 дней'], ['30', '30 дней']];
 function dateMatch(g, d) { return !d || ((!d.from || g.day >= d.from) && (!d.to || g.day <= d.to)); }
 function dateActive(d) { return !!(d && (d.from || d.to)); }
@@ -4296,6 +4302,15 @@ function remeasureTable() {
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasureTable);
 window.addEventListener('resize', function() { clearTimeout(window._tblT); window._tblT = setTimeout(remeasureTable, 200); });
 
+// раскрытые партии таблицы запоминаются между перезагрузками (localStorage tblOpen.v1 — номера партий)
+var tblOpen = (function() { try { var a = JSON.parse(localStorage.getItem('tblOpen.v1') || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } })();
+function tblOpenSave() {
+  if (hush.table) return;   // скрытая таблица — строк нет, запомненное не трогаем
+  var shown = [].map.call($('gameRows').querySelectorAll('tr.game-row'), function(r) { return +r.firstChild.textContent; });
+  var open = [].map.call($('gameRows').querySelectorAll('tr.game-row.open'), function(r) { return +r.firstChild.textContent; });
+  tblOpen = tblOpen.filter(function(n) { return shown.indexOf(n) < 0; }).concat(open);   // партии на других страницах / под фильтром остаются запомненными
+  try { localStorage.setItem('tblOpen.v1', JSON.stringify(tblOpen)); } catch (e) {}
+}
 function renderGames() {
   var ordered = hush.table ? [] : filterGames(games).slice(-TABLE_N).reverse();
   var total = ordered.length;
@@ -4312,7 +4327,7 @@ function renderGames() {
   ordered.slice(start, end).forEach(function(g) {
     var R = RESULT[g.result];
     var row = document.createElement('tr');
-    row.className = 'game-row r-' + g.result;
+    row.className = 'game-row r-' + g.result + (tblOpen.indexOf(g.n) >= 0 ? ' open' : '');
     row.tabIndex = 0;
     row.innerHTML =
       '<td>' + g.n + '</td>' +
@@ -4324,7 +4339,7 @@ function renderGames() {
       irCell(g.ir);
 
     var detail = document.createElement('tr');
-    detail.className = 'game-detail';
+    detail.className = 'game-detail r-' + g.result;   // r- — цвет линии под раскрытой партией
     detail.innerHTML = '<td colspan="7"><div class="detail-inner mr">' + matchReport(g) +
       '<span class="detail-links">' +
       (chartReach(g) ? '<button class="detail-link detail-chart" type="button" title="Переключить на график и выделить колонку этой партии">Показать на графике</button>' : '') +
@@ -4334,6 +4349,7 @@ function renderGames() {
 
     function toggle() {
       var open = row.classList.toggle('open');
+      tblOpenSave();
       if (open) return;
       // свернули партию — панель «i» и выбор на графике сбрасываются: при следующем раскрытии отчёт в обычном виде
       var w = detail.querySelector('.mr-gwrap'), ib = detail.querySelector('.mr-i');
@@ -4462,8 +4478,11 @@ function isoDay(d) {
 function ddmm(d) { return ('0' + d.getDate()).slice(-2) + '.' + ('0' + (d.getMonth() + 1)).slice(-2); }
 function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
 function mondayOf(d) { return addDays(d, -((d.getDay() + 6) % 7)); }
-// игровой день: до 05:00 — ещё вчера (как в update.mjs)
-function gameToday() { var t = new Date(Date.now() - 5 * 3600e3); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
+// «сегодня» — календарный день по Москве, от полуночи (как даты партий и задач в update.mjs; до 02.10.2026 день начинался в 05:00)
+function gameToday() {
+  try { var p = new Intl.DateTimeFormat('en-CA', {timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit'}).format(new Date()).split('-'); return new Date(+p[0], p[1] - 1, +p[2]); }
+  catch (e) { var t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
+}
 
 /* ---------- листание периода стрелками: 0 — текущий, -1 — предыдущий и т. д. ---------- */
 var periodOffset = 0;
@@ -5776,13 +5795,8 @@ function renderPuzzleCard() {
     var f = isoDay(m), t = isoDay(addDays(m, 6));
     return P.attempts.filter(function(a) { return a.day >= f && a.day <= t; }).length;
   }
-  var weekN = inWeek(wkMon);
-  if (!weekN && P.attempts.length) {
-    wkMon = mondayOf(fromIso(P.attempts[P.attempts.length - 1].day));   // последняя неделя с задачами
-    weekN = inWeek(wkMon);
-    weekLabel = ddmm(wkMon) + '–' + ddmm(addDays(wkMon, 6));
-    weekTitle = 'На этой неделе задач нет — показана последняя неделя с задачами';
-  }
+  var weekN = inWeek(wkMon);   // на этой неделе задач нет — честный 0 (подталкивает), прошлую неделю не подставляем
+  if (!weekN) weekTitle = 'На этой неделе задачи ещё не решались';
   var recent = [], seenKey = {};
   for (var i = P.attempts.length - 1; i >= 0 && recent.length < 3; i--) {
     var key = pzKey(P.attempts[i]);
@@ -6542,17 +6556,12 @@ $('vdCard').addEventListener('mouseleave', function() { vdPaused = false; });
 var vdItems = [];   // пункты последней отрисовки панели «Итоги» — для клика по пункту
 function renderVerdictDetail() {
   var V = buildVerdicts();
-  // строка этапа: этап из plan.js и две пятёрки на каждый цвет этапа
+  // строка этапа: этап из plan.js (+ «выполнено» у цвета, если этап им пройден)
   var stage = '<span class="vdx-stage" title="' + esc(stageRuleText()) + '">' + esc(PROFILE.stage) + '</span>';
   stage += '<span class="vdx-goals">';
   CUR.colors.forEach(function(c) {
-    stage += '<span class="vdx-goal">' + (CUR.colors.length > 1 ? '<span class="vdx-who">' + KNIGHT[c.color] + '</span>' : '') +
-      c.blocks.map(function(b) {
-        return '<span class="vdx-bar' + (b.ok ? ' ok' : b.full ? ' no' : '') + '" title="' + esc(blockWhy(b)) + '">' +
-          b.games.map(function(g) { return '<i class="' + g.result + '" title="' + esc('#' + g.n + ' · ' + g.date + ' · ' + RESULT[g.result].label + ' · точность ' + g.acc + '% · зевков ' + g.blunders) + '"></i>'; }).join('') +
-          new Array(Math.max(0, RULE.games - b.games.length) + 1).join('<i></i>') + '</span>';
-      }).join('') +
-      (c.done ? '<b style="color:var(--green)">выполнено</b>' : '') + '</span>';
+    if (c.done) stage += '<span class="vdx-goal">' + (CUR.colors.length > 1 ? '<span class="vdx-who">' + KNIGHT[c.color] + '</span>' : '') +   // полоски пятёрок в шапке «Итогов» убраны (02.10.2026) — пятёрки в «Главном»
+      '<b style="color:var(--green)">выполнено</b></span>';
   });
   stage += '</span>';
   vdItems = V;
@@ -9101,7 +9110,7 @@ function gsOpenGame(g) {
   renderGames();
   var rows = $('gameRows').querySelectorAll('tr.game-row');
   for (var i = 0; i < rows.length; i++) {
-    if (rows[i].firstChild.textContent === String(g.n)) { rows[i].classList.add('open'); gsFlash(rows[i]); break; }
+    if (rows[i].firstChild.textContent === String(g.n)) { rows[i].classList.add('open'); tblOpenSave(); gsFlash(rows[i]); break; }
   }
 }
 function gsTableOpening(name) {

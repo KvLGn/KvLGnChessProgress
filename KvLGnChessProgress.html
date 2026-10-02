@@ -6642,6 +6642,7 @@ function renderVerdictDetail() {
       col('good', '▲ Что идёт хорошо', 'var(--green)', 'Пока мало данных') +
       col('tip', '💡 План', '#fbbf24', 'Пока нечего советовать') +
     '</div>');
+  if (RD.on && rdHelpOpen && rdHelpPos) rdHelpPlace();   // карточка «?» — прокрутка и место сразу, без кадра «в начале»
 }
 
 /* ---------- «Итоги» → «Схема»: паутинка (как в Доте) — последние W партий против W перед ними ----------
@@ -6682,7 +6683,8 @@ function rdHelpPlace() {
   var left = Math.max(0, Math.min(r.left - o.left - 14, box.clientWidth - w));
   c.style.left = left + 'px'; c.style.top = (r.bottom - o.top + 9) + 'px';
   var P = $('vdDetail').getBoundingClientRect();   // низ карточки — не ниже панели «Итогов» (с отступом); длинная подсказка прокручивается внутри
-  c.querySelector('.rd-help-in').style.maxHeight = Math.max(120, P.bottom - r.bottom - 9 - 14 - 22) + 'px';
+  var hin = c.querySelector('.rd-help-in'); hin.style.maxHeight = Math.max(120, P.bottom - r.bottom - 9 - 14 - 22) + 'px'; hin.scrollTop = rdHelpScroll;
+  rdHelpPos = {l: left, t: r.bottom - o.top + 9, a: r.left - o.left + r.width / 2 - left - 6, h: Math.max(120, P.bottom - r.bottom - 9 - 14 - 22)};
   c.querySelector('.rd-help-arr').style.left = (r.left - o.left + r.width / 2 - left - 6) + 'px';
   var V = $('vdDetail'), has = function(sel) { return !!V.querySelector(sel); }, lg = (V.querySelector('.rd-legend') || {}).textContent || '';
   var on = {ar: has('.rd-tbl .rd-ar'), diff: has('.rd-tbl td.up, .rd-tbl td.down'), dq: has('.rd-tbl .rd-dq'), na: has('.rd-tbl .rd-na'),
@@ -6717,14 +6719,20 @@ function rdHelpShow(k) {
     e._rdFlT = setTimeout(function() { e.classList.remove('rd-flash'); }, 2200);
   });
 }
-function rdHelpClose() { if (!rdHelpOpen) return false; rdHelpOpen = false; rdRerender(); return true; }
+function rdHelpClose() { if (!rdHelpOpen) return false; rdHelpOpen = false; rdHelpPos = null; rdRerender(); return true; }
 window.addEventListener('resize', function() { if (rdHelpOpen) rdHelpPlace(); });
-document.addEventListener('scroll', function() { if (rdHelpOpen) rdHelpPlace(); }, true);   // таблица или страница прокрутилась — карточка едет за «?»
+var rdHelpScroll = 0, rdHelpPos = null;   // rdHelpPos — где стояла карточка (перерисовка рисует её сразу там)   // куда прокручена подсказка — после смены режима (перерисовки) остаётся там же
+document.addEventListener('scroll', function(e) {
+  if (e.target && e.target.classList && e.target.classList.contains('rd-help-in')) { rdHelpScroll = e.target.scrollTop; return; }
+  if (rdHelpOpen) rdHelpPlace();
+}, true);   // таблица или страница прокрутилась — карточка едет за «?»
 function rdHelpHtml(D) {
   var base = D.goal ? 'требования правила' : D.hasB ? (D.vs ? 'партий другим цветом' : '«было»') : 'среднего';
   var li = function(a, b, k) { return '<div class="rd-help-r" data-hk="' + k + '"><span class="rd-help-k">' + a + '</span><span>' + b + '</span></div>'; };
   setTimeout(rdHelpPlace, 0);   // карточка выпадает из «?»: место считается после отрисовки
-  return '<div class="rd-help" role="dialog"><i class="rd-help-arr"></i><div class="rd-help-in">' +
+  var q = rdHelpPos;   // перерисовка при открытой карточке (смена режима) — сразу на месте и видна, без появления заново
+  return '<div class="rd-help' + (q ? ' show' : '') + '" role="dialog"' + (q ? ' style="left:' + q.l + 'px;top:' + q.t + 'px"' : '') + '><i class="rd-help-arr"' + (q ? ' style="left:' + q.a + 'px"' : '') + '></i>' +
+    '<div class="rd-help-in"' + (q ? ' style="max-height:' + q.h + 'px"' : '') + '>' +
     '<div class="rd-help-h">Что значат значки <button type="button" class="rd-help-x" data-rdhelp aria-label="Закрыть">×</button></div>' +
     '<div class="rd-help-s">Таблица</div>' +
     li('<span class="rd-ar up">▲</span> <span class="rd-ar down">▼</span>', 'у значения — лучше / хуже ' + base, 'ar') +
@@ -7415,7 +7423,8 @@ $('vdCard').addEventListener('keydown', function(e) {
 });
 $('vdDetail').addEventListener('click', function(e) {
   if (rdHelpOpen && !e.target.closest('.rd-help') && !e.target.closest('[data-rdhelp]')) {
-    if (e.target.closest('.vd-rd-btn, .vd-close')) rdHelpOpen = false;   // «Список» / × — сразу делают своё, подсказка закрывается вместе с ними
+    if (e.target.closest('.vd-rd-btn, .vd-close, .rd-pop')) { rdHelpOpen = false; rdHelpPos = null; }   // «Список» / × / шаблон или параметр в списке слева — сразу делают своё, подсказка закрывается
+    else if (e.target.closest('[data-rdtg], [data-rdnm], [data-rdnk], [data-rdby], [data-rdn], [data-rdd], [data-rdpg], [data-rdsd], [data-rdside], [data-rdvs]')) {}   // смена режима / периода / цвета — подсказка остаётся открытой и обновляется
     else { rdHelpClose(); return; }   // клик мимо карточки «?» — только закрыть её
   }
   if (e.target.closest('.vd-close')) { toggleVerdict(false); return; }
@@ -7424,7 +7433,7 @@ $('vdDetail').addEventListener('click', function(e) {
   if (rb) { RD.scale = rb.getAttribute('data-rds'); rdSave(); renderVerdictDetail(); return; }
   var hr = e.target.closest('.rd-help-r.now'); if (hr) { rdHelpShow(hr.getAttribute('data-hk')); return; }
   var hb = e.target.closest('[data-rdhelp]'); if (hb && hb.disabled) return;
-  if (hb) { rdHelpOpen = !rdHelpOpen; rdRerender(); return; }
+  if (hb) { rdHelpScroll = 0; rdHelpPos = null; rdHelpOpen = !rdHelpOpen; rdRerender(); return; }
   if (e.target.closest('.rdd-x')) { rdPick = null; rdRerender(); return; }
   var vsb = e.target.closest('[data-rdvs]');
   if (vsb) { if (!vsb.disabled) { RD.vs = !RD.vs; rdPick = null; rdSave(); renderVerdictDetail(); } return; }

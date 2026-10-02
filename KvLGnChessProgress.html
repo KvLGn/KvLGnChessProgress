@@ -3001,7 +3001,7 @@ function renderChart() {
       g0.push('<line x1="40" y1="' + y + '" x2="590" y2="' + y + '" stroke="#2a2d3a" stroke-width="0.5"/>');
       if (p > 0) g0.push('<text x="34" y="' + (y + 3.5) + '" text-anchor="end" font-size="9" fill="#9ca3af">' + p + '%</text>');
     });
-    $('chart').innerHTML = '<svg viewBox="10 -10 600 245" role="img" aria-label="График скрыт">' + g0.join('') + '</svg>';
+    $('chart').innerHTML = '<svg viewBox="10 -10 600 245" role="img" aria-label="График">' + g0.join('') + '</svg>';
     return;
   }
   if (!n) {
@@ -9963,7 +9963,10 @@ function applyHush() {
   $('eyeBtn').classList.toggle('shut', hush.mode);
   renderFooter();
   $('avatar').parentNode.classList.toggle('can-all', !hush.mode && hushAny());
-  $('eyeBtn').title = hush.mode ? 'Выйти из скрытого режима' : 'Скрытый режим';
+  // скрытый режим не объясняет, что скрыто: подсказок «скрыто / недоступно» нет — недоступное просто без подсказки
+  $('eyeBtn').title = hush.mode ? '' : 'Скрытый режим';
+  $('avatar').title = hush.mode ? '' : 'Скрытый режим';
+  $('eyeAll').title = hush.mode ? '' : 'Показать все скрытые части'; $('eyeAll').setAttribute('aria-label', $('eyeAll').title);
   $('eyeBtn').setAttribute('aria-label', $('eyeBtn').title);
   document.querySelectorAll('.sect-eye').forEach(function(b) {
     var on = hush[b.getAttribute('data-sec')];
@@ -9973,9 +9976,9 @@ function applyHush() {
     b.setAttribute('aria-label', b.title);
   });
   $('helpBtn').disabled = hushAny();
-  $('helpBtn').title = hushAny() ? 'Справка недоступна, пока часть страницы скрыта' : 'Готовые вопросы для нейросети или человека: клик по пункту — копия текста';
+  $('helpBtn').title = hushAny() ? '' : 'Готовые вопросы для нейросети или человека: клик по пункту — копия текста';
   $('menuBtn').disabled = hushAll();   // всё скрыто — меню недоступно
-  $('menuBtn').title = hushAll() ? 'Меню недоступно — всё скрыто' : 'Меню (Ctrl+K)';
+  $('menuBtn').title = hushAll() ? '' : 'Меню (Ctrl+K)';
   if (hushAll()) mnClose();
   else if ($('mn').classList.contains('open')) { mnBuild(); mnRender(); }   // меню без скрытых частей
   if (hush.head) gsCloseSide();
@@ -10000,7 +10003,7 @@ function applyHush() {
   if (!hush.chart && hushPrev.chart) restoreHush('chart');
   // скрытый режим (глаз у аватарки): «Анализ» недоступен; открытый анализ сменяется показателями
   $('analysisBtn').disabled = hush.mode;
-  $('analysisBtn').title = hush.mode ? 'Недоступно в скрытом режиме' : chartMode === 'analysis' ? 'Вернуться к показателям' : 'Разбор партий на доске: ходы, зевки, график перевеса';
+  $('analysisBtn').title = hush.mode ? '' : chartMode === 'analysis' ? 'Вернуться к показателям' : 'Разбор партий на доске: ходы, зевки, график перевеса';
   // при выходе из скрытого режима анализ возвращается как был (партия, ход, линза, мастер — в an); запоминается и между перезагрузками
   if (hush.mode && chartMode === 'analysis') { anHushBack = true; setMode('metrics'); }
   else if (!hush.mode && anHushBack) { anHushBack = false; setMode('analysis'); }

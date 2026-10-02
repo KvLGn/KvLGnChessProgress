@@ -6095,8 +6095,7 @@ function startOpCurCarousel() {
 }
 // карусель «Далее / В планах»: по одному дебюту на слайд, сначала следующие, потом планы
 function opCarousel(O) {
-  var slides = (O.next || []).map(function(o) { return ['Далее', o]; })
-    .concat((O.planned || []).map(function(o) { return ['В планах', o]; }))
+  var slides = (O.next || []).map(function(o) { return ['Далее', o]; })   // карусель — только следующие; «в планах» — числом строкой ниже
     .map(function(p) { return '<div class="op-slide"><span class="op-sl-lbl">' + p[0] + ':</span> ' + opName(p[1]) + '</div>'; });
   if (!slides.length) return 'Далее: —';
   opN = slides.length;

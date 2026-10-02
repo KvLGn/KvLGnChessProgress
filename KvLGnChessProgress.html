@@ -1002,7 +1002,7 @@
   .rd-tip { position: absolute; z-index: 5; pointer-events: none; display: none; white-space: nowrap; font-size: 12px; line-height: 1.45; color: var(--fg-dim);
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
   .rd-tip b { color: var(--fg); }
-  .rd-right { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 6px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
+  .rd-right { overscroll-behavior: contain; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 6px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
   .rd-leg { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--fg-dim); }
   .rd-leg i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
   .rd-note { font-size: 12px; color: var(--fg-mute); line-height: 1.5; }
@@ -1175,7 +1175,7 @@
   .rd.with-list .rd-tbl th, .rd.with-list .rd-tbl td { padding-left: 6px; }   /* таблица | список параметров | схема */
   .rd-tbl th { padding-top: 7px; padding-bottom: 7px; vertical-align: middle; line-height: 18px; }   /* «?» и заголовки — по центру полосы шапки */
   .rd-tbl th .rd-help-b { vertical-align: middle; display: block; }
-  .rd-pop { min-height: 0; overflow-y: auto; border-right: 1px solid rgba(46,50,68,0.7); padding: 0 16px 0 0;
+  .rd-pop { overscroll-behavior: contain; min-height: 0; overflow-y: auto; border-right: 1px solid rgba(46,50,68,0.7); padding: 0 16px 0 0;
     scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
   .rd-pop-h { font: 600 10px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--fg-mute); margin: 2px 2px 6px; }
   .rd-pre { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
@@ -1196,7 +1196,7 @@
   .vdx-col { min-height: 0; display: flex; flex-direction: column; }
   .vdx-title { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
   .vdx-title span { color: var(--fg-mute); font-weight: 400; margin-left: 4px; }
-  .vdx-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 6px;
+  .vdx-list { overscroll-behavior: contain; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 6px;
     scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
   .vdx-item { padding-left: 10px; border-left: 2px solid; }
   .vdx-item.go { cursor: pointer; border-radius: 0 6px 6px 0; padding-top: 2px; padding-bottom: 2px; transition: background 0.15s; }
@@ -6366,7 +6366,7 @@ function buildVerdicts() {
   // камбэки: перевес был у бота (−3 и хуже), а партия выиграна — последние 10
   var comeback = L10.filter(function(g) { return g.result === 'win' && g.ev && Math.min.apply(null, g.ev) <= -30; });
   if (comeback.length) add('good', 56 + comeback.length * 3, 'Отыгрался: ' + gN(comeback.length) + ' из 10', null,
-    'Перевес был у бота (−3 и хуже), а ты победил: #' + comeback.map(function(g) { return g.n; }).join(', #') + ' · последние 10 партий', 'Партии', 'Результат', function() { mrOpenSection(comeback[comeback.length - 1], 'turn'); });
+    'Перевес был у бота (−3 и хуже), а ты победил: #' + comeback.map(function(g) { return g.n; }).join(', #') + ' · последние 10 партий', 'Партии', 'Результат', function() { anOpen(comeback[comeback.length - 1], undefined, 'adv'); });   // «Анализ» на перевесе: дно и отыгрыш
 
   // Партии · Точность: тренд (5 против 5), разброс (5), личный рекорд (в последних 3)
   if (P5.length === 5) {
@@ -6403,14 +6403,14 @@ function buildVerdicts() {
   var losses10 = L10.filter(function(g) { return g.result === 'lose'; });
   var early = losses10.filter(function(g) { return typeof g.end !== 'number'; });
   if (losses10.length >= 2 && early.length / losses10.length >= 0.5)
-    add('bad', 55, early.length + ' из ' + losses10.length + ' поражений — до эндшпиля', null, 'Партия проиграна ещё в миттельшпиле · последние 10 партий', 'Партии', 'Фазы', function() { gsChart('metrics', false); });
+    add('bad', 55, early.length + ' из ' + losses10.length + ' поражений — до эндшпиля', null, 'Партия проиграна ещё в миттельшпиле · последние 10 партий', 'Партии', 'Фазы', function() { anOpen(early[early.length - 1], undefined, 'adv'); });   // где перевес ушёл
   // перелом в поражениях: где перевес обвалился сильнее всего
   var turns = losses10.map(function(g) { var t = mrTurn(g); return t && t.d < 0 ? {g: g, p: t.p} : null; }).filter(Boolean);
   if (turns.length >= 2) {
     var mv = turns.map(function(x) { return Math.ceil(x.p / 2); }).sort(function(a, b) { return a - b; });
     var inMid = turns.filter(function(x) { var dv = x.g.div || {}; return (!dv.mid || x.p >= dv.mid) && (!dv.end || x.p < dv.end); }).length;
     add('bad', 57, 'Перелом в поражениях: ходы ' + mv[0] + '–' + mv[mv.length - 1], null,
-      'В ' + inMid + ' из ' + turns.length + ' поражений перевес обвалился в миттельшпиле · последние 10 партий', 'Партии', 'Фазы', function() { mrOpenSection(turns[turns.length - 1].g, 'turn'); });
+      'В ' + inMid + ' из ' + turns.length + ' поражений перевес обвалился в миттельшпиле · последние 10 партий', 'Партии', 'Фазы', function() { anOpen(turns[turns.length - 1].g, undefined, 'adv'); });   // «Анализ» на перевесе: где стал +3 и где начал таять
     add('tip', 63, 'На ходах ' + mv[0] + '–' + mv[mv.length - 1] + ' думай дольше', null, 'Именно там обычно ломаются твои проигранные партии — перед каждым ходом проверяй угрозы', 'Партии', 'Фазы');
   }
   // короткие поражения: проигрываешь заметно быстрее, чем выигрываешь

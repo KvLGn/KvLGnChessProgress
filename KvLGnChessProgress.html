@@ -602,6 +602,8 @@
   .cmp-side-m a { color: #60a5fa; text-decoration: none; }
   .cmp-vs { align-self: center; text-align: center; font-size: 12px; font-weight: 700; color: var(--fg-mute); text-transform: uppercase; }
   .cmp-rows { display: flex; flex-direction: column; gap: 1px; }
+  /* раскрытые «Зевки ▾» — внутри, с прокруткой: высота задаётся cmpFit по свёрнутому списку, блок графика не растёт */
+  .cmp-rows { position: relative; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
   .cmp-row { display: grid; grid-template-columns: 110px 70px 1fr 78px 1fr 70px; align-items: center; gap: 10px; font-size: 12.5px; padding: 1px 0; }
   .cmp-lbl { font-weight: 600; }
   .cmp-a, .cmp-b { font-weight: 700; color: #f3f4f6; font-variant-numeric: tabular-nums; }
@@ -1546,6 +1548,9 @@
   /* колонка 3: моменты выбранной линзы (клик — позиция перед ходом) */
   .an-mom { position: relative; border-right: 1px solid rgba(46,50,68,0.6); }
   .an-mom-in { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  /* «Партии», «Ходы», «Моменты»: есть прокрутка — у края колёсико не крутит страницу; нет прокрутки — крутит как обычно.
+     Класс ставит anScrollLock: Chrome с overscroll-behavior не пропускает колёсико к странице даже у окна без прокрутки */
+  .an-box .sc-lock, .cmp-rows.sc-lock { overscroll-behavior: contain; }   /* то же у строк сравнения (cmpFit) */
   .an-ms { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 10px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
   .an-m { position: relative; display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 5px 8px; margin-bottom: 2px; text-align: left; background: none;
     border: 1px solid transparent; border-radius: 6px; cursor: pointer; font: 12.5px Inter, sans-serif; color: var(--fg); }
@@ -2752,8 +2757,29 @@ function cmpBlRows(A, B) {
 document.addEventListener('click', function(e) {
   if (!e.target.closest || !e.target.closest('.cmp-bl-toggle')) return;
   cmpBlOpen = !cmpBlOpen;
+  cmpBlScroll = cmpBlOpen;   // раскрыли — список докручивается до «Зевков», чтобы типы были видны
   if (chartMode === 'activity') renderActivity(); else renderChart();
 });
+// высота строк сравнения (партий и дней) — как у свёрнутого списка: раскрытые типы зевков не растягивают блок, а уходят под прокрутку.
+// cmpScroll — где стоит прокрутка (перерисовка, например скрытие типа в легенде, её не сбрасывает)
+var cmpScroll = 0, cmpBlScroll = false;
+function cmpFit() {
+  var box = $('chart').querySelector('.cmp-rows');
+  if (!box) return;
+  box.style.maxHeight = '';   // мерить без прошлого ограничения
+  var main = [].filter.call(box.children, function(r) { return !r.classList.contains('cmp-sub'); });
+  var gap = parseFloat(getComputedStyle(box).rowGap) || 0;
+  box.style.maxHeight = main.reduce(function(s, r) { return s + r.offsetHeight; }, 0) + gap * (main.length - 1) + 'px';
+  var t = box.querySelector('.cmp-bl-toggle');
+  box.classList.toggle('sc-lock', box.scrollHeight > box.clientHeight + 1);   // есть прокрутка — у края колёсико не крутит страницу; свёрнуто — крутит
+  if (!cmpBlOpen) cmpScroll = 0;
+  box.scrollTop = cmpBlScroll && t ? t.offsetTop : cmpScroll;
+  cmpBlScroll = false;
+}
+document.addEventListener('scroll', function(e) { if (e.target.classList && e.target.classList.contains('cmp-rows')) cmpScroll = e.target.scrollTop; }, true);
+// шрифт Inter догружается позже и меняет высоту строк (16 → 29px) — перемерить после загрузки и при смене ширины окна
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(cmpFit);
+window.addEventListener('resize', cmpFit);
 function cmpHtml() {
   var A = statsGames(), B = cmpGames();
   var order = blMode ? CMP_ROWS.filter(function(r) { return r.k === 'blunders'; }).concat(CMP_ROWS.filter(function(r) { return r.k !== 'blunders'; })) : CMP_ROWS;   // режим зевков — «Зевки» первыми
@@ -3054,7 +3080,7 @@ function renderChart() {
   chartGames = windowGames();
   var cmpView = cmpMode === 'view' && selCount() && cmpCount();
   $('chartBox').classList.toggle('cmp-on', !!cmpView);
-  if (cmpView) { $('chart').innerHTML = cmpHtml(); return; }
+  if (cmpView) { $('chart').innerHTML = cmpHtml(); cmpFit(); return; }
   var list = chartGames, n = list.length;
   if (hush.chart) {
     var g0 = [];
@@ -3340,9 +3366,10 @@ function mrGraphView(g, key) {
     return {caption: 'дебют против мастеров', dots: rows.map(function(c) { return {p: c.p, color: AN_MS[c.st].c, title: anMoveNo(c.p) + c.san + ' — ' + AN_MS[c.st].txt + ' (' + c.src + ': чаще ' + c.top + ')'}; }),
       lines: rows.length ? [{p: rows[rows.length - 1].p, label: 'конец сверки'}] : []};
   }
-  if (key === 'mate') return {caption: 'мат в N', dots: mateSeries(g).map(function(m) {
-    return m.lost ? {p: m.lost, color: BL_TYPES.mateMissed.color, title: 'Мат в ' + m.N2 + ' упущен'} : {p: m.s + 1, color: '#4ade80', title: 'Мат в ' + m.N + ' — начало, доведён'};
-  }), lines: mateSeries(g).map(function(m) { return {p: m.lost || m.s + 1, label: 'мат в ' + (m.lost ? m.N2 + ' ✗' : m.N + ' ✓')}; })};
+  if (key === 'mate') return {caption: 'мат в N', dots: mateSeries(g).map(function(m) {   // упущенный длинный — серым (mateMiss)
+    var M = m.lost && mateMiss(g, m);
+    return M ? {p: M.p, color: M.color, title: 'Мат в ' + M.N + (M.short ? ' упущен' : ' — длинный, не найден')} : {p: m.s + 1, color: '#4ade80', title: 'Мат в ' + m.N + ' — начало, доведён'};
+  }), lines: mateSeries(g).map(function(m) { var M = m.lost && mateMiss(g, m); return {p: M ? M.p : m.s + 1, label: 'мат в ' + (M ? M.N + (M.short ? ' ✗' : ' · длинный') : m.N + ' ✓')}; })};
   if (key === 'opp') return {caption: 'ошибки соперника', dots: mrOppBlunders(g).map(function(o) {
     return {p: o.q, color: o.kept ? '#4ade80' : '#f87171', title: anMoveNo(o.q) + o.san + ' — зевок бота, ' + (o.kept ? 'наказал' : 'пропустил')};
   }), lines: []};
@@ -3407,10 +3434,10 @@ function mrInfoPanel(g) {
     (dev ? '<div class="mri-t">Первый отход: ' + go(dev.p - 1, 'ms', '<b style="color:' + AN_MS[dev.st].c + '">' + anMoveNo(dev.p) + esc(dev.san) + ' ' + AN_MS[dev.st].mark + '</b>') +
       ' <span class="mri-n">(' + esc(dev.src) + ' чаще ' + esc(dev.top) + ' ' + dev.cnt(dev.list[0]) + ')</span></div>' : '<div class="mri-t" style="color:#4ade80">Все ходы — как у мастеров ✓</div>');
   // 2. мат в N
-  var ms = mateSeries(g), mate = ms.length ? ms.map(function(m) {
-    var ply = m.lost ? m.lost - 1 : m.s, ev = m.lost && g.ev ? g.ev[m.lost] : null;
-    return '<div class="mri-t">' + go(ply, 'mate', '<b style="color:' + (m.lost ? BL_TYPES.mateMissed.color : '#4ade80') + '">♛ мат в ' + (m.lost ? m.N2 : m.N) + ' ' + (m.lost ? '✗' : '✓') + '</b>') +
-      ' <span class="mri-n">ход ' + Math.ceil((ply + 1) / 2) + (m.lost ? ' · ' + (typeof ev === 'number' && ev >= 50 ? 'выигрыш сохранён' : 'перевес упал') : m.mated ? ' · мат поставлен' : ' · доведён') + '</span></div>';
+  var ms = mateSeries(g), mate = ms.length ? ms.map(function(m) {   // упущенный длинный — серым, без ✗ (mateMiss)
+    var M = m.lost && mateMiss(g, m), ply = M ? M.p - 1 : m.s, ev = m.lost && g.ev ? g.ev[m.lost] : null;
+    return '<div class="mri-t">' + go(ply, 'mate', '<b style="color:' + (M ? M.color : '#4ade80') + '">♛ мат в ' + (M ? M.N : m.N) + (M ? (M.short ? ' ✗' : '') : ' ✓') + '</b>') +
+      ' <span class="mri-n">ход ' + Math.ceil((ply + 1) / 2) + (M ? ' · ' + (M.short ? '' : 'длинный, ') + (typeof ev === 'number' && ev >= 50 ? 'выигрыш сохранён' : 'перевес упал') : m.mated ? ' · мат поставлен' : ' · доведён') + '</span></div>';
   }).join('') : '<div class="mri-n">форсированного мата не было</div>';
   // 3. ошибки соперника: его зевок (оценка движка 'B') — наказал, если после моего ответа перевес не упал больше чем на 2 пешки
   var opp = mrOppBlunders(g);
@@ -3738,7 +3765,7 @@ var MODE_MULTI = {blt: true, mate: true};
 // есть ли у партии значение k в группе (у зевков и матов — список, у остальных — одно значение)
 function modeHas(g, grp, k) {
   if (grp === 'blt') return (g.bl || []).some(function(b) { return b.t === k; });
-  if (grp === 'mate') return mateSeries(g).some(function(m) { return k === 'missed' ? !!m.lost : !m.lost; });
+  if (grp === 'mate') return mateSeries(g).some(function(m) { return k === 'missed' ? mateMissedShort(g, m) : !m.lost; });   // «упустил» — только короткие
   return modeVal(g, grp) === k;
 }
 // серии форсированного мата у меня (поле mt из update.mjs): s — позиция, где мат появился (мой ход), q — последняя позиция серии,
@@ -3751,17 +3778,35 @@ function mateSeries(g) {
   for (var s = 0; s < n; s++) {
     // начало серии: мой ход, мат есть, и это не продолжение (двумя полуходами раньше мат был и не упущен)
     if (!mine(s + 1) || !mate(s) || (s >= 2 && mate(s - 2) && mate(s - 1))) continue;
-    var q = s, lost = 0;
+    var q = s, lost = 0, nmin = mate(s), pmin = s;
     while (q < n && mate(q)) {
+      if (mate(q) < nmin) { nmin = mate(q); pmin = q; }   // самый короткий мат серии — где он был (позиция перед моим ходом)
       if (/#/.test(sans[q])) break;                  // мат поставлен
       if (!mate(q + 1)) { lost = q + 1; break; }     // после моего хода мата больше нет — упущен
       q += 2;
     }
-    out.push({s: s, q: q, lost: lost, N: mate(s), N2: lost ? mate(lost - 1) : 0, mated: q < n && /#/.test(sans[q])});
+    out.push({s: s, q: q, lost: lost, N: mate(s), N2: lost ? mate(lost - 1) : 0, Nmin: nmin, pmin: pmin, mated: q < n && /#/.test(sans[q])});
   }
   g._mates = out;
   return out;
 }
+// «Короткий» мат: упущенный мат длиннее порога ошибкой не считается (на уровне игрока его почти не найти) — сайт показывает его серым
+// и не считает в «упущенных». Порог — ТОЛЬКО через mateShortFor(g), цифрой в коде не писать: сейчас один на всё (MATE_SHORT),
+// позже может стать своим у этапа партии (plan.js) — тогда меняется лишь mateShortFor. g = null — порог текущего этапа (для подписей сводок)
+var MATE_SHORT = 3;
+function mateShortFor(g) { return MATE_SHORT; }
+// длина мата: упущенного — самый короткий мат за серию (Nmin, на ходу pmin + 1): был мат в 3, сыгран ход, после которого он стал «в 10»,
+// а потом пропал, — это упущенный мат в 3 (партия #8, ход 28); доведённого — в начале серии
+function mateLen(m) { return m.lost ? m.Nmin : m.N; }
+function mateShort(g, m) { return mateLen(m) <= mateShortFor(g); }
+function mateMissedShort(g, m) { return !!m.lost && mateShort(g, m); }      // упущен короткий мат — это ошибка (красный ✗)
+// упущенный мат на экране (линза «Мат в N», отчёт «i», его график): короткий — на ходу, где мат был коротким (pmin + 1), цветом
+// «Пропущен мат» и с ✗; длинный — на ходу, где пропал, серым, без ✗. p — полуход хода, N — сколько был мат
+function mateMiss(g, m) {
+  var sh = mateMissedShort(g, m);
+  return {short: sh, p: sh ? m.pmin + 1 : m.lost, N: sh ? m.Nmin : m.N2, color: sh ? BL_TYPES.mateMissed.color : AN_COLORS.even};
+}
+function mateLongTxt(g) { var M = mateShortFor(g); return 'мат длиннее ' + M + ' ' + plural(M, 'хода', 'ходов', 'ходов') + ' — такой мат почти не найти, это не ошибка'; }
 function modeVal(g, grp) {
   if (grp === 'opp') return g.opp || (/^Stockfish/.test(g.engine) ? 'ai' : 'human');
   if (grp === 'lvl') return g.lvl ? String(g.lvl) : (String(g.engine).match(/^Stockfish (\d)/) || [])[1] || null;
@@ -4656,7 +4701,7 @@ function renderActivity() {
   renderCmpBtn();
   var aView = aCmpMode === 'view' && actSelCount() && aCmpCount();
   $('chartBox').classList.toggle('cmp-on', !!aView);
-  if (aView) { $('chart').innerHTML = actCmpHtml(); renderPeriodPick(); renderActivityStats(); return; }
+  if (aView) { $('chart').innerHTML = actCmpHtml(); cmpFit(); renderPeriodPick(); renderActivityStats(); return; }
   var X0 = 40, W = 550, TOP = 20, BOT = 180, H = BOT - TOP;
   var colW = W / n;
   var dense = n > 20;
@@ -5292,7 +5337,8 @@ $('activityBtn').addEventListener('click', function(e) {
 // Новая линза = функция (g, P) → [момент] + строка в AN_LENSES; отрисовка, клики, клавиши и график подхватят её сами.
 //   момент: {p — полуход хода, at — полуход позиции «перед» (обычно p − 1), color, tint: 'good' | 'bad' | null,
 //            san, short — подпись в колонке, title — заголовок карточки (HTML), before / after — пояснение перед ходом / после,
-//            arrows — стрелки на доске в позиции at}
+//            arrows — стрелки на доске в позиции at,
+//            rank — важность (меньше — важнее, нет — 0): линза без указанного хода открывается на самом важном, при равной — на раннем (anFirst)}
 // master — чьи ходы во вкладке «Мастера»: 'auto' — первый мастер студий дебюта партии по плану, 'all' — вся база, 'дебют/мастер' — выбранный
 var an = {gid: null, ply: null, lens: 'bl', master: 'auto'};   // ply = null — при отрисовке встать на первый момент
 try { var anSaved = localStorage.getItem('anLens'); if (anSaved) an.lens = anSaved; an.master = localStorage.getItem('anMaster.v2') || 'auto'; } catch (e) {}
@@ -5470,22 +5516,26 @@ function anMateMoments(g, P) {
     if (!lost) {
       var done = anRow('Сыграно', '<b>' + esc(anLine(P, s + 1, q + 1)) + '</b>') +
         anRow('Итог', ms.mated ? '<span class="good">мат поставлен</span>' : q >= P.n ? '<span class="good">соперник сдался</span>' : 'серия прервалась');
-      out.push({p: s + 1, at: s, color: AN_COLORS.best, tint: 'good', san: P.moves[s].san, short: 'мат в ' + N + ' ✓',
+      out.push({p: s + 1, at: s, rank: 1, color: AN_COLORS.best, tint: 'good', san: P.moves[s].san, short: 'мат в ' + N + ' ✓',   // rank: упущенный короткий 0 → доведённый 1 → длинный 2
         title: '♛ <em>Мат в ' + N + ' — доведён ✓</em>', before: done, after: done,
         arrows: anArrows(P, s + 1, AN_COLORS.best)});
     } else {
-      var N2 = ms.N2, j = anJudge(g, lost), line = j && j[2];
-      var bl = (g.bl || []).filter(function(b) { return blPly(g, b) === lost; })[0];
+      // короткий — красный ✗ на ходу, где мат был коротким; длинный (больше порога) — серым, где пропал: не ошибка (mateMiss)
+      var M = mateMiss(g, ms), p = M.p, j = anJudge(g, p), line = j && j[2];
+      if (p > P.n) return;
+      var bl = (g.bl || []).filter(function(b) { return blPly(g, b) === p; })[0];
       var best = (line && line.split(' ')[0]) || (bl && bl.b) || null;
-      var evA = g.ev ? g.ev[lost] : null;   // перевес после упустившего хода: выигрыш сохранён или нет
-      var rows = anRow('Сыграно', '<span class="bad">' + anMoveNo(lost) + esc(P.moves[lost - 1].san) + '</span> — мат пропал') +
-        (best ? anRow('Лучше', '<span class="good">' + anMoveNo(lost) + esc(best) + '</span> — начало мата') : '') +
-        (line ? anRow('Линия', '<b>' + esc(anSanLine(lost, line)) + '</b>' + (line.split(' ').length >= 8 ? ' …' : '')) : '') +
+      var evA = g.ev ? g.ev[lost] : null;   // перевес после хода, на котором мат пропал: выигрыш сохранён или нет
+      var after = p < lost ? ' — мат стал длиннее (в ' + (g.mt || {})[p] + '), на ' + Math.ceil(lost / 2) + '-м ходу пропал' : ' — мат пропал';
+      var rows = anRow('Сыграно', '<span' + (M.short ? ' class="bad"' : '') + '>' + anMoveNo(p) + esc(P.moves[p - 1].san) + '</span>' + after) +
+        (best ? anRow('Лучше', '<span class="good">' + anMoveNo(p) + esc(best) + '</span> — начало мата') : '') +
+        (line ? anRow('Линия', '<b>' + esc(anSanLine(p, line)) + '</b>' + (line.split(' ').length >= 8 ? ' …' : '')) : '') +
         (typeof evA === 'number' ? anRow('После', evA >= 50 ? '<span class="good">выигрыш сохранён (' + evText(evA) + ')</span>'
-          : 'перевес ' + (evA >= 0 ? 'упал до ' : 'у соперника: ') + '<b>' + evText(evA) + '</b>') : '');
-      out.push({p: lost, at: lost - 1, color: BL_TYPES.mateMissed.color, tint: 'bad', san: P.moves[lost - 1].san, short: 'мат в ' + N2 + ' ✗',
-        title: '♛ <em>Мат в ' + N2 + ' — упущен ✗</em>', before: rows, after: rows,
-        arrows: anArrows(P, lost, AN_COLORS.played, best)});
+          : 'перевес ' + (evA >= 0 ? 'упал до ' : 'у соперника: ') + '<b>' + evText(evA) + '</b>') : '') +
+        (M.short ? '' : anRow('Длинный', mateLongTxt(g)));
+      out.push({p: p, at: p - 1, rank: M.short ? 0 : 2, color: M.color, tint: M.short ? 'bad' : null, san: P.moves[p - 1].san, short: 'мат в ' + M.N + (M.short ? ' ✗' : ' · длинный'),
+        title: '♛ <em>Мат в ' + M.N + (M.short ? ' — упущен ✗' : ' — длинный') + '</em>', before: rows, after: rows,
+        arrows: anArrows(P, p, M.short ? AN_COLORS.played : AN_COLORS.even, best)});
     }
   });
   return out;
@@ -5584,7 +5634,7 @@ var AN_LENSES = [
   {k: 'bl',   label: 'Зевки',    hint: 'твои зевки: красная стрелка — сыграно, зелёная — лучше', moments: anBlunderMoments},
   {k: 'err',  label: 'Ошибки',   hint: 'твои ошибки (оранжевые) и неточности (жёлтые): сыграно — и что было лучше', moments: anMistakeMoments},
   {k: 'adv',  label: 'Перевес',  hint: 'история перевеса: стал +3, пик, где просел · упал до −3, дно, отыгрыш', moments: anAdvMoments},
-  {k: 'mate', label: 'Мат в N',  hint: 'где у тебя был форсированный мат: довёл ✓ или упустил ✗',  moments: anMateMoments},
+  {k: 'mate', label: 'Мат в N',  hint: 'где у тебя был форсированный мат: довёл ✓ или упустил ✗ (длинные маты, которые почти не найти, — серым)',  moments: anMateMoments},
   {k: 'cap',  label: 'Взятия',   hint: 'твои взятия: выигрыш, размен, отыгрыш или невыгодно',      moments: anCaptureMoments},
   {k: 'ms',   label: 'Мастера',  hint: 'твои ходы против ходов мастеров, первые 20: ✓ как чаще всего, ~ встречалось, ✗ так не играли', moments: anMasterMoments, wide: true},
   {k: 'all',  label: 'Все ходы', hint: 'без выделения — просто листай ходы',                        moments: function() { return []; }}
@@ -5779,6 +5829,12 @@ function anMomentsCol(moments, info) {
 // весь режим: список, ходы, моменты, доска, график (смена партии, линзы, фильтра графика, скрытия)
 // моменты, отмеченные точками на графике и листаемые ↑ ↓ (у «Мастеров» — только отходы, совпадения без точек)
 function anMarked(moments) { return moments.filter(function(m) { return m.dot !== false; }); }
+// с какого момента открыть линзу, когда ход не указан: самый важный (rank), при равной важности — самый ранний; отмеченные точками — в первую очередь
+function anFirst(moments) {
+  var list = anMarked(moments).length ? anMarked(moments) : moments, best = null;
+  list.forEach(function(m) { if (!best || (m.rank || 0) < (best.rank || 0)) best = m; });
+  return best;
+}
 function renderAnalysis() {
   var box = $('anBox');
   if (chartMode !== 'analysis') return;
@@ -5792,7 +5848,7 @@ function renderAnalysis() {
   if (!g || list.indexOf(g) < 0) { g = list[0] || null; if (g) anSetGame(g); }
   if (!g) { box.innerHTML = '<div class="an-list">' + anListHtml(list, null) + '</div><div class="an-lock">Партий для разбора нет</div>'; return; }
   var P = anPositions(g), moments = anMoments(g, P), marked = anMarked(moments);
-  if (an.ply === null) an.ply = marked.length ? marked[0].at : moments.length ? moments[0].at : 0;
+  if (an.ply === null) { var first = anFirst(moments); an.ply = first ? first.at : 0; }
   var dots = marked.map(function(m) { return {p: m.p, color: m.color, title: anMoveNo(m.p) + m.san + ' — ' + m.short}; });
   box.innerHTML = '<div class="an-list">' + anListHtml(list, g) + '</div><div class="an-moves"></div><div class="an-mom"></div><div class="an-board"></div>' +
     '<div class="an-graph">' + (evalGraph(g, 'an', dots) || '<div class="an-empty">Графика перевеса нет — у партии нет компьютерного анализа</div>') + '</div>';
@@ -5803,6 +5859,12 @@ function renderAnalysis() {
 }
 // смена полухода: ходы, моменты, доска и отметка на графике (список партий не перерисовывается — прокрутка остаётся)
 function anScrollTo(sc, el) { if (sc && el) sc.scrollTop = Math.max(0, el.offsetTop - sc.offsetTop - sc.clientHeight / 2 + 12); }
+// защита от прокрутки страницы — только окнам «Анализа», у которых сейчас есть прокрутка (список партий, ходы, моменты; CSS .sc-lock)
+function anScrollLock() {
+  $('anBox').querySelectorAll('.an-list-in, .an-mvs, .an-ms').forEach(function(el) { el.classList.toggle('sc-lock', el.scrollHeight > el.clientHeight + 1); });
+}
+window.addEventListener('resize', anScrollLock);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(anScrollLock);   // шрифт меняет высоту строк
 function anUpdate() {
   var g = anGame(), box = $('anBox'), col = box.querySelector('.an-moves');
   if (!g || !col) return;
@@ -5815,6 +5877,7 @@ function anUpdate() {
   box.querySelector('.an-board').innerHTML = anBoardSvg(P.boards[an.ply], {flip: g.color === 'black', last: v.last, arrows: v.arrows});
   anScrollTo(col.querySelector('.an-mvs'), col.querySelector('.an-mv.on, .an-mv.next'));
   anScrollTo(mom.querySelector('.an-ms'), mom.querySelector('.an-m.on'));
+  anScrollLock();
   // отметка текущего хода на графике перевеса
   var svg = box.querySelector('.an-graph svg');
   if (svg && g.ev) {
@@ -5845,7 +5908,7 @@ function anSetLens(k) {
   an.lens = k;
   try { localStorage.setItem('anLens', k); } catch (e) {}
   var g = anGame();
-  if (g && window.Chess) { var ms = anMoments(g, anPositions(g)), mk = anMarked(ms); if (ms.length) an.ply = (mk[0] || ms[0]).at; }
+  if (g && window.Chess) { var first = anFirst(anMoments(g, anPositions(g))); if (first) an.ply = first.at; }
   renderAnalysis();
 }
 function anSetMaster(k) {
@@ -6404,7 +6467,6 @@ function buildVerdicts() {
     mateAllowed: ['Перед ходом: какие шахи есть у соперника?', 'Проверь шахи соперника своему королю — особенно по открытым линиям и диагоналям'],
     mateMissed: ['В атаке сначала посчитай все шахи', 'Когда у тебя атака — сначала переберите все шахи: там может быть мат'],
     other: ['Сравни 2–3 хода-кандидата', 'Не спеши: перед ходом сравни 2–3 кандидата и выбери тот, после которого фигуры активнее']};
-  var MATE_SHORT = 3;   // «упущенный мат» — только короткие, до 3 ходов (длинные почти невозможно увидеть)
 
   /* --- партии (если этап требует оба цвета — отдельно белыми и чёрными) --- */
   var addOuter = add;
@@ -6525,13 +6587,14 @@ function buildVerdicts() {
     }
   }
   // Зевки и ошибки · Маты (последние 10): доводишь / упускаешь короткие
-  var ms = [];
-  L10.forEach(function(g) { mateSeries(g).forEach(function(m) { ms.push({g: g, m: m}); }); });
-  var mDone = ms.filter(function(x) { return !x.m.lost; }), mLost = ms.filter(function(x) { return x.m.lost && x.m.N2 <= MATE_SHORT; });
-  if (mDone.length >= 2) add('good', 52 + mDone.length, 'Доводишь маты: ' + mDone.length + ' из ' + ms.length, null, 'Форсированный мат доведён · последние 10 партий', 'Зевки и ошибки', 'Маты', function() { anOpen(mDone[mDone.length - 1].g, undefined, 'mate'); });
+  var ms = [], MS = mateShortFor(null);
+  // упущенные длинные маты (длиннее порога) — не ошибка: ни в «упустил», ни в знаменатель «доводишь»
+  L10.forEach(function(g) { mateSeries(g).forEach(function(m) { if (!m.lost || mateShort(g, m)) ms.push({g: g, m: m}); }); });
+  var mDone = ms.filter(function(x) { return !x.m.lost; }), mLost = ms.filter(function(x) { return x.m.lost; });
+  if (mDone.length >= 2) add('good', 52 + mDone.length, 'Доводишь маты: ' + mDone.length + ' из ' + ms.length, null, 'Форсированный мат доведён · последние 10 партий · упущенные длинные (больше ' + MS + ' ' + plural(MS, 'хода', 'ходов', 'ходов') + ') не в счёт', 'Зевки и ошибки', 'Маты', function() { var x = mDone[mDone.length - 1]; anOpen(x.g, x.m.s, 'mate'); });   // сразу на начало доведённого мата
   if (mLost.length) {
-    add('bad', 60 + mLost.length * 3, 'Упустил мат в 1–' + MATE_SHORT + ' хода: ' + mLost.length + ' раз', null, 'Короткий форсированный мат, а сыгран другой ход · последние 10 партий', 'Зевки и ошибки', 'Маты', function() { anOpen(mLost[mLost.length - 1].g, undefined, 'mate'); });
-    add('tip', 66, '20 задач «Мат в 2»', 'https://lichess.org/training/mateIn2', 'Упущено ' + mLost.length + ' коротких матов — набей глаз на матовые картины', 'Зевки и ошибки', 'Маты');
+    add('bad', 60 + mLost.length * 3, 'Упустил мат в 1–' + MS + ' ' + plural(MS, 'хода', 'хода', 'ходов') + ': ' + mLost.length + ' ' + plural(mLost.length, 'раз', 'раза', 'раз'), null, 'Короткий форсированный мат, а сыгран другой ход · последние 10 партий', 'Зевки и ошибки', 'Маты', function() { var x = mLost[mLost.length - 1]; anOpen(x.g, mateMiss(x.g, x.m).p - 1, 'mate'); });   // сразу на ход короткого мата (первым в линзе может стоять серый длинный)
+    add('tip', 66, '20 задач «Мат в 2»', 'https://lichess.org/training/mateIn2', plural(mLost.length, 'Упущен ', 'Упущено ', 'Упущено ') + mLost.length + ' ' + plural(mLost.length, 'короткий мат', 'коротких мата', 'коротких матов') + ' — набей глаз на матовые картины', 'Зевки и ошибки', 'Маты');
   }
 
   // Дебют · Партии: семейства с 3+ партиями из последних 10
@@ -6962,8 +7025,8 @@ var RD_METRICS = [
     fmt: function(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1); }},
   {k: 'turns', label: 'Переломы в мою пользу', group: 'Против бота', more: 'сколько раз за партию оценка за один ход резко (на 1.5 пешки и больше) повернулась к тебе, пока позиция ещё не решена (перевес меньше ±5)', fn: rdPerGame(function(g) {
     var c = 0; if (g.ev) for (var i = 1; i < g.ev.length; i++) if (Math.abs(g.ev[i - 1]) < 50 && g.ev[i] - g.ev[i - 1] >= 15) c++; return c; }), fmt: rdOne, unit: 'за партию'},
-  {k: 'mates', label: 'Маты доведены', group: 'Против бота', more: 'короткие маты (до 3 ходов) — сколько доведено до конца; нужно хотя бы 2 таких момента', fn: function(l) {
-    var m = []; l.forEach(function(g) { mateSeries(g).forEach(function(x) { if (x.N && x.N <= 3) m.push(x); }); });
+  {k: 'mates', label: 'Маты доведены', group: 'Против бота', more: 'короткие маты (до ' + mateShortFor(null) + ' ' + plural(mateShortFor(null), 'хода', 'ходов', 'ходов') + ') — сколько доведено до конца; нужно хотя бы 2 таких момента', fn: function(l) {
+    var m = []; l.forEach(function(g) { mateSeries(g).forEach(function(x) { if (mateShort(g, x)) m.push(x); }); });
     return m.length >= 2 ? m.filter(function(x) { return !x.lost; }).length / m.length * 100 : null; }, fmt: rdPct},
   {k: 'botErr', label: 'Ошибки бота', group: 'Против бота', more: 'зевков бота за партию — насколько ты его «ломаешь»', fn: rdPerGame(function(g) { return g.mv ? mrOppBlunders(g).length : 0; }), fmt: rdOne, unit: 'за партию'},
   {k: 'theory', label: 'Теория', group: 'Дебют', more: 'сколько своих ходов подряд как у мастеров', fn: function(l) {
@@ -8064,12 +8127,21 @@ function aiOpp(g) {
       AL('я пропустил её: сыграл ', 'I missed it: played ') + (sans[o.q] ? aiMove(g, o.q + 1) : '—') + (better ? AL(', движок советовал ', ', the engine suggested ') + better : '') + (PLAIN ? ' (' + aiLink(g, o.q) + ')' : aiFen(g, o.q + 1)))};
   });
 }
+function aiMateShortTxt() { var M = mateShortFor(null); return AL('1–' + M + ' ' + plural(M, 'хода', 'хода', 'ходов'), '1–' + M); }   // «1–3 хода» — короткий мат (порог — mateShortFor)
 function aiMates(g) {
   return mateSeries(g).map(function(m) {
     if (!m.lost) return AL('мат в ' + m.N + ' доведён до конца', 'mate in ' + m.N + ' delivered');
-    var j = (g.jd || []).filter(function(x) { return x[0] === m.lost; })[0], best = j ? (j[2] || '').split(' ')[0] : '';
-    return AL('на ходу ' + Math.ceil(m.lost / 2) + ' у меня был мат в ' + m.N2 + ', а сыграно ' + aiMove(g, m.lost) + ' — мат упущен (ошибка)', 'at move ' + Math.ceil(m.lost / 2) + ' I had mate in ' + m.N2 + ', but played ' + aiMove(g, m.lost) + ' — mate missed (a mistake)') +
-      (best ? AL(', лучше ', ', better ') + best : '') + (PLAIN ? ' (' + aiLink(g, m.lost) + ')' : aiFen(g, m.lost));
+    // короткий (до порога) — ошибка; длинный — не ошибка, если выигрыш сохранён (mateMiss, как в линзе «Мат в N»)
+    var M = mateMiss(g, m), p = M.p, mv = Math.ceil(p / 2), j = (g.jd || []).filter(function(x) { return x[0] === p; })[0], best = j ? (j[2] || '').split(' ')[0] : '';
+    var evA = g.ev ? g.ev[m.lost] : null, MS = mateShortFor(g);
+    var txt = M.short
+      ? AL('на ходу ' + mv + ' у меня был мат в ' + M.N + ', а сыграно ' + aiMove(g, p) + ' — мат упущен (ошибка)' + (p < m.lost ? ': мат стал длиннее, на ходу ' + Math.ceil(m.lost / 2) + ' пропал' : ''),
+           'at move ' + mv + ' I had mate in ' + M.N + ', but played ' + aiMove(g, p) + ' — mate missed (a mistake)' + (p < m.lost ? ': the mate got longer and was gone at move ' + Math.ceil(m.lost / 2) : ''))
+      : AL('на ходу ' + mv + ' был длинный мат в ' + M.N + ' (больше ' + MS + ' ' + plural(MS, 'хода', 'ходов', 'ходов') + '), сыграно ' + aiMove(g, p) + ' — мат пропал; ' +
+             (typeof evA === 'number' && evA < 50 ? 'перевес упал до ' + aiEv(evA) + ' — ошибка в потере перевеса, а не в том, что мат не найден' : 'выигрыш сохранён — это не ошибка, такой мат почти не найти'),
+           'at move ' + mv + ' there was a long mate in ' + M.N + ' (more than ' + MS + ' moves), played ' + aiMove(g, p) + ' — the mate was gone; ' +
+             (typeof evA === 'number' && evA < 50 ? 'the advantage dropped to ' + aiEv(evA) + ' — the mistake is losing the advantage, not missing the mate' : 'the win was kept — not a mistake, such a mate is very hard to find'));
+    return txt + (best ? AL(', лучше ', ', better ') + best : '') + (PLAIN ? ' (' + aiLink(g, p) + ')' : aiFen(g, p));
   });
 }
 // дебют против мастеров: до какого хода как у мастеров и первый отход
@@ -8105,7 +8177,12 @@ function aiPgn(g) {
   var s = aiSans(g), mark = {}, out = [], afterNote = false;
   (g.jd || []).forEach(function(j) { mark[j[0]] = {nag: j[1] === 'B' ? '??' : j[1] === 'M' ? '?' : '?!', best: (j[2] || '').split(' ')[0]}; });
   (g.bl || []).forEach(function(b) { var q = blPly(g, b); mark[q] = {nag: '??', best: b.b || (mark[q] || {}).best, t: b.t}; });
-  mateSeries(g).forEach(function(m) { if (m.lost) { var q = m.lost; mark[q] = mark[q] || {nag: '?'}; mark[q].mate = m.N2; } });
+  mateSeries(g).forEach(function(m) {   // короткий упущенный мат — «?» и пометка; длинный — только пометка, без «?» (mateMiss)
+    if (!m.lost) return;
+    var M = mateMiss(g, m), q = M.p;
+    mark[q] = mark[q] || (M.short ? {nag: '?'} : {nag: ''});
+    mark[q].mate = M.N; mark[q].mateLong = !M.short;
+  });
   var t = mrTurn(g);
   for (var i = 0; i < s.length; i++) {
     var q = i + 1, white = q % 2 === 1, m = mark[q], note = [];
@@ -8113,7 +8190,7 @@ function aiPgn(g) {
     out.push(s[i] + (m ? m.nag : ''));
     if (m && m.best) note.push(AL('лучше ', 'better ') + m.best);
     if (m && m.t) note.push(aiBlType(m.t));
-    if (m && m.mate) note.push(AL('упущен мат в ', 'missed mate in ') + m.mate);
+    if (m && m.mate) note.push(m.mateLong ? AL('длинный мат в ' + m.mate + ' не найден — не ошибка', 'long mate in ' + m.mate + ' not found — not a mistake') : AL('упущен мат в ', 'missed mate in ') + m.mate);
     if (t && t.p === q) note.push(AL('перелом', 'turning point'));
     var mq = (g.mt || {})[q];
     if ((m || (t && t.p === q)) && g.ev && typeof g.ev[q] === 'number') note.push(typeof mq === 'number' && mq > 0 ? AL('у меня мат в ', 'I have mate in ') + mq : AL('оценка ', 'eval ') + aiEv(g.ev[q]));   // при мате оценка упирается в потолок — пишем «мат в N»
@@ -8191,10 +8268,10 @@ function aiMateStat(list) {   // по партиям: в скольких был
     if (!ms.length) return;
     had++;
     if (ms.some(function(m) { return m.mated; })) done++;
-    lost += ms.filter(function(m) { return m.lost; }).length;
+    lost += ms.filter(function(m) { return mateMissedShort(g, m); }).length;   // упущенными считаются только короткие (mateShortFor)
   });
-  return had ? AL('форсированный мат был в ' + had + ' ' + plural(had, 'партии', 'партиях', 'партиях') + ', поставлен в ' + done + '; упущен ' + lost + ' ' + plural(lost, 'раз', 'раза', 'раз') + ' (часто потом мат находился снова)',
-                  'a forced mate appeared in ' + had + ' games, delivered in ' + done + '; missed ' + lost + ' times (often found again later)') : '';
+  return had ? AL('форсированный мат был в ' + had + ' ' + plural(had, 'партии', 'партиях', 'партиях') + ', поставлен в ' + done + '; короткий мат (в ' + aiMateShortTxt() + ') упущен ' + lost + ' ' + plural(lost, 'раз', 'раза', 'раз') + ', длинные маты не в счёт — их почти не найти',
+                  'a forced mate appeared in ' + had + ' games, delivered in ' + done + '; a short mate (in ' + aiMateShortTxt() + ') missed ' + lost + (lost === 1 ? ' time' : ' times') + ', long mates do not count — they are very hard to find') : '';
 }
 function aiInGoal(g) { var S = CUR.stage; return !!S && g.engine === 'Stockfish ' + S.engine && S.colors.indexOf(g.color) >= 0; }
 var AI_MIN = null;   // кнопки времени (times у пунктов) у «План на сегодня / на неделю»; AI_MIN — выбранное, пока собирается пакет
@@ -8442,10 +8519,20 @@ var AI_DATA = {
         (b ? AL('потом мой зевок: ', 'then my blunder: ') + aiBl(g, b) + aiFen(g, blPly(g, b)) : AL('потом перевес ушёл постепенно, самая низкая оценка после пика ', 'then the advantage faded gradually, lowest evaluation after the peak ') + pw(lo)));
     });
     var mm = [];
-    last.forEach(function(g) { mateSeries(g).forEach(function(x) { if (x.lost && x.N && x.N <= 3) mm.push({g: g, x: x}); }); });
+    last.forEach(function(g) { mateSeries(g).forEach(function(x) { if (mateMissedShort(g, x)) mm.push({g: g, x: x}); }); });
     if (mm.length) {
-      out.push(AL('Упущенные короткие маты (был мат в 1–3 хода, но я его не поставил): ', 'Missed short mates (mate in 1–3 was there, but I did not play it): ') + mm.length + ':');
-      mm.slice(-4).reverse().forEach(function(o) { if (AI_REFS.length < 3) aiRef(o.g); out.push('- ' + aiGid(o.g) + AL(', ход ', ', move ') + mv(o.g, o.x.s + 1) + AL(' — был мат в ', ' — there was mate in ') + o.x.N + (PLAIN ? ' (' + aiLink(o.g, o.x.s + 1) + ')' : '')); });
+      out.push(AL('Упущенные короткие маты (был мат в ' + aiMateShortTxt() + ', но я его не поставил): ', 'Missed short mates (mate in ' + aiMateShortTxt() + ' was there, but I did not play it): ') + mm.length + ':');
+      mm.slice(-4).reverse().forEach(function(o) { if (AI_REFS.length < 3) aiRef(o.g); out.push('- ' + aiGid(o.g) + AL(', ход ', ', move ') + mv(o.g, o.x.pmin + 1) + AL(' — был мат в ', ' — there was mate in ') + o.x.Nmin + (PLAIN ? ' (' + aiLink(o.g, o.x.pmin + 1) + ')' : '')); });
+    }
+    // длинные упущенные маты — одной итоговой строкой, с подсказкой, как читать (списком слабая модель приняла бы их за ошибки)
+    var lg = 0, lgG = [];
+    last.forEach(function(g) { var k = mateSeries(g).filter(function(x) { return x.lost && !mateShort(g, x); }).length; if (k) { lg += k; lgG.push(g); } });
+    if (lg) {
+      var MS = mateShortFor(null), lgM = lgG.filter(function(g) { return mateSeries(g).some(function(x) { return x.mated; }); }).length, nG = lgG.length;
+      out.push(AL('Длинные маты (больше ' + MS + ' ' + plural(MS, 'хода', 'ходов', 'ходов') + '), которые нашлись не сразу: ' + lg + ', в ' + nG + ' ' + plural(nG, 'партии', 'партиях', 'партиях') + '; ' +
+          (lgM === nG ? (nG === 1 ? 'в этой партии' : 'во всех этих партиях') : 'в ' + lgM + ' из них') + ' мат потом всё равно поставлен — это не ошибка, на уровне новичка такие маты почти не видны.',
+        'Long mates (more than ' + MS + ' moves) that were not found right away: ' + lg + ', in ' + nG + ' game' + (nG === 1 ? '' : 's') + '; ' +
+          (lgM === nG ? (nG === 1 ? 'in that game' : 'in all of them') : 'in ' + lgM + ' of them') + ' the mate was delivered later anyway — not a mistake, a beginner can hardly see such mates.'));
     }
     var W = last.filter(function(g) { return g.result === 'win'; });
     var Wm = W.filter(function(g) { return g.how === 'mate'; }).length;
@@ -8772,7 +8859,12 @@ AI_DATA.roadmap = function() {
 /* ---------- условия ответа по пунктам: стоят рядом с местом ответа (слабые модели забывают условие из первой строки —
    Алиса сложила 30 + 40 + 20 = 90 верно, но лимит 30–60 из начала не сверила) + строка самопроверки в конце (лёгкий Chain-of-Verification) ---------- */
 var AI_COND = {
-  lastgame:  [['ровно 3 момента', 'один из них — перелом, если он есть'], ['exactly 3 moments', 'one of them is the turning point, if there is one']],
+  lastgame:  function() {   // простой режим: моментов столько, сколько сайт отобрал (AI_LG_N, бывает меньше 3); сильный — всегда 3
+    var n = AI_LG_N === null ? 3 : AI_LG_N;
+    if (!n) return [['заметных моментов нет — так и скажи', 'один главный урок'], ['there are no notable moments — say so', 'one main lesson']];
+    if (n === 1) return [['ровно 1 момент'], ['exactly 1 moment']];
+    return [['ровно ' + n + ' ' + plural(n, 'момент', 'момента', 'моментов'), 'один из них — перелом, если он есть'], ['exactly ' + n + ' moments', 'one of them is the turning point, if there is one']];
+  },
   weak:      [['одна главная проблема', '2–3 действия'], ['one main problem', '2–3 actions']],
   typical:   [['одна главная причина', '1–2 примера ходов из данных'], ['one main cause', '1–2 examples of moves from the data']],
   opp:       [['одна главная причина', '2–3 действия'], ['one main reason', '2–3 actions']],
@@ -8837,9 +8929,13 @@ var AI_SIMPLE_TPL = {
   // поля конкретные: простая модель заполняет шаблон буквально — в общем поле пишет общие слова (Алиса: без примеров ходов, «как проверить» без числа)
   advice: [['Проблема (одна): …', 'Почему: … (2–3 числа из данных, с подписью)', 'Пример из данных: #партия, ход …, что советовал движок или что играют мастера (1–2 примера, если в данных есть ходы)', 'Что делать: 1) … 2) … (конкретно: что и сколько)', 'Как проверить: число и срок — например, «зевков меньше 2 за партию в следующих 5 партиях»'],
            ['Problem (one): …', 'Why: … (2–3 numbers from the data, with their labels)', 'Example from the data: #game, move …, what the engine suggested or what the masters play (1–2 examples, if the data has moves)', 'What to do: 1) … 2) … (concrete: what and how much)', 'How to check: a number and a time frame — e.g. "fewer than 2 blunders per game in the next 5 games"']],
-  game:   [['Момент 1 (ход …): что было → что советовал движок → чему учит', 'Момент 2 (ход …): …', 'Момент 3 (ход …): …', 'Главный урок: …'],
-           ['Moment 1 (move …): what happened → what the engine suggested → what it teaches', 'Moment 2 (move …): …', 'Moment 3 (move …): …', 'Main lesson: …']]
+  game:   function() {   // столько моментов, сколько отобрал сайт (AI_LG_N; нет — 3)
+    var n = AI_LG_N === null ? 3 : AI_LG_N, ru = [], en = [];
+    for (var i = 1; i <= n; i++) { ru.push(i === 1 ? 'Момент 1 (ход …): что было → что советовал движок → чему учит' : 'Момент ' + i + ' (ход …): …'); en.push(i === 1 ? 'Moment 1 (move …): what happened → what the engine suggested → what it teaches' : 'Moment ' + i + ' (move …): …'); }
+    return [ru.concat('Главный урок: …'), en.concat('Main lesson: …')];
+  }
 };
+var AI_LG_N = null;   // сколько главных моментов отобрал «Разбор последней партии» в простом режиме (AI_SIMPLE.lastgame); после пакета — null
 AI_SIMPLE_TPL.goal = [['Ответ: да или нет — почему (числа из данных)', 'Что ускорит: 1) … 2) …'], ['Answer: yes or no — why (numbers from the data)', 'What would speed it up: 1) … 2) …']];
 AI_SIMPLE_TPL.list5 = [['1) …', '2) …', '3) …', '4) …', '5) …'], ['1) …', '2) …', '3) …', '4) …', '5) …']];
 AI_SIMPLE_TPL.days = [['День 1: что делать — сколько минут', 'День 2: …', '… до дня 7', 'Как понять через неделю, что помогло: …'], ['Day 1: what to do — how many minutes', 'Day 2: …', '… up to day 7', 'How to tell after a week that it helped: …']];
@@ -8910,8 +9006,8 @@ var AI_SIMPLE = {
       var b = (g.bl || []).filter(function(x) { return blPly(g, x) > p; })[0];
       out.push('- ' + aiGid(g) + ' — ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + AL(': был перевес ', ': I was ') + pw(g.ev[p]) + AL('', ' ahead') + (b ? AL(', потом зевок: ', ', then a blunder: ') + aiSBl(g, b).slice(aiGid(g).length + 2) : ''));
     });
-    var mm = 0; last.forEach(function(g) { mateSeries(g).forEach(function(x) { if (x.lost && x.N && x.N <= 3) mm++; }); });
-    out.push(AL('Упущенные короткие маты (мат в 1–3 хода был, но не поставлен): ', 'Missed short mates (mate in 1–3 was there, but not played): ') + mm + '.');
+    var mm = 0; last.forEach(function(g) { mateSeries(g).forEach(function(x) { if (mateMissedShort(g, x)) mm++; }); });
+    out.push(AL('Упущенные короткие маты (мат в ' + aiMateShortTxt() + ' был, но не поставлен): ', 'Missed short mates (mate in ' + aiMateShortTxt() + ' was there, but not played): ') + mm + '.');
     var bad = last.filter(function(g) { return Math.min.apply(null, g.ev) <= -30; }), saved = bad.filter(function(g) { return g.result !== 'lose'; });
     out.push(AL('Защита: перевес соперника +3 и больше был в ' + bad.length + ' партиях, не проиграно ' + saved.length + '.', 'Defending: the opponent was +3 or more ahead in ' + bad.length + ' games, not lost ' + saved.length + '.'));
     var fromAdv = bad.filter(function(g) { return g.result === 'lose' && aiWasUp(g); });
@@ -9145,7 +9241,7 @@ var AI_SIMPLE = {
   lastgame: function() {
     var g = games[games.length - 1];
     if (!g) return [AL('Партий пока нет', 'No games yet')];
-    var o = aiOp(), out = [], moments = [], t = mrTurn(g), sans = aiSans(g);
+    var o = aiOp(), out = [], moments = [], t = mrTurn(g), sans = aiSans(g), used = t ? [t.p] : [];   // used — полуходы, уже взятые в моменты (не повторять)
     out.push(AL('Партия ', 'Game ') + aiGid(g) + ': ' + AL(RESULT[g.result].label, RES_EN[g.result]).toUpperCase() + (g.how ? ' (' + AL(HOW_RU[g.how] || g.how, HOW_EN[g.how] || g.how) + ')' : '') + AL(', белыми против ', ', as white vs ').replace(AL('белыми', 'white'), AL(COLOR_WORD[g.color], COLOR_EN[g.color])) + g.engine +
       (CUR.stage && !aiInGoal(g) ? AL(' — в цель этапа НЕ идёт', ' — does NOT count towards the stage goal') : '') + '.');
     out.push(AL('Дебют: ', 'Opening: ') + g.opening + (o && !(g.color === o.color && opMatch(o, g.opening)) ? AL(' (не мой изучаемый дебют «' + o.name + '»)', ' (not the opening I am studying, the ' + opEn(o) + ')') : '') + '.');
@@ -9153,14 +9249,31 @@ var AI_SIMPLE = {
     if (t) moments.push(AL('перелом: ', 'turning point: ') + (anMine(g, t.p) ? AL('мой ход ', 'my move ') + aiMove(g, t.p) : AL('ход бота ', 'the bot\'s move ') + aiMove(g, t.p) + AL(' был его ошибкой', ' was its mistake')) +
       AL('; оценка ', '; evaluation ') + aiEv(g.ev[t.p - 1] || 0) + ' → ' + aiEv(g.ev[t.p] || 0) + (t.d > 0 ? AL(', в мою пользу', ', in my favour') : AL(', в пользу бота', ', in the bot\'s favour')) +
       (!anMine(g, t.p) && sans[t.p] ? AL('; я ответил ', '; I replied ') + aiMove(g, t.p + 1) : '') + '.');
-    mateSeries(g).filter(function(m) { return m.lost; }).slice(0, 1).forEach(function(m) {
-      moments.push(AL('упущенный мат: на ходу ' + Math.ceil(m.lost / 2) + ' был мат в ' + m.N2 + ', а сыграно ', 'missed mate: at move ' + Math.ceil(m.lost / 2) + ' there was mate in ' + m.N2 + ', but I played ') + aiMove(g, m.lost) +
+    mateSeries(g).filter(function(m) { return mateMissedShort(g, m); }).slice(0, 1).forEach(function(m) {   // в главные моменты — только короткий упущенный мат
+      var M = mateMiss(g, m);
+      used.push(M.p);
+      moments.push(AL('упущенный мат: на ходу ' + Math.ceil(M.p / 2) + ' был мат в ' + M.N + ', а сыграно ', 'missed mate: at move ' + Math.ceil(M.p / 2) + ' there was mate in ' + M.N + ', but I played ') + aiMove(g, M.p) +
         (mateSeries(g).some(function(x) { return x.mated; }) ? AL('; позже мат всё равно поставлен', '; the mate was delivered later anyway') : '') + '.');
     });
-    (g.bl || []).slice().sort(function(a, b) { return (b.d || 99) - (a.d || 99); }).slice(0, Math.max(1, 3 - moments.length)).forEach(function(b) { moments.push(AL('мой зевок: ', 'my blunder: ') + aiBl(g, b) + '.'); });
-    out.push(AL('Главные моменты (уже отобраны):', 'Key moments (already selected):'));
-    moments.slice(0, 3).forEach(function(m, i) { out.push((i + 1) + ') ' + m); });
-    var M = (g.jd || []).filter(function(j) { return j[1] === 'M' && anMine(g, j[0]); }).slice(0, 3);
+    (g.bl || []).filter(function(b) { return used.indexOf(blPly(g, b)) < 0; }).sort(function(a, b) { return (b.d || 99) - (a.d || 99); }).slice(0, Math.max(1, 3 - moments.length))
+      .forEach(function(b) { used.push(blPly(g, b)); moments.push(AL('мой зевок: ', 'my blunder: ') + aiBl(g, b) + '.'); });
+    // меньше 3 моментов — добрать моими ошибками, потом неточностями (оценки движка jd), самые дорогие первыми; уже взятые ходы не повторять
+    var cost = function(j) { return g.ev && typeof g.ev[j[0] - 1] === 'number' && typeof g.ev[j[0]] === 'number' ? g.ev[j[0] - 1] - g.ev[j[0]] : 0; };
+    var mineJ = function(K) { return (g.jd || []).filter(function(j) { return j[1] === K && anMine(g, j[0]) && used.indexOf(j[0]) < 0; }).sort(function(a, b) { return cost(b) - cost(a); }); };
+    var JW = {M: ['моя ошибка: ', 'my mistake: '], I: ['моя неточность: ', 'my inaccuracy: ']};
+    mineJ('M').concat(mineJ('I')).forEach(function(j) {
+      if (moments.length >= 3) return;
+      used.push(j[0]);
+      moments.push(AL(JW[j[1]][0], JW[j[1]][1]) + aiMove(g, j[0]) + ((j[2] || '') ? AL(', движок советовал ', ', the engine suggested ') + j[2].split(' ')[0] : '') +
+        (cost(j) > 0 ? AL(', оценка упала на ', ', evaluation dropped by ') + (cost(j) / 10).toFixed(1) : '') + '.');
+    });
+    AI_LG_N = Math.min(3, moments.length);   // сколько моментов — условие и шаблон ответа (AI_COND.lastgame, AI_SIMPLE_TPL.game) просят ровно столько
+    if (AI_LG_N) {
+      out.push(AL('Главные моменты (уже отобраны):', 'Key moments (already selected):'));
+      moments.slice(0, 3).forEach(function(m, i) { out.push((i + 1) + ') ' + m); });
+      if (AI_LG_N < 3) out.push(AL('Других заметных моментов в партии нет — разбери только ' + (AI_LG_N === 1 ? 'этот' : 'эти') + '.', 'There are no other notable moments in the game — review only ' + (AI_LG_N === 1 ? 'this one' : 'these') + '.'));
+    } else out.push(AL('Заметных моментов в партии нет: ни зевков, ни ошибок, ни неточностей, ни перелома.', 'There are no notable moments in the game: no blunders, mistakes, inaccuracies or turning point.'));
+    var M = (g.jd || []).filter(function(j) { return j[1] === 'M' && anMine(g, j[0]) && used.indexOf(j[0]) < 0; }).slice(0, 3);   // уже взятые в моменты — не повторять
     if (M.length) out.push(AL('Ещё мои ошибки (слабее зевка): ', 'My other mistakes (less than a blunder): ') + M.map(function(j) { return aiMove(g, j[0]) + ((j[2] || '') ? AL(' — движок советовал ', ' — the engine suggested ') + j[2].split(' ')[0] : ''); }).join('; ') + '.');
     return out;
   }
@@ -9173,6 +9286,12 @@ var AI_SIMPLE = {
 function aiTextSimple(ask, dataKey) {
   var data = (AI_SIMPLE[dataKey] ? AI_SIMPLE[dataKey](aiCtx()) : dataKey && AI_DATA[dataKey] ? AI_DATA[dataKey](aiCtx()) : []).concat(aiLensLine(dataKey)), tpl = AI_SIMPLE_TPL[AI_SIMPLE_KIND[dataKey]];
   if (typeof tpl === 'function') tpl = tpl();
+  // «Разбор последней партии»: сайт отобрал меньше 3 моментов — и в вопросе столько же, иначе вопрос спорит с условием ответа
+  if (dataKey === 'lastgame' && AI_LG_N !== null && AI_LG_N < 3) {
+    var n = AI_LG_N, many = n > 1;   // при 0–1 моменте «(один из них — перелом…)» не к месту — убираем
+    ask = ask.replace(many ? '3 главных момента' : '3 главных момента (один из них — перелом, если он есть)', n === 1 ? 'главный момент' : n ? n + ' главных момента' : 'главные моменты, если они есть')
+             .replace(many ? 'the 3 key moments' : 'the 3 key moments (one of them the turning point, if there is one)', n === 1 ? 'the key moment' : n ? 'the ' + n + ' key moments' : 'the key moments, if any');
+  }
   var out = [AL('Задача: ', 'Task: ') + ask, '', AL('Ты помогаешь шахматисту-новичку. Правила:', 'You help a beginner chess player. Rules:'),
     AL('- Используй только данные ниже.', '- Use only the data below.'),
     AL('- Числа переписывай точно так, как они написаны, вместе с их подписью.', '- Copy numbers exactly as written, together with their labels.'),
@@ -9186,6 +9305,7 @@ function aiTextSimple(ask, dataKey) {
   if (tpl) out = out.concat(['', AL('Ответь по шаблону:', 'Answer using this template:')], [].concat.apply([], tpl[aiLang === 'en' ? 1 : 0].map(function(x) { return [x, '']; })));
   if (cond) out.push(AL('Проверка условий: ', 'Conditions check: ') + cond.map(function(c) { return c + AL(' — да / нет', ' — yes / no'); }).join('; ') + AL(' (если «нет» — исправь ответ)', ' (if "no", fix the answer)'));
   out.push('', AL('Вопрос: ', 'Question: ') + ask);
+  AI_LG_N = null;   // число моментов — только для этого пакета
   return out.join('\n');
 }
 /* ---------- текст для человека: совет — письмо (верх годится как пост в чат), план — задание программисту по шагам ---------- */
@@ -9690,7 +9810,7 @@ function gsIndex() {
     preset('Мой дебют: ' + o.label.replace(/ [♞♘]$/, ''), o.n + ' ' + plural(o.n, 'партия', 'партии', 'партий') + ' по плану', 'мой дебют план ' + o.label,
       function(f) { setOpMode(f, 'plan'); f.planOps = {}; f.planOps[o.key] = true; });
   });
-  var lostN = 0, lostG = games.filter(function(g) { var k = mateSeries(g).filter(function(m) { return m.lost; }).length; lostN += k; return k; }).length;
+  var lostN = 0, lostG = games.filter(function(g) { var k = mateSeries(g).filter(function(m) { return mateMissedShort(g, m); }).length; lostN += k; return k; }).length;   // только короткие
   if (lostG) preset('Упущенные маты: ' + lostN, 'в ' + lostG + ' ' + plural(lostG, 'партии', 'партиях', 'партиях'), 'упущенные маты мат пропущен',
     function(f) { f.modes = {}; toggleMode(f, 'mate', 'missed'); });
   add('Фильтры', '✕', 'Сбросить все фильтры', 'график и таблица без фильтров', 'сбросить очистить фильтры', function() {

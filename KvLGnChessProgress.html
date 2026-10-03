@@ -9510,6 +9510,19 @@ function gsVd(radar, set) {
   if (set) set();
   rdSave(); toggleVerdict(true); gsFlash($('sideRow'));
 }
+// подпись пункта «Сыграть с Stockfish N»: этап одним цветом — как раньше; двумя цветами — каким цветом играть сейчас:
+// тот, у которого до цели дальше (gamesToGoal — минимум, как в «Итогах»), поровну — любым, один выполнен — оставшимся.
+// Подпись в меню — одна строка, длиннее обрезается: поэтому коротко
+function gsPlayHint() {
+  var E = CUR.stage.engine, cs = CUR.colors;
+  if (cs.length < 2) return 'откроется окно игры с компьютером — выбери уровень ' + E + ' и ' + ((cs.filter(function(c) { return !c.done; })[0] || cs[0]).color === 'white' ? 'белые' : 'чёрные');
+  var left = cs.filter(function(c) { return !c.done; }).map(function(c) { return {c: c, k: gamesToGoal(c)}; });
+  var gN = function(k) { return k + ' ' + plural(k, 'партия', 'партии', 'партий'); }, head = 'выбери уровень ' + E + ', ';
+  if (left.length === 1) return head + 'теперь только ' + COLOR_WORD[left[0].c.color] + ' — ещё минимум ' + gN(left[0].k);   // другой цвет выполнен
+  if (left[0].k === left[1].k) return head + 'любым цветом — каждым ещё минимум по ' + left[0].k + ' ' + plural(left[0].k, 'партии', 'партии', 'партий');
+  var far = left[0].k > left[1].k ? left[0] : left[1];
+  return head + 'играй ' + COLOR_WORD[far.c.color] + ' — до цели ещё минимум ' + gN(far.k);
+}
 function gsIndex() {
   var items = [], RG0 = window.RATING_GAMES || [];
   function add(group, icon, title, sub, keys, run) { items.push({group: group, icon: icon, title: title, sub: sub || '', keys: gsNorm(title + ' ' + (sub || '') + ' ' + (keys || '')), run: run}); }
@@ -9789,7 +9802,7 @@ function gsIndex() {
 
   /* --- действия на Lichess --- */
   function ext(title, sub, keys, url) { add('Lichess', '↗', title, sub, keys, function() { window.open(url, '_blank'); }); }
-  if (CUR.stage) ext('Сыграть с Stockfish ' + CUR.stage.engine, 'откроется окно игры с компьютером — выбери уровень ' + CUR.stage.engine + ' и ' + ((CUR.colors.filter(function(c) { return !c.done; })[0] || CUR.colors[0]).color === 'white' ? 'белые' : 'чёрные'), 'играть сыграть stockfish бот компьютер', 'https://lichess.org/#ai');
+  if (CUR.stage) ext('Сыграть с Stockfish ' + CUR.stage.engine, gsPlayHint(), 'играть сыграть stockfish бот компьютер', 'https://lichess.org/#ai');
   ext('Задачи: микс', 'тренировка на Lichess', 'задачи микс тренировка', 'https://lichess.org/training/mix');
   // слабые места — первыми: темы задач ниже среднего перфоманса (худшая первой; не меньше 3, не больше 7) и слабая фаза партий
   if (P2 && P2.themeStats && P2.global) {

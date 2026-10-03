@@ -174,6 +174,8 @@
   .sect-eye.shut .eye-open { transform: scaleY(0.1); opacity: 0; }
   .sect-eye.shut .eye-shut { opacity: 1; }
   #eyeChart { position: absolute; top: 9px; right: 14px; z-index: 2; }   /* справа налево: глаз, «Активность», «Анализ» (кнопки ставит placeChartBtns) */
+  /* до первой расстановки (скрипт и шрифт ещё грузятся) кнопки не видны — иначе «Анализ» мелькает слева, а «Активность» на месте глаза и прыгают */
+  .chart-container:not(.btns-ready) > #activityBtn, .chart-container:not(.btns-ready) > #analysisBtn { visibility: hidden; }
   #eyeHead { margin-left: 2px; width: 32px; height: 32px; }
   #eyeHead svg { width: 18px; height: 18px; }
   .links { gap: 8px; padding-right: 14px; }
@@ -1460,7 +1462,7 @@
     --an-list-w: 260px; --an-moves-w: 250px; --an-mom-w: 150px; --an-board: 360px;
     width: 100%; display: grid; grid-template-columns: var(--an-list-w) var(--an-moves-w) var(--an-mom-w) minmax(0, 1fr);
   }
-  .an-head { display: flex; align-items: baseline; gap: 8px; height: 42px; padding: 12px 16px 0; font-size: 12px; font-weight: 700; letter-spacing: 2px; color: #cbd0da; text-transform: uppercase; }
+  .an-head { display: flex; align-items: baseline; gap: 8px; height: 42px; padding: 10.5px 16px 0; font-size: 12px; font-weight: 700; letter-spacing: 2px; color: #cbd0da; text-transform: uppercase; }
   .an-head span { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--fg-mute); }
   .an-empty { padding: 14px 16px; font-size: 12px; color: var(--fg-mute); }
   /* колонка 1: партии (прокрутка внутри; высоту задают доска и график) */
@@ -1518,9 +1520,10 @@
   .an-box.an-wide .an-moves { grid-column: 2 / span 2; }
   .an-mpick { margin-left: 10px; }
   /* «i» у линзы: при наведении — расшифровка записи ходов */
-  .an-ni { position: relative; align-self: center; flex-shrink: 0; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--fg-mute); color: var(--fg-mute);
-    font: italic 700 10px/14px Georgia, serif; letter-spacing: 0; text-transform: none; text-align: center; cursor: help; margin-left: 2px; position: relative; top: -3px; }
-  .an-ni.right { margin-left: auto; margin-right: -4px; top: -1px; }   /* «Мастера»: правый край — по краю карточки хода под заголовком */
+  .an-ni { position: relative; align-self: baseline; flex-shrink: 0; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--fg-mute); color: var(--fg-mute);
+    font: italic 700 10px/14px Georgia, serif; letter-spacing: 0; text-transform: none; text-align: center; cursor: help; margin-left: 2px; position: relative; top: -1.5px; }   /* по базовой линии заголовка: центр на уровне слов при любой ширине */
+  .an-ni.right { margin-left: auto; margin-right: -4px; top: -1.5px; }   /* «Мастера»: правый край — по краю карточки хода под заголовком */
+  .an-box.an-wide .an-ni { top: -0.5px; }   /* только «Мастера» (an-wide): на 1px ниже — центр по строчным буквам имени мастера рядом */
   .an-ni:hover, .an-ni:focus { color: var(--fg); border-color: var(--fg-dim); outline: none; }
   .an-ni-tip { display: none; position: absolute; top: calc(100% + 8px); left: -8px; z-index: 40; width: 250px; padding: 9px 11px; border-radius: 8px;
     background: #1b1e2c; border: 1px solid var(--border); box-shadow: 0 10px 28px rgba(0,0,0,0.45);
@@ -1648,7 +1651,16 @@
   .th-seg button { font: 600 10.5px Inter, sans-serif; color: var(--fg-mute); background: none; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; }
   .th-seg button:hover { color: var(--fg); }
   .th-seg button.on { background: var(--bg-card-hover); color: var(--fg); }
-  .an-head .th-seg { margin-left: auto; align-self: center; }
+  .an-head .th-seg { margin-left: auto; align-self: flex-start; margin-top: -3px; }   /* «План / Lichess» (33px) — центр на уровне слов заголовка, не заходит на список партий */
+  /* «Партии» → ⟳ на месте числа: сброс мест разбора в остальных партиях (anResetArmed). Значок поверх скрытого числа — ширина та же при любом числе */
+  .an-ph { font-weight: inherit; }
+  .an-ph.on { cursor: pointer; }
+  .an-cnt { position: relative; }
+  .an-cnt i { font-style: normal; }
+  .an-cnt.armed i { visibility: hidden; }
+  .an-reset { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; width: 18px; height: 20px;
+    padding: 0; border: 0; border-radius: 4px; background: none; color: var(--fg-mute); cursor: pointer; }
+  .an-reset:hover, .an-reset:focus-visible { color: var(--fg); outline: none; }
   /* «Lichess | Мой план» — какие названия дебютов в списке */
   .f-seg { display: flex; gap: 2px; margin-top: 6px; padding: 2px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
   .f-seg button { flex: 1; font: 600 11px Inter, sans-serif; color: var(--fg-mute); background: none; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; }
@@ -5343,23 +5355,30 @@ $('activityBtn').addEventListener('click', function(e) {
 //            arrows — стрелки на доске в позиции at,
 //            rank — важность (меньше — важнее, нет — 0): линза без указанного хода открывается на самом важном, при равной — на раннем (anFirst)}
 // master — чьи ходы во вкладке «Мастера»: 'auto' — первый мастер студий дебюта партии по плану, 'all' — вся база, 'дебют/мастер' — выбранный
-var an = {gid: null, ply: null, lens: 'bl', master: 'auto'};   // ply = null — при отрисовке встать на первый момент
-// место разбора (anPlace.v1): ход в каждой паре «партия + линза» — помнится до конца дня по Москве, назавтра партии снова открываются
-// на самом важном моменте. Выбранная партия помнится, пока не сыграна новая (last — новейшая партия на момент сохранения): появилась новая — открывается она
-var AN_PLACE_KEY = 'anPlace.v1', anPlace = {day: '', at: {}};
+var an = {gid: null, ply: null, lens: 'bl', master: 'auto', peek: false};   // ply = null — при отрисовке встать на первый момент
+// место разбора (anPlace.v1): ход в каждой паре «партия + линза» (at: {"id|линза": ход}) — помнится, пока не нажата ⟳ у списка партий
+// (anPlaceReset: забыть все, кроме выбранной партии). gid — последняя открытая партия: после перезагрузки открывается она, пока не сыграна новая
+// (last — новейшая партия на момент сохранения; появилась новая — открывается она). peek — пришёл переходом из другого раздела (anOpen):
+// показан важный момент / указанный ход, место не сохраняется до первого своего хода (anGo), выбора партии в списке или смены линзы
+var AN_PLACE_KEY = 'anPlace.v1', anPlace = {};
 function anNewest() { for (var i = games.length - 1; i >= 0; i--) if (games[i].mv) return games[i].id; return ''; }
-function anPlaceDay() { var d = isoDay(gameToday()); if (anPlace.day !== d) { anPlace.day = d; anPlace.at = {}; } }   // новый день — места забыты
-function anPlaceOf(gid) { anPlaceDay(); var p = anPlace.at[gid + '|' + an.lens]; return typeof p === 'number' ? p : null; }
+function anPlaceOf(gid) { var p = anPlace[gid + '|' + an.lens]; return typeof p === 'number' ? p : null; }
+function anPlaceWrite() { try { localStorage.setItem(AN_PLACE_KEY, JSON.stringify({last: anNewest(), gid: an.gid, at: anPlace})); } catch (e) {} }
 function anPlaceSave() {
   if (!an.gid || typeof an.ply !== 'number') return;
-  anPlaceDay(); anPlace.at[an.gid + '|' + an.lens] = an.ply;
-  try { localStorage.setItem(AN_PLACE_KEY, JSON.stringify({day: anPlace.day, last: anNewest(), gid: an.gid, at: anPlace.at})); } catch (e) {}
+  if (!an.peek) anPlace[an.gid + '|' + an.lens] = an.ply;
+  anPlaceWrite();
+}
+function anPlaceOthers() { for (var k in anPlace) if (k.split('|')[0] !== an.gid) return true; return false; }   // есть что сбрасывать кнопкой ⟳
+function anPlaceReset() {
+  for (var k in anPlace) if (k.split('|')[0] !== an.gid) delete anPlace[k];
+  anPlaceWrite();
 }
 try {
   var anSaved = localStorage.getItem('anLens'); if (anSaved) an.lens = anSaved; an.master = localStorage.getItem('anMaster.v2') || 'auto';
   var ap = JSON.parse(localStorage.getItem(AN_PLACE_KEY) || 'null');
-  if (ap) {
-    anPlace = {day: ap.day || '', at: ap.at || {}};
+  if (ap && ap.at && typeof ap.at === 'object') {
+    anPlace = ap.at;
     if (ap.last === anNewest()) { an.gid = ap.gid; an.ply = anPlaceOf(ap.gid); }
   }
 } catch (e) {}
@@ -5385,12 +5404,14 @@ function anNeedChess(done) {
   s.onerror = function() { anChessQueue = null; $('anBox').innerHTML = '<div class="an-lock" style="grid-column: 1 / -1">Не удалось загрузить lib/chess.js — обнови страницу</div>'; };
   document.head.appendChild(s);
 }
+// заранее, в фоне — когда страница загрузилась и браузер свободен: первое открытие «Анализа» сразу с доской, без заглушки «Загружаю доску…»
+window.addEventListener('load', function() { (window.requestIdleCallback || function(f) { setTimeout(f, 300); })(function() { anNeedChess(function() {}); }); });
 
 /* --- данные партии --- */
 // партии для списка: с учётом фильтра графика, новые сверху, только с записью ходов
 function anList() { return cgAll.filter(function(g) { return g.mv; }).slice().reverse(); }
 function anGame() { return games.filter(function(g) { return g.id === an.gid; })[0] || null; }
-function anSetGame(g) { an.gid = g.id; an.ply = anPlaceOf(g.id); }   // null — при отрисовке встать на самый важный момент
+function anSetGame(g) { an.gid = g.id; an.ply = anPlaceOf(g.id); an.peek = false; }   // null — при отрисовке встать на самый важный момент
 // «!» — свежая партия: закончилась меньше суток назад (поле ts из update.mjs) и в ней есть зевки или мат (линзы «Зевки» / «Мат в N»)
 var AN_FRESH_MS = 24 * 3600e3;
 function anFresh(g) {
@@ -5719,8 +5740,29 @@ function anRatingChip(g) {
   return '<span class="an-res" style="color:' + c.color + ';background:' + c.bg + '" title="Изменение рейтинга за партию">' + (d > 0 ? '+' + d : d < 0 ? '−' + Math.abs(d) : '0') + '</span>';
 }
 // партии: номер, дата, результат (и изменение рейтинга), точки типов зевков и их число, дебют, цвет и соперник
+// «Партии» у списка партий: есть разбор в других партиях — слово нажимается, на месте числа появляется ⟳ (anResetArmed);
+// ⟳ — забыть место разбора во всех партиях, кроме выбранной (они снова откроются на самом важном моменте); клик в любом другом месте — снова число
+var anResetArmed = false;
+var AN_RESET_ICON = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M20 4v5h-5"/><path d="M4 20v-5h5"/><path d="M5.6 9a7 7 0 0 1 12.1-2.4L20 9"/><path d="M18.4 15a7 7 0 0 1-12.1 2.4L4 15"/></svg>';
+function anHeadHtml(n) {
+  var arm = anResetArmed && anPlaceOthers();
+  return '<b class="an-ph' + (anPlaceOthers() ? ' on' : '') + '">Партии</b> <span class="an-cnt' + (arm ? ' armed' : '') + '" data-n="' + n + '"><i>' + n + '</i>' +
+    (arm ? '<button class="an-reset" type="button" aria-label="Сбросить разбор в остальных партиях" title="Сбросить разбор в остальных партиях: они снова откроются на важных моментах. Выбранная партия — без изменений">' + AN_RESET_ICON + '</button>' : '') + '</span>';
+}
+function anHeadRefresh() {   // только слово и число — список и переключатель «План / Lichess» не трогаем
+  var box = $('anBox'), c = box.querySelector('.an-list .an-cnt'), p = box.querySelector('.an-list .an-ph');
+  if (!c || !p) return;
+  var tmp = document.createElement('div'); tmp.innerHTML = anHeadHtml(c.getAttribute('data-n'));
+  p.parentNode.replaceChild(tmp.querySelector('.an-ph'), p); c.parentNode.replaceChild(tmp.querySelector('.an-cnt'), c);
+}
+// клик мимо «Партии» и ⟳ — значок снова становится числом (до остальных обработчиков, поэтому capture)
+document.addEventListener('click', function(e) {
+  if (!anResetArmed || e.target.closest('#anBox .an-ph, #anBox .an-reset')) return;
+  anResetArmed = false; anHeadRefresh();
+}, true);
 function anListHtml(list, g) {
-  var head = '<div class="an-head">Партии <span>' + list.length + '</span><span class="th-seg an-opseg">' + opSegHtml(anOpNames, ['plan', 'lichess']) + '</span></div>';
+  var head = '<div class="an-head">' + anHeadHtml(list.length) + '<span class="th-seg an-opseg">' + opSegHtml(anOpNames, ['plan', 'lichess'], true) + '</span></div>';
   if (!list.length) return head + '<div class="an-list-in"><div class="an-empty">' + (games.length ? 'Нет партий под фильтр графика' : 'Партий пока нет') + '</div></div>';
   return head + '<div class="an-list-in">' + list.map(function(x) {
     var R = RESULT[x.result], bl = x.bl || [];
@@ -5916,7 +5958,7 @@ function anUpdate() {
 }
 
 /* --- действия --- */
-function anGo(ply) { if (anGame()) { an.ply = ply; anUpdate(); } }
+function anGo(ply) { if (anGame()) { an.ply = ply; an.peek = false; anUpdate(); } }   // свой ход — с этого места разбор сохраняется
 // ↑ ↓ — к предыдущему / следующему моменту линзы (без моментов — на ход назад / вперёд)
 function anStep(dir) {
   var g = anGame();
@@ -5927,10 +5969,10 @@ function anStep(dir) {
   if (t !== undefined) anGo(t);
 }
 function anSetLens(k) {
-  an.lens = k;
+  an.lens = k; an.peek = false;
   try { localStorage.setItem('anLens', k); } catch (e) {}
   var g = anGame();
-  if (g && window.Chess) {   // в этой линзе партию уже разбирал сегодня — туда, иначе на самый важный момент
+  if (g && window.Chess) {   // в этой линзе партию уже разбирал — туда, иначе на самый важный момент
     var saved = anPlaceOf(g.id), first = saved === null && anFirst(anMoments(g, anPositions(g)));
     if (saved !== null) an.ply = saved; else if (first) an.ply = first.at;
   }
@@ -5944,14 +5986,17 @@ function anSetMaster(k) {
 // открыть партию в анализе (клик по зевку в отчёте о матче); если её прячет фильтр графика — фильтр снимается
 function anOpen(g, ply, lens) {
   if (cgAll.indexOf(g) < 0) { cfilt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}}; renderCfInputs(); chartFilterChanged(); }
-  if (lens) { an.lens = lens; try { localStorage.setItem('anLens', lens); } catch (e) {} }   // линза — до партии: место разбора ищется по паре «партия + линза»
+  if (lens) { an.lens = lens; try { localStorage.setItem('anLens', lens); } catch (e) {} }
   anSetGame(g);
-  if (typeof ply === 'number') an.ply = ply;
+  // переход из другого раздела — указанный ход или самый важный момент, не место разбора; место не трогаем, пока не сделан свой ход
+  an.ply = typeof ply === 'number' ? ply : null; an.peek = true;
   var was = chartMode === 'analysis';
   gsChart('analysis', false);
   if (was) renderAnalysis();
 }
 $('anBox').addEventListener('click', function(e) {
+  if (e.target.closest('.an-ph')) { if (anResetArmed || anPlaceOthers()) { anResetArmed = !anResetArmed; anHeadRefresh(); } return; }
+  if (e.target.closest('.an-reset')) { anPlaceReset(); anResetArmed = false; anHeadRefresh(); return; }
   var o = e.target.closest('.an-opseg [data-opn]');
   if (o) {   // названия дебютов в списке партий: мой план / Lichess
     anOpNames = o.getAttribute('data-opn');
@@ -6245,12 +6290,12 @@ function planOpening(g) {
 }
 var CK_L = '<i class="ck ck-l" title="по данным Lichess">✓</i>', CK_P = '<i class="ck ck-p" title="по твоему плану (data/plan.js)">✓</i>';
 // какие названия дебюта показывать: 'all' — Lichess и план (как было), 'plan' — только мой план, 'lichess' — только Lichess
-var OP_NAMES = [['all', 'Все'], ['plan', 'Мой план'], ['lichess', 'Lichess']];   // порядок кнопок в переключателях
+var OP_NAMES = [['all', 'Все'], ['plan', 'Мой план', 'План'], ['lichess', 'Lichess']];   // порядок кнопок в переключателях; 3-е — короткое название (где тесно)
 var tblOpNames = 'all', anOpNames = 'lichess';   // таблица партий / список «Партии» в «Анализе»
 try { tblOpNames = localStorage.getItem('tblOpNames') || 'all'; anOpNames = localStorage.getItem('anOpNames') || 'lichess'; } catch (e) {}
-function opSegHtml(cur, keys) {
+function opSegHtml(cur, keys, short) {   // short — короткие названия: «Партии» в «Анализе» (там «Мой план» не помещается рядом с 3–4-значным числом)
   return OP_NAMES.filter(function(o) { return keys.indexOf(o[0]) >= 0; }).map(function(o) {
-    return '<button type="button" class="' + (o[0] === cur ? 'on' : '') + '" data-opn="' + o[0] + '">' + o[1] + '</button>';
+    return '<button type="button" class="' + (o[0] === cur ? 'on' : '') + '" data-opn="' + o[0] + '">' + (short && o[2] || o[1]) + '</button>';
   }).join('');
 }
 // дебют по плану одной строкой: «Итальянская», бот начал необычно — «Сицилианская? · Славянская?», вне плана — null
@@ -10536,10 +10581,13 @@ document.querySelectorAll('.sect-eye').forEach(function(b) {
 // кнопки справа над графиком: глаз у края (CSS), левее «Активность», ещё левее «Анализ» — ширина кнопок зависит от шрифта, пересчитываем
 function placeChartBtns() {
   var eye = $('eyeChart'), act = $('activityBtn'), an = $('analysisBtn');
-  if (getComputedStyle(act).position !== 'absolute') { act.style.right = an.style.right = ''; return; }   // телефон: кнопки идут строкой
+  // показать кнопки, когда они на месте и шрифт загружен (с ним меняется их ширина) — см. .btns-ready
+  var ready = function() { if (!document.fonts || document.fonts.status === 'loaded') act.parentNode.classList.add('btns-ready'); };
+  if (getComputedStyle(act).position !== 'absolute') { act.style.right = an.style.right = ''; ready(); return; }   // телефон: кнопки идут строкой
   var W = act.parentNode.clientWidth;
   act.style.right = (eye.offsetParent ? W - eye.offsetLeft + 8 : 14) + 'px';   // в скрытом режиме глаза нет — «Активность» у края
   an.style.right = (W - act.offsetLeft + 8) + 'px';
+  ready();
 }
 window.addEventListener('resize', placeChartBtns);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeChartBtns);

@@ -477,8 +477,8 @@
   .stat-trend { font-size: 11px; margin-left: 13px; }
   .stat-trend .trend-n { font-size: 9px; }
   .stat-blunders { padding-top: 5px; position: relative; }
-  .bl-info { position: absolute; right: -2px; top: 25px; transform: translateY(-50%);   /* на уровне слова «Зевки» */ z-index: 2; width: 22px; height: 22px; border-radius: 50%; padding: 0;
-    font: 700 13px Georgia, serif; font-style: italic; color: #fca5a5; background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.55); cursor: pointer; line-height: 1; }
+  .bl-info { position: absolute; right: 0; top: 25px; transform: translateY(-50%);   /* на уровне слова «Зевки»; 18px, центр там же, где был у 22px (right: −2) */ z-index: 2; width: 18px; height: 18px; border-radius: 50%; padding: 0;
+    font: 700 11px Georgia, serif; font-style: italic; color: #fca5a5; background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.55); cursor: pointer; line-height: 1; }
   .bl-info:hover { color: #fff; background: rgba(248,113,113,0.25); border-color: #f87171; }
   .bl-info.on { color: #11131a; background: #f87171; border-color: #f87171; }
   .stat-blunders .stat-line { padding-right: 26px; }
@@ -3560,6 +3560,9 @@ function matchReport(g) {
   return head + stats + '<div class="mr-gwrap">' + evalGraph(g) + (g.mv ? mrInfoPanel(g) : '') + '</div>' + list;
 }
 function evText(v) { return v >= 100 ? '+10 и больше' : v <= -100 ? '−10 и больше' : (v > 0 ? '+' : v < 0 ? '−' : '') + (Math.abs(v) / 10).toFixed(1); }
+// перевес для записи, где сторона названа словом («у тебя» / «у соперника»): без минуса — «+4.6 у соперника», а не «−4.6 у соперника».
+// Где слова нет (стрелки «+0.1 → −4.6», шкала), сторону показывает знак — там evText
+function evSideText(v) { return evText(Math.abs(v)); }
 function mrHover(e) {
   var gr = e.target.closest && e.target.closest('.mr-graph');
   if (!gr) return;
@@ -3582,7 +3585,7 @@ function mrHover(e) {
     var bl = mine ? (g.bl || []).filter(function(b) { return blPly(g, b) === p; })[0] : null;
     if (bl) txt += '<div style="color:' + BL_TYPES[bl.t].color + '">⚠ ' + esc(blLabel(bl)) + (bl.b ? ' — лучше ' + esc(bl.b) : '') + '</div>';
   }
-  hint.innerHTML = txt + '<div>Перевес: <b style="color:' + (v > 0 ? '#4ade80' : v < 0 ? '#f87171' : 'var(--fg)') + '">' + evText(v) + '</b>' + (v ? (v > 0 ? ' у тебя' : ' у соперника') : '') + '</div>';
+  hint.innerHTML = txt + '<div>Перевес: <b style="color:' + (v > 0 ? '#4ade80' : v < 0 ? '#f87171' : 'var(--fg)') + '">' + evSideText(v) + '</b>' + (v ? (v > 0 ? ' у тебя' : ' у соперника') : '') + '</div>';
   hint.style.display = 'block';
   var hw = hint.offsetWidth;
   hint.style.left = Math.max(0, Math.min(gr.clientWidth - hw, left - hw / 2)) + 'px';
@@ -5341,7 +5344,25 @@ $('activityBtn').addEventListener('click', function(e) {
 //            rank — важность (меньше — важнее, нет — 0): линза без указанного хода открывается на самом важном, при равной — на раннем (anFirst)}
 // master — чьи ходы во вкладке «Мастера»: 'auto' — первый мастер студий дебюта партии по плану, 'all' — вся база, 'дебют/мастер' — выбранный
 var an = {gid: null, ply: null, lens: 'bl', master: 'auto'};   // ply = null — при отрисовке встать на первый момент
-try { var anSaved = localStorage.getItem('anLens'); if (anSaved) an.lens = anSaved; an.master = localStorage.getItem('anMaster.v2') || 'auto'; } catch (e) {}
+// место разбора (anPlace.v1): ход в каждой паре «партия + линза» — помнится до конца дня по Москве, назавтра партии снова открываются
+// на самом важном моменте. Выбранная партия помнится, пока не сыграна новая (last — новейшая партия на момент сохранения): появилась новая — открывается она
+var AN_PLACE_KEY = 'anPlace.v1', anPlace = {day: '', at: {}};
+function anNewest() { for (var i = games.length - 1; i >= 0; i--) if (games[i].mv) return games[i].id; return ''; }
+function anPlaceDay() { var d = isoDay(gameToday()); if (anPlace.day !== d) { anPlace.day = d; anPlace.at = {}; } }   // новый день — места забыты
+function anPlaceOf(gid) { anPlaceDay(); var p = anPlace.at[gid + '|' + an.lens]; return typeof p === 'number' ? p : null; }
+function anPlaceSave() {
+  if (!an.gid || typeof an.ply !== 'number') return;
+  anPlaceDay(); anPlace.at[an.gid + '|' + an.lens] = an.ply;
+  try { localStorage.setItem(AN_PLACE_KEY, JSON.stringify({day: anPlace.day, last: anNewest(), gid: an.gid, at: anPlace.at})); } catch (e) {}
+}
+try {
+  var anSaved = localStorage.getItem('anLens'); if (anSaved) an.lens = anSaved; an.master = localStorage.getItem('anMaster.v2') || 'auto';
+  var ap = JSON.parse(localStorage.getItem(AN_PLACE_KEY) || 'null');
+  if (ap) {
+    anPlace = {day: ap.day || '', at: ap.at || {}};
+    if (ap.last === anNewest()) { an.gid = ap.gid; an.ply = anPlaceOf(ap.gid); }
+  }
+} catch (e) {}
 var AN_COLORS = {light: '#dee3e6', dark: '#8ca2ad',                             // клетки (доска Lichess «blue»)
                  coordOnLight: '#4a6272', coordOnDark: '#f1f5f9',               // координаты a–h / 1–8 на светлой / тёмной клетке
                  last: 'rgba(155,199,0,0.41)',                                  // последний ход
@@ -5369,7 +5390,7 @@ function anNeedChess(done) {
 // партии для списка: с учётом фильтра графика, новые сверху, только с записью ходов
 function anList() { return cgAll.filter(function(g) { return g.mv; }).slice().reverse(); }
 function anGame() { return games.filter(function(g) { return g.id === an.gid; })[0] || null; }
-function anSetGame(g) { an.gid = g.id; an.ply = null; }
+function anSetGame(g) { an.gid = g.id; an.ply = anPlaceOf(g.id); }   // null — при отрисовке встать на самый важный момент
 // «!» — свежая партия: закончилась меньше суток назад (поле ts из update.mjs) и в ней есть зевки или мат (линзы «Зевки» / «Мат в N»)
 var AN_FRESH_MS = 24 * 3600e3;
 function anFresh(g) {
@@ -5499,7 +5520,7 @@ function anAdvMoments(g, P) {
   var down = first(1, function(p) { return ev[p] <= -AN_ADV && ev[p - 1] > -AN_ADV; });
   if (down) {
     var lo = down; for (var q = down; q <= n; q++) if (ev[q] < ev[lo]) lo = q;
-    push(down, 'down', AN_COLORS.played, 'bad', 'стал −3', 'Соперник получил решающий перевес (−3 и хуже)');
+    push(down, 'down', AN_COLORS.played, 'bad', 'стал −3', 'Соперник получил решающий перевес (+3 и больше)');
     if (lo !== down) push(lo, 'low', AN_COLORS.played, 'bad', 'дно ' + evText(ev[lo]), 'Самая тяжёлая позиция в партии');
     var back = first(lo + 1, function(p) { return ev[p] >= 0 && ev[p - 1] < 0; });
     if (back) push(back, 'back', AN_COLORS.best, 'good', g.result === 'lose' ? 'на время в плюсе' : 'отыгрался',
@@ -5531,7 +5552,7 @@ function anMateMoments(g, P) {
         (best ? anRow('Лучше', '<span class="good">' + anMoveNo(p) + esc(best) + '</span> — начало мата') : '') +
         (line ? anRow('Линия', '<b>' + esc(anSanLine(p, line)) + '</b>' + (line.split(' ').length >= 8 ? ' …' : '')) : '') +
         (typeof evA === 'number' ? anRow('После', evA >= 50 ? '<span class="good">выигрыш сохранён (' + evText(evA) + ')</span>'
-          : 'перевес ' + (evA >= 0 ? 'упал до ' : 'у соперника: ') + '<b>' + evText(evA) + '</b>') : '') +
+          : 'перевес ' + (evA >= 0 ? 'упал до <b>' + evText(evA) : 'у соперника: <b>' + evSideText(evA)) + '</b>') : '') +
         (M.short ? '' : anRow('Длинный', mateLongTxt(g)));
       out.push({p: p, at: p - 1, rank: M.short ? 0 : 2, color: M.color, tint: M.short ? 'bad' : null, san: P.moves[p - 1].san, short: 'мат в ' + M.N + (M.short ? ' ✗' : ' · длинный'),
         title: '♛ <em>Мат в ' + M.N + (M.short ? ' — упущен ✗' : ' — длинный') + '</em>', before: rows, after: rows,
@@ -5723,7 +5744,7 @@ function anInfoHtml(g, P, v) {
   var mine = anMine(g, ply), ev = g.ev ? g.ev[ply] : null;
   return '<div class="an-info"><div class="an-info-t">' + anMoveNo(ply) + esc(P.moves[ply - 1].san) + '</div>' +
     '<div class="an-info-s">' + (mine ? 'твой ход' : 'ход соперника') +
-      (typeof ev === 'number' ? ' · перевес <b>' + evText(ev) + '</b>' + (ev ? (ev > 0 ? ' у тебя' : ' у соперника') : '') : '') + '</div></div>';
+      (typeof ev === 'number' ? ' · перевес <b>' + evSideText(ev) + '</b>' + (ev ? (ev > 0 ? ' у тебя' : ' у соперника') : '') : '') + '</div></div>';
 }
 // «Мастера»: итог над таблицей — до какого хода сверка шла по каждому источнику: «Карлсен — до 4-го · мастера — до 7-го · игроки 2000+ — до 9-го»
 function anMasterSummary(g, moments) { return msSummary(g, moments.map(function(m) { return {p: m.p, src: m.ms.src}; })); }
@@ -5870,6 +5891,7 @@ function anUpdate() {
   if (!g || !col) return;
   var P = anPositions(g), moments = anMoments(g, P);
   an.ply = Math.max(0, Math.min(P.n, an.ply));
+  anPlaceSave();
   var v = anView(P, an.ply, moments);
   col.innerHTML = anMovesCol(g, P, v, moments);
   var mom = box.querySelector('.an-mom');
@@ -5908,7 +5930,10 @@ function anSetLens(k) {
   an.lens = k;
   try { localStorage.setItem('anLens', k); } catch (e) {}
   var g = anGame();
-  if (g && window.Chess) { var first = anFirst(anMoments(g, anPositions(g))); if (first) an.ply = first.at; }
+  if (g && window.Chess) {   // в этой линзе партию уже разбирал сегодня — туда, иначе на самый важный момент
+    var saved = anPlaceOf(g.id), first = saved === null && anFirst(anMoments(g, anPositions(g)));
+    if (saved !== null) an.ply = saved; else if (first) an.ply = first.at;
+  }
   renderAnalysis();
 }
 function anSetMaster(k) {
@@ -5919,9 +5944,9 @@ function anSetMaster(k) {
 // открыть партию в анализе (клик по зевку в отчёте о матче); если её прячет фильтр графика — фильтр снимается
 function anOpen(g, ply, lens) {
   if (cgAll.indexOf(g) < 0) { cfilt = {results: {}, colors: {}, openings: {}, ranges: {}, modes: {}}; renderCfInputs(); chartFilterChanged(); }
+  if (lens) { an.lens = lens; try { localStorage.setItem('anLens', lens); } catch (e) {} }   // линза — до партии: место разбора ищется по паре «партия + линза»
   anSetGame(g);
   if (typeof ply === 'number') an.ply = ply;
-  if (lens) { an.lens = lens; try { localStorage.setItem('anLens', lens); } catch (e) {} }
   var was = chartMode === 'analysis';
   gsChart('analysis', false);
   if (was) renderAnalysis();
@@ -6488,7 +6513,7 @@ function buildVerdicts() {
   // камбэки: перевес был у бота (−3 и хуже), а партия выиграна — последние 10
   var comeback = L10.filter(function(g) { return g.result === 'win' && g.ev && Math.min.apply(null, g.ev) <= -30; });
   if (comeback.length) add('good', 56 + comeback.length * 3, 'Отыгрался: ' + gN(comeback.length) + ' из 10', null,
-    'Перевес был у бота (−3 и хуже), а ты победил: #' + comeback.map(function(g) { return g.n; }).join(', #') + ' · последние 10 партий', 'Партии', 'Результат', function() { anOpen(comeback[comeback.length - 1], undefined, 'adv'); });   // «Анализ» на перевесе: дно и отыгрыш
+    'Перевес был у бота (+3 и больше), а ты победил: #' + comeback.map(function(g) { return g.n; }).join(', #') + ' · последние 10 партий', 'Партии', 'Результат', function() { anOpen(comeback[comeback.length - 1], undefined, 'adv'); });   // «Анализ» на перевесе: дно и отыгрыш
 
   // Партии · Точность: тренд (5 против 5), разброс (5), личный рекорд (в последних 3)
   if (P5.length === 5) {
@@ -7017,7 +7042,7 @@ var RD_METRICS = [
     return o.length ? o.filter(function(x) { return x.kept; }).length / o.length * 100 : null; }, fmt: rdPct},
   {k: 'convert', label: 'Реализация', group: 'Против бота', more: 'партии с перевесом +3 и больше — сколько выиграно', fn: function(l) {
     return rdShare(l, function(g) { return g.ev && Math.max.apply(null, g.ev) >= 30; }, function(g) { return g.result === 'win'; }); }, fmt: rdPct},
-  {k: 'defend', label: 'Защита', group: 'Против бота', more: 'партии, где перевес был у бота (−3 и хуже), — сколько не проиграно', fn: function(l) {
+  {k: 'defend', label: 'Защита', group: 'Против бота', more: 'партии, где перевес был у бота (+3 и больше), — сколько не проиграно', fn: function(l) {
     return rdShare(l, function(g) { return g.ev && Math.min.apply(null, g.ev) <= -30; }, function(g) { return g.result !== 'lose'; }); }, fmt: rdPct},
 
   {k: 'minEv', label: 'Самый низкий перевес', group: 'Против бота', more: 'насколько глубоко проваливался по оценке за партию, в пешках (выше — лучше)', fn: function(l) {
@@ -8667,8 +8692,8 @@ var AI_DATA = {
     return out;
   },
   review: function() {
-    return [AL('На моём сайте есть режим «Анализ»: доска с ходами партии и линзы — что выделить в партии: «Зевки» (стрелки «сыграно / лучше»), «Ошибки» (ошибки и неточности с лучшим ходом), «Перевес» (история перевеса: где он стал +3, где был пик, где просел, где соперник получил −3 и отыгрался ли я), «Мат в N» (доведённые и упущенные маты), «Взятия» и «Мастера» (мои ходы против ходов мастеров).',
-               'My site has an «Анализ» (analysis) mode: a board with the game and lenses — what to highlight in a game: «Зевки» (blunders with "played / better" arrows), «Ошибки» (mistakes and inaccuracies with the better move), «Перевес» (advantage history: where it reached +3, the peak, where it started to slip, where the opponent got −3 and whether I came back), «Мат в N» (mates delivered and missed), «Взятия» (captures) and «Мастера» (my moves compared with masters).'),
+    return [AL('На моём сайте есть режим «Анализ»: доска с ходами партии и линзы — что выделить в партии: «Зевки» (стрелки «сыграно / лучше»), «Ошибки» (ошибки и неточности с лучшим ходом), «Перевес» (история перевеса: где он стал +3, где был пик, где просел, где у соперника стало +3 и отыгрался ли я), «Мат в N» (доведённые и упущенные маты), «Взятия» и «Мастера» (мои ходы против ходов мастеров).',
+               'My site has an «Анализ» (analysis) mode: a board with the game and lenses — what to highlight in a game: «Зевки» (blunders with "played / better" arrows), «Ошибки» (mistakes and inaccuracies with the better move), «Перевес» (advantage history: where it reached +3, the peak, where it started to slip, where the opponent got +3 and whether I came back), «Мат в N» (mates delivered and missed), «Взятия» (captures) and «Мастера» (my moves compared with masters).'),
       AL('Последние 3 партии:', 'Last 3 games:')].concat(games.slice(-3).map(aiGame));
   },
   opening: function() {
@@ -8897,7 +8922,7 @@ function aiCond(dataKey) { var c = AI_COND[dataKey]; if (typeof c === 'function'
 var AI_LENS_DESC = {
   bl:   ['«Зевки» — мои зевки, стрелки «сыграно / лучше»', '«Зевки» — my blunders, "played / better" arrows'],
   err:  ['«Ошибки» — мои ошибки и неточности с лучшим ходом', '«Ошибки» — my mistakes and inaccuracies with the better move'],
-  adv:  ['«Перевес» — ход, где перевес стал +3, его пик и где он просел; где соперник получил −3 и отыгрался ли я', '«Перевес» — the move where the advantage reached +3, its peak and where it started to slip; where the opponent got −3 and whether I came back'],
+  adv:  ['«Перевес» — ход, где перевес стал +3, его пик и где он просел; где у соперника стало +3 и отыгрался ли я', '«Перевес» — the move where the advantage reached +3, its peak and where it started to slip; where the opponent got +3 and whether I came back'],
   cap:  ['«Взятия» — мои взятия: выигрыш материала, размен или невыгодно', '«Взятия» — my captures: winning material, a trade or a loss'],
   ms:   ['«Мастера» — мои ходы против ходов мастеров в тех же позициях', '«Мастера» — my moves against the masters\' moves in the same positions']
 };
@@ -9142,7 +9167,7 @@ var AI_SIMPLE = {
   },
   review: function() {
     var g = games[games.length - 1];
-    return [AL('На моём сайте есть режим «Анализ» с линзами: «Зевки» (стрелки «сыграно / лучше»), «Ошибки» (ошибки и неточности), «Перевес» (где перевес стал +3, где просел, где соперник получил −3), «Мат в N», «Взятия», «Мастера».', 'My site has an «Анализ» (Analysis) mode with lenses: «Зевки» (blunders, "played / better" arrows), «Ошибки» (mistakes and inaccuracies), «Перевес» (where the advantage reached +3, where it started to slip, where the opponent got −3), «Мат в N» (mates), «Взятия» (captures), «Мастера» (masters).'),
+    return [AL('На моём сайте есть режим «Анализ» с линзами: «Зевки» (стрелки «сыграно / лучше»), «Ошибки» (ошибки и неточности), «Перевес» (где перевес стал +3, где просел, где у соперника стало +3), «Мат в N», «Взятия», «Мастера».', 'My site has an «Анализ» (Analysis) mode with lenses: «Зевки» (blunders, "played / better" arrows), «Ошибки» (mistakes and inaccuracies), «Перевес» (where the advantage reached +3, where it started to slip, where the opponent got +3), «Мат в N» (mates), «Взятия» (captures), «Мастера» (masters).'),
       AL('Анализ движка Lichess доступен по ссылке на каждую партию.', 'The Lichess engine analysis is available via each game link.')].concat(g ? [AL('Последняя партия: ', 'Last game: ') + aiSGame(g) + ' — ' + aiLink(g)] : []);
   },
   opening: function() {

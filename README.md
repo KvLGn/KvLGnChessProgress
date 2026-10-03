@@ -283,6 +283,9 @@ window.PUZZLES = { rating, total, history: [{day, date, rating}], themeNames: {f
   сами. Значок «!» свежей партии (`anFresh`) знает только линзы «Зевки» и «Мат в N».
 - Без указанного хода линза открывается на **самом важном** моменте (`rank` у момента, `anFirst`; нет `rank` — первый по порядку):
   в «Мат в N» — упущенный короткий, иначе доведённый, иначе серый. С указанным ходом (клик из «Итогов», отчёта, таблицы) — ровно на нём.
+- **Место разбора** (`anPlace.v1`): ход запоминается для каждой пары «партия + линза» (`anPlaceSave` в `anUpdate`) и возвращается при выборе
+  партии / линзы и после перезагрузки (`anPlaceOf` в `anSetGame` и `anSetLens`); места живут до конца дня по Москве, назавтра — снова самый важный момент.
+  Выбранная партия открывается после перезагрузки, пока не появилась новая (`last` ≠ `anNewest()`) — тогда открывается новая.
 - **Короткий мат** — общий порог для всего сайта: упущенный мат длиннее `MATE_SHORT = 3` ходов не ошибка (почти не найти) — серым,
   не в счёт «упущенных». Порог брать **только** через `mateShortFor(g)` (позже может стать своим у этапа в plan.js — меняется лишь она);
   проверки — `mateShort` / `mateMissedShort`, показ — `mateMiss`. Длина упущенного — самый короткий мат за серию (`Nmin` на ходу `pmin + 1`:
@@ -429,7 +432,7 @@ window.PUZZLES = { rating, total, history: [{day, date, rating}], themeNames: {f
 | `go` | порядок первичной отрисовки, `renderPlanAlert` |
 
 ### Состояние в браузере (localStorage)
-`hush`, `tblOpen.v1` (раскрытые партии таблицы — номера, `tblOpenSave`), `tblFilt.v1` / `chartFilt.v1` (фильтры таблицы и графика — `filtSave` при перерисовке кнопок, `filtLoad` при загрузке), `wrMode`, `legWrMode` (под графиком: винрейт ⇄ ELO за период), `vdRadar.v1` («Итоги» → «Схема»), `avgWindow`, `hiddenSeries.v2`, `chartMode`, `activityPeriod`, `blHidden`, `anLens`, `anMaster.v2`, `anHushBack`,
+`hush`, `tblOpen.v1` (раскрытые партии таблицы — номера, `tblOpenSave`), `tblFilt.v1` / `chartFilt.v1` (фильтры таблицы и графика — `filtSave` при перерисовке кнопок, `filtLoad` при загрузке), `wrMode`, `legWrMode` (под графиком: винрейт ⇄ ELO за период), `vdRadar.v1` («Итоги» → «Схема»), `avgWindow`, `hiddenSeries.v2`, `chartMode`, `activityPeriod`, `blHidden`, `anLens`, `anMaster.v2`, `anPlace.v1` (место разбора в «Анализе»: `{day, last, gid, at: {"id|линза": ход}}` — ходы до конца дня по Москве, партия — пока не сыграна новая; `anPlaceOf` / `anPlaceSave`), `anHushBack`,
 `tblOpNames` / `anOpNames`, `aiMode` / `aiKind` / `aiModel` / `aiLang`, `planGood` (последняя исправная копия плана, пишется после удачной отрисовки); sessionStorage: `planForce` (страница не отрисовалась с этим планом — перезагрузка на запасной копии).
 Меняешь смысл значения по умолчанию — меняй имя ключа (`.v3`), иначе у пользователя останется старое состояние.
 

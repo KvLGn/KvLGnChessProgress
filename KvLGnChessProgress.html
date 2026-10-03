@@ -196,6 +196,10 @@
   body.hush-chart #chart .hit { pointer-events: none; cursor: default; }
   body.hush-chart .bl-info { opacity: 0.4; cursor: not-allowed; }   /* кнопка «i» у зевков — неактивна, пока график скрыт */
   body.hush-chart .bl-info:hover { color: #fca5a5; background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.55); }
+  /* «Рекорды»: кнопка «i» у зевков приглушена и не нажимается; включённая остаётся с заливкой — режим зевков сохраняется до возврата к графику */
+  .records-on .bl-info { opacity: 0.4; cursor: not-allowed; }
+  .records-on .bl-info:hover { color: #fca5a5; background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.55); }
+  .records-on .bl-info.on:hover { color: #11131a; background: #f87171; border-color: #f87171; }
   body.hush-chart #blLegend { visibility: hidden; }   /* легенда типов (если режим был включён) — без кнопок, состояние не сбрасываем */   /* график скрыт: столбики / колонки не нажимаются и без подсказок; период и стрелки работают */
   .wr-label {
     font-size: 11px;
@@ -2610,7 +2614,7 @@ document.addEventListener('click', function(e) {
   var b = e.target.closest && e.target.closest('.bl-info');
   if (!b) return;
   e.stopPropagation();
-  if (hush.chart) return;   // график скрыт — режим зевков не переключается
+  if (hush.chart || showRecords) return;   // график скрыт или открыты «Рекорды» — режим зевков не переключается (и не сбрасывается)
   blMode = !blMode;
   cmpBlOpen = blMode && cmpMode === 'view';   // сравнение открыто: включили — «Зевки» первыми и раскрыты, выключили — на своё место и свёрнуты
   renderWindow();
@@ -2895,7 +2899,7 @@ function renderStats() {
   }).join('');
 
   var b = avg(list, 'blunders');
-  $('statsBlunders').innerHTML = '<button class="bl-info' + (blMode ? ' on' : '') + '" type="button" title="' + (blMode ? 'Вернуть обычный график' : 'Показать на графике типы зевков') + '">i</button>' +
+  $('statsBlunders').innerHTML = '<button class="bl-info' + (blMode ? ' on' : '') + '" type="button"' + (showRecords ? '' : ' title="' + (blMode ? 'Вернуть обычный график' : 'Показать на графике типы зевков') + '"') + '>i</button>' +   // в «Рекордах» недоступна — без подсказки
     statLine('Зевки', 'var(--c-blunder)', b === null ? '—' : b.toFixed(1)) +
     '<div class="stat-trend">' +
     th(tr(function(l) { return avg(l, 'blunders'); }), false, true) + '</div>';
@@ -5036,6 +5040,7 @@ function setRecords(on) {
   $('chartBox').classList.toggle('records-on', on);
   $('recordsBtn').textContent = on ? 'График' : 'Рекорды';
   hideTooltip();
+  renderStats();   // кнопка «i» у зевков: в «Рекордах» без подсказки
   if (chartMode === 'activity') renderActivity(); else { renderChart(); applySeries(); }
 }
 

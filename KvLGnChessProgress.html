@@ -8886,6 +8886,16 @@ function aiSTypes(list, n, inline) {   // типы зевков от часты�
   return Object.keys(c).sort(function(a, b) { return c[b] - c[a]; }).slice(0, n || 9).map(function(t, i, ks) { return (inline ? '' : '– ') + aiBlType(t) + ' — ' + (i && c[ks[i - 1]] === c[t] ? AL('тоже ', 'also ') : '') + c[t] + ' (' + AL(BL_MEAN[t][0], BL_MEAN[t][1]) + ')'; });
 }
 function aiSTheme() { var wt = aiWeakThemes(1), P = window.PUZZLES || {}; return wt.length ? AL('Самая слабая тема задач: ', 'The weakest puzzle theme: ') + wt[0].replace(/^1\) /, '').replace(AL(' — самая слабая', ' — the weakest'), '') + AL(' (общий перфоманс ', ' (overall performance ') + (P.global ? P.global.perf : '—') + ').' : ''; }
+// цель этапа по каждому цвету этапа (этап с двумя цветами — две строки): today — «играть против…» (цвет — только при двух цветах), week — «партии белыми против…»
+function aiSGoals(kind) {
+  if (!CUR.stage) return [];
+  var E = CUR.stage.engine, col = kind === 'week' || CUR.colors.length > 1;
+  return CUR.colors.map(function(c) {
+    var ru = col ? 'партии ' + COLOR_WORD[c.color] : 'играть', en = col ? 'games as ' + COLOR_EN[c.color] : 'play';
+    if (c.done) return AL('Цель этапа: ' + ru + ' против Stockfish ' + E + ' — уже выполнена.', 'Stage goal: ' + en + ' vs Stockfish ' + E + ' — already done.');
+    return AL('Цель этапа: ' + ru + ' против Stockfish ' + E + ', нужно ещё минимум ', 'Stage goal: ' + en + ' vs Stockfish ' + E + ', at least ') + gamesToGoal(c) + AL(' хороших партий.', ' more good games needed.');
+  });
+}
 function aiSWindow(n, list) { return AL('Все числа ниже — за последние ' + n + ' ' + plural(n, 'партию', 'партии', 'партий') + ' (' + aiWL(list) + ').', 'All numbers below are for the last ' + n + ' games (' + aiWL(list) + ').'); }
 var AI_SIMPLE = {
   convert: function() {
@@ -9002,8 +9012,7 @@ var AI_SIMPLE = {
     var th = aiSTheme(); if (th) out.push(th);
     if (aiCurOps()) out.push(aiCurOps());
     if (aiDurLine()) out.push(aiDurLine());
-    if (CUR.stage) out.push(AL('Цель этапа: играть против Stockfish ' + CUR.stage.engine + ', нужно ещё минимум ', 'Stage goal: play vs Stockfish ' + CUR.stage.engine + ', at least ') + gamesToGoal(CUR.colors[0]) + AL(' хороших партий.', ' more good games needed.'));
-    return out;
+    return out.concat(aiSGoals('today'));
   },
   week: function() {
     var t = gameToday(), from = isoDay(addDays(t, -6)), gl = games.filter(function(g) { return g.day >= from; }), att = ((window.PUZZLES || {}).attempts || []).filter(function(a) { return a.day >= from; }), days = {}, last = games.slice(-10), out = [];
@@ -9014,8 +9023,7 @@ var AI_SIMPLE = {
     var wt = aiWeakThemes(3); if (wt.length) out.push(AL('Слабые темы задач (от самой слабой): ', 'Weak puzzle themes (weakest first): ') + wt.slice(0, 3).join(', ') + '.');
     if (aiCurOps()) out.push(aiCurOps());
     if (aiDurLine()) out.push(aiDurLine());
-    if (CUR.stage) out.push(AL('Цель этапа: партии белыми против Stockfish ' + CUR.stage.engine + ', нужно ещё минимум ', 'Stage goal: games as white vs Stockfish ' + CUR.stage.engine + ', at least ') + gamesToGoal(CUR.colors[0]) + AL(' хороших партий.', ' more good games needed.'));
-    return out;
+    return out.concat(aiSGoals('week'));
   },
   themes: function() {
     var P = window.PUZZLES || {}, out = [];

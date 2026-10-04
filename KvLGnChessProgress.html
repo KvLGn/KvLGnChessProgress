@@ -3,13 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- сайт уже тёмный: «тёмная тема для сайтов» браузера (Яндекс, Chrome auto dark) его не перекрашивает — иначе пропадают тонкие рамки (кнопка режима).
+     only light — не dark: полосы прокрутки и поля браузера остаются как были -->
+<meta name="color-scheme" content="only light">
 <title>KvLGn Chess Progress</title>
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="KvLGn Chess">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0f1117;
@@ -175,7 +178,7 @@
   .sect-eye.shut .eye-shut { opacity: 1; }
   #eyeChart { position: absolute; top: 9px; right: 14px; z-index: 2; }   /* справа налево: глаз, «Активность», «Анализ» (кнопки ставит placeChartBtns) */
   /* до первой расстановки (скрипт и шрифт ещё грузятся) кнопки не видны — иначе «Анализ» мелькает слева, а «Активность» на месте глаза и прыгают */
-  .chart-container:not(.btns-ready) > #activityBtn, .chart-container:not(.btns-ready) > #analysisBtn { visibility: hidden; }
+  .chart-container:not(.btns-ready) > #modePick { visibility: hidden; }
   #eyeHead { margin-left: 2px; width: 32px; height: 32px; }
   #eyeHead svg { width: 18px; height: 18px; }
   .links { gap: 8px; padding-right: 14px; }
@@ -479,8 +482,8 @@
   .stat-trend { font-size: 11px; margin-left: 13px; }
   .stat-trend .trend-n { font-size: 9px; }
   .stat-blunders { padding-top: 5px; position: relative; }
-  .bl-info { position: absolute; right: 0; top: 25px; transform: translateY(-50%);   /* на уровне слова «Зевки»; 18px, центр там же, где был у 22px (right: −2) */ z-index: 2; width: 18px; height: 18px; border-radius: 50%; padding: 0;
-    font: 700 11px Georgia, serif; font-style: italic; color: #fca5a5; background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.55); cursor: pointer; line-height: 1; }
+  .bl-info { position: absolute; right: 1px; top: 25px; transform: translateY(-50%);   /* на уровне слова «Зевки»; 16px, центр там же, где был у 18px (right: 0) и 22px (right: −2) */ z-index: 2; width: 16px; height: 16px; border-radius: 50%; padding: 0;
+    font: 700 10px Georgia, serif; font-style: italic; color: #fca5a5; background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.55); cursor: pointer; line-height: 1; }
   .bl-info:hover { color: #fff; background: rgba(248,113,113,0.25); border-color: #f87171; }
   .bl-info.on { color: #11131a; background: #f87171; border-color: #f87171; }
   .stat-blunders .stat-line { padding-right: 26px; }
@@ -502,43 +505,33 @@
 
   .chart-area { flex: 1; min-width: 0; padding: 46px 8px 6px; }
 
-  /* кнопка режима «Активность» (правый верхний угол графика) */
-  .activity-btn {
-    position: absolute;
-    top: 7px;
-    right: 14px;
-    z-index: 2;
-    font: 600 11px Inter, sans-serif;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--yellow);
-    background: transparent;
-    border: 1px solid var(--yellow);
-    border-radius: 6px;
-    padding: 5px 12px;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .activity-btn:hover { background: var(--yellow-bg); }
-  /* в режиме активности кнопка ведёт назад к показателям — тот же стиль, зелёный */
-
-  /* кнопка режима «Анализ» (разбор партий на доске) — бирюзовая */
-  .analysis-btn {
-    position: absolute; top: 7px; z-index: 2;
-    display: inline-flex; align-items: center; gap: 7px;
-    height: 39px; padding: 0 14px; border-radius: 8px;
-    font: 600 11px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase;
-    color: #22d3ee; background: transparent; border: 1px solid #22d3ee;
-    cursor: pointer; transition: background 0.15s;
-  }
-  .analysis-btn:hover { background: rgba(34,211,238,0.1); }
-  /* кнопка включённого режима («Активность» / «Анализ») становится зелёной «Показатели» — ведёт обратно */
-  .mode-activity .activity-btn, .mode-analysis .analysis-btn { color: var(--green); border-color: var(--green); }
-  .mode-activity .activity-btn:hover, .mode-analysis .analysis-btn:hover { background: var(--green-bg); }
-  /* скрытый режим или скрытый график: «Анализ» недоступен */
-  .analysis-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .analysis-btn:disabled:hover { background: transparent; }
-  /* «!» — свежая партия (последние сутки) с зевками или матом: угол кнопки «Анализ», список партий, список линз, моменты */
+  /* режим графика — одна кнопка-список «Показатели / Активность / Анализ ▾» справа над графиком (renderModePick; место — placeChartBtns).
+     Цвет — текущего режима; ширина — по самому длинному названию (все три в одной ячейке, видно одно) — при смене режима кнопка не прыгает */
+  .mode-pick { position: absolute; top: 7px; z-index: 3; }
+  .mode-btn { position: relative; display: inline-flex; align-items: center; height: 39px; padding: 0 14px; border-radius: 8px;
+    font: 600 11px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; background: transparent; border: 1px solid currentColor;
+    cursor: pointer; transition: background 0.15s; }
+  /* цвет режима: кнопка, пункты списка и рамка списка (m-… — у каждого свой режим) */
+  .m-metrics  { --mc: var(--green);  --mbg: var(--green-bg); }
+  .m-activity { --mc: var(--yellow); --mbg: var(--yellow-bg); }
+  .m-analysis { --mc: #22d3ee;       --mbg: rgba(34,211,238,0.1); }
+  .mode-btn { color: var(--mc); }
+  .mode-btn:hover, .mode-pick.open .mode-btn { background: var(--mbg); }
+  .mode-t { display: grid; }
+  .mode-t > span { grid-area: 1 / 1; text-align: center; }
+  .mode-t > span:not(.on) { visibility: hidden; }   /* прятать невидимые, а не «показывать» видимую: visible у ребёнка виден и при скрытой кнопке (.btns-ready) */
+  .mode-btn .caret { font-size: 10px; display: inline-block; margin-left: 6px; transition: transform 0.15s; }   /* в каждой надписи — стрелка сразу за словом */
+  .mode-pick.open .caret { transform: rotate(180deg); }
+  /* список — в стиле кнопки: рамка цвета текущего режима, пункты заглавными, каждый своим цветом; текущий — в рамке с заливкой, как кнопка */
+  .mode-pick .win-menu { right: 0; min-width: 100%; box-sizing: border-box; padding: 5px; border-color: var(--mc); }
+  .mode-pick .win-opt .an-bang { margin-left: auto; margin-right: -9px; }   /* «!» свежей партии — у правого края пункта «Анализ» (3px от края) */
+  .mode-pick .win-opt { display: flex; align-items: center; gap: 6px; margin: 2px 0; padding: 9px 12px; border: 1px solid transparent; border-radius: 6px;
+    font: 600 11px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; color: var(--mc); }
+  .mode-pick .win-opt:hover, .mode-pick .win-opt:focus-visible { background: var(--mbg); color: var(--mc); }
+  .mode-pick .win-opt.on { border-color: var(--mc); background: var(--mbg); font-weight: 600; }
+  .mode-pick .win-opt.on::after { content: none; }
+  .mode-pick .win-opt:disabled { opacity: 0.4; cursor: not-allowed; background: none; }   /* скрытый режим / скрытый график: «Анализ» недоступен */
+  /* «!» — свежая партия (последние сутки) с зевками или матом: угол кнопки режима, пункт «Анализ», список партий, список линз, моменты */
   .an-new { position: absolute; top: -8px; right: -8px; width: 18px; height: 18px; border-radius: 50%;
     background: #1a1d29; border: 1.5px solid #f87171; color: #f87171; font: 800 11px/15px Inter, sans-serif; letter-spacing: 0; text-align: center; }   /* красные обводка и знак, внутри фон блока */
   .an-new[hidden] { display: none; }
@@ -608,6 +601,8 @@
   .cmp-rows { position: relative; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.15) transparent; }
   .cmp-row { display: grid; grid-template-columns: 110px 70px 1fr 78px 1fr 70px; align-items: center; gap: 10px; font-size: 12.5px; padding: 1px 0; }
   .cmp-lbl { font-weight: 600; }
+  .cmp-row.hl { font-size: 14px; }   /* крупнее остальных строк (12.5px) */
+  .cmp-row.hl .cmp-lbl, .cmp-row.hl .cmp-a, .cmp-row.hl .cmp-b, .cmp-row.hl .cmp-d { font-weight: 800; }   /* выделенный показатель / «Зевки» в режиме зевков (cmpHtml) */
   .cmp-a, .cmp-b { font-weight: 700; color: #f3f4f6; font-variant-numeric: tabular-nums; }
   .cmp-a { text-align: right; } .cmp-a small, .cmp-b small { font-size: 10px; color: var(--fg-dim); }
   .cmp-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.06); overflow: hidden; display: block; }
@@ -1340,6 +1335,9 @@
   .cmp-picking .day-range, .cmp-on .day-range { visibility: hidden; }
   #winRangeTxt.past { cursor: pointer; }
   .act-range b { color: #f3f4f6; font-size: 13px; letter-spacing: 0.3px; }
+  /* середине строки тесно между кнопками (placeMid): у периода / дня — только даты, подсказка сравнения — в две строки */
+  .act-range.tight { font-size: 0; gap: 0; }
+  .cmp-hint.tight { white-space: normal; text-align: center; line-height: 1.3; }
   .act-range { padding: 0 4px !important; }
   .pr-nav { font: 16px/1 Inter, sans-serif; color: var(--fg-dim); background: none; border: none; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; }
   .pr-nav:hover:not(:disabled) { color: var(--fg); background: rgba(255,255,255,0.06); }
@@ -1358,9 +1356,9 @@
   svg .area { opacity: 0; transition: opacity 0.2s; pointer-events: none; }
   svg.focus .series.hl .area { opacity: 1; }
 
-  /* кнопки «Рекорды» / «Активность» — плоские, без объёма */
+  /* кнопка «Рекорды» — плоская, без объёма */
   /* кнопки и плашка периода — одна высота (39px, как у кнопок с загруженным шрифтом Inter) */
-  .records-btn, .activity-btn { border-radius: 8px; padding: 0 14px; height: 39px; box-shadow: none; transform: none; }
+  .records-btn { border-radius: 8px; padding: 0 14px; height: 39px; box-shadow: none; transform: none; }
 
   /* легенда — «таблетки» */
   .legend-item {
@@ -1791,6 +1789,9 @@
   .game-row.open + .game-detail td { box-shadow: inset 0 -2px 0 var(--rc); }
   .game-row.open + .game-detail:has(+ .game-row.open) td { box-shadow: none; }   /* две раскрытые подряд — между ними одна линия (верхняя у следующей), а не двойная */
   .badge { border: 1px solid currentColor; border-color: color-mix(in srgb, currentColor 35%, transparent); }
+  .badge.res-badge { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; width: 42px; height: 30px; padding: 0; border-radius: 999px;
+    font-size: 14px; font-weight: 800; }   /* результат в таблице: W / L / D — овалы одного размера */
+  td.td-res { padding-left: 27px; }   /* центр овала (42px) — под серединой слова «Результат» (~68px от отступа 14px): 14 + (68 − 42) / 2 */
   .detail-inner {
     padding: 8px 20px 8px 42px;
     background: rgba(0,0,0,0.18);
@@ -1807,7 +1808,9 @@
   .detail-inner.mr { display: block; padding: 14px 20px 12px 42px; }
   .mr-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
   .mr-res { font: 800 13px Inter, sans-serif; letter-spacing: 2px; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
-    background: color-mix(in srgb, var(--c) 12%, transparent); border-radius: 8px; padding: 6px 12px; white-space: nowrap; }
+    background: color-mix(in srgb, var(--c) 12%, transparent); border-radius: 8px; padding: 6px 12px; white-space: nowrap; display: inline-grid; }
+  .mr-res > span { grid-area: 1 / 1; text-align: center; }   /* WIN / LOSE / DRAW друг на друге, видно одно — плашка шириной с самое длинное */
+  .mr-res > span:not(.on) { visibility: hidden; }
   .mr-sub { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; font-size: 12px; color: var(--fg-dim); }
   .mr-sub b { color: var(--fg); font-size: 13px; }
   .mr-stats { display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: center; margin-bottom: 12px; }
@@ -1991,13 +1994,12 @@
     .cf-col + .cf-col { padding-left: 0; border-left: none; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; }
     /* кнопки «Рекорды» / период / «Активность» — строкой между панелью и графиком */
     .panel-stack { order: 1; }
-    .records-btn, .act-range, .activity-btn, .rec-scope { position: static; transform: none; order: 2; margin: 10px 0 0; }
+    .records-btn, .act-range, .mode-pick, .rec-scope { position: static; transform: none; order: 2; margin: 10px 0 0; }
     .records-btn { margin-left: 10px; }
     .act-range { margin-left: auto; margin-right: auto; height: 39px; }
-    .activity-btn { margin-left: 8px; margin-right: 0; }
-    .analysis-btn { position: relative; order: 2; margin: 10px 0 0 8px; padding: 0 10px; letter-spacing: 0.5px; }   /* relative — для «!» в углу */
+    .mode-pick { position: relative; margin-left: 8px; margin-right: 0; }   /* relative — к ней привязан список режимов */
     #eyeChart { position: static; order: 2; margin: 10px 10px 0 8px; }
-    .records-btn, .activity-btn { padding: 0 10px; letter-spacing: 0.5px; }
+    .records-btn, .mode-btn { padding: 0 10px; letter-spacing: 0.5px; }
     .act-range { padding: 0 10px; font-size: 0; gap: 0; }   /* на телефоне только даты, без слова «Период» */
     .act-range b { font-size: 13px; }
     .records-on .rec-scope { display: flex; margin-left: auto; margin-right: auto; }
@@ -2172,8 +2174,7 @@
     <div class="act-range day-range metrics-only" id="winRange" style="display:none"><button class="pr-nav" id="wrPrev" title="Предыдущие партии">‹</button>ПЕРИОД <b id="winRangeTxt"></b><button class="pr-nav" id="wrNext" title="Следующие партии">›</button></div>
     <div class="act-range day-range metrics-only" id="dayRange" style="display:none">ДЕНЬ <b id="dayRangeTxt"></b><button class="pr-nav" id="dayClose" title="Вернуть последние партии (Esc)">✕</button></div>
     <div class="act-range activity-only"><button class="pr-nav" id="prPrev" title="Предыдущий период">‹</button>ПЕРИОД <b id="actRange" title=""></b><button class="pr-nav" id="prNext" title="Следующий период">›</button></div>
-    <button class="analysis-btn" id="analysisBtn" title="Разбор партий на доске: ходы, зевки, график перевеса"><span class="an-btn-t">Анализ</span><span class="an-new" id="anNew" hidden>!</span></button>
-    <button class="activity-btn" id="activityBtn">Активность</button>
+    <span class="win-pick mode-pick" id="modePick"></span>
     <button class="sect-eye" id="eyeChart" type="button" data-sec="chart"></button>
     <div class="chart-area" id="chart"></div>
     <!-- режим «Анализ»: заполняет renderAnalysis() -->
@@ -2692,14 +2693,15 @@ function renderCmpBtn() {
   b.style.display = show ? '' : 'none';
   h.style.display = mode === 'pick' ? '' : 'none';
   $('chartBox').classList.toggle('cmp-picking', !!mode);   // в активности подсказка заменяет «Период»
-  if (!show) return;
+  if (!show) { placeMid(); return; }
   if (!mode) b.textContent = 'Сравнить';
   else if (mode === 'pick') b.innerHTML = cnt ? 'Показать · ' + cnt + '<span class="cmp-x" title="Отменить сравнение (Esc)">✕</span>' : 'Отмена';
   else b.innerHTML = 'К выбору<span class="cmp-x" title="Выйти из сравнения (снимает выделение)">✕</span>';
   b.classList.toggle('on', !!mode);
   var what = act ? plural(cnt, 'день', 'дня', 'дней') : plural(cnt, 'партия', 'партии', 'партий');
-  h.innerHTML = cnt ? 'Отмечено для сравнения: <b>' + cnt + '</b> ' + what + ' — нажми «Показать»'
-                    : (act ? 'Выбери дни для сравнения — клик по столбикам' : 'Выбери партии для сравнения — клик по колонкам');
+  h.innerHTML = '<span>' + (cnt ? 'Отмечено для сравнения: <b>' + cnt + '</b> ' + what + ' — нажми «Показать»'   // один кусок: переносится целиком (.cmp-hint.tight)
+                    : (act ? 'Выбери дни для сравнения — клик по столбикам' : 'Выбери партии для сравнения — клик по колонкам')) + '</span>';
+  placeMid();   // сразу, до отрисовки кадра — иначе подсказка мелькает на старом месте и «переезжает»
 }
 $('cmpBtn').addEventListener('click', function(e) {
   e.stopPropagation();
@@ -2794,7 +2796,11 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(cmpFit);
 window.addEventListener('resize', cmpFit);
 function cmpHtml() {
   var A = statsGames(), B = cmpGames();
-  var order = blMode ? CMP_ROWS.filter(function(r) { return r.k === 'blunders'; }).concat(CMP_ROWS.filter(function(r) { return r.k !== 'blunders'; })) : CMP_ROWS;   // режим зевков — «Зевки» первыми
+  // первыми — выделенное: «Зевки» в режиме зевков («i»), затем показатель, выделенный слева в «Средних» (pinnedSeries); выделенные — жирным (.hl).
+  // Раскрываются «Зевки» по-прежнему только в режиме зевков или кликом по строке (cmpBlOpen)
+  var first = [blMode ? 'blunders' : null, pinnedSeries].filter(function(k, i, a) { return k && a.indexOf(k) === i; });
+  var order = first.map(function(k) { return CMP_ROWS.filter(function(r) { return r.k === k; })[0]; }).filter(Boolean)
+    .concat(CMP_ROWS.filter(function(r) { return first.indexOf(r.k) < 0; }));
   var rows = order.map(function(r) {
     var a = avg(A, r.k), b = avg(B, r.k);
     function fmt(v) { return v === null ? '—' : (r.pct ? v.toFixed(1) + '<small>%</small>' : (Math.round(v * 10) / 10)); }
@@ -2807,7 +2813,7 @@ function cmpHtml() {
     var max = r.pct ? 100 : Math.max(a || 0, b || 0, 1);
     function bar(v, c, side) { return '<span class="cmp-bar' + (side ? ' ' + side : '') + '"><i style="width:' + (v === null ? 0 : Math.min(100, v / max * 100)) + '%;background:' + c + '"></i></span>'; }
     var isBl = r.k === 'blunders';
-    return '<div class="cmp-row' + (isBl ? ' cmp-bl-toggle' + (cmpBlOpen ? ' open' : '') : '') + '"' + (isBl ? ' title="Клик — зевки по типам"' : '') + '><span class="cmp-lbl" style="color:' + r.color + '">' + (isBl ? cmpBlLabel(r.label) : r.label) + '</span>' +
+    return '<div class="cmp-row' + (first.indexOf(r.k) >= 0 ? ' hl' : '') + (isBl ? ' cmp-bl-toggle' + (cmpBlOpen ? ' open' : '') : '') + '"' + (isBl ? ' title="Клик — зевки по типам"' : '') + '><span class="cmp-lbl" style="color:' + r.color + '">' + (isBl ? cmpBlLabel(r.label) : r.label) + '</span>' +
       '<span class="cmp-a">' + fmt(a) + '</span>' + bar(a, '#e4e4e7', 'l') +
       '<span class="cmp-d ' + cls + '">' + (dTxt || '—') + '</span>' +
       bar(b, '#34d399') + '<span class="cmp-b">' + fmt(b) + '</span></div>' + (isBl ? cmpBlRows(A, B) : '');
@@ -2974,7 +2980,11 @@ function pinSeries(key) {
   markPinned();
   focusSeries(pinnedSeries);
   if (showRecords && chartMode !== 'activity') renderRecords();
+  cmpPinChanged();
+  saveChartSel();
 }
+// открыто сравнение партий — выделенный показатель встаёт первой строкой (cmpHtml); список — с начала, чтобы её было видно
+function cmpPinChanged() { if (cmpMode === 'view' && chartMode === 'metrics' && !showRecords) { cmpScroll = 0; renderChart(); } }
 
 function applySeries() {
   document.querySelectorAll('[data-s]').forEach(function(el) {
@@ -2998,7 +3008,7 @@ document.addEventListener('click', function(e) {
   var k = t.getAttribute('data-s');
   if (t.closest('.legend')) {
     toggleSeries(k);
-    if (hiddenSeries[k] && pinnedSeries === k) { pinnedSeries = null; markPinned(); }
+    if (hiddenSeries[k] && pinnedSeries === k) { pinnedSeries = null; markPinned(); cmpPinChanged(); }
     focusSeries(pinnedSeries);
   } else {
     pinSeries(k);
@@ -3069,6 +3079,7 @@ function renderTitle() {
 }
 
 function renderChart() {
+  saveChartSel();
   renderCmpBtn();
   var wv = !dayView && !hush.chart && !showRecords && cgAll.length > 0;
   $('winRange').style.display = wv ? '' : 'none';
@@ -3546,7 +3557,7 @@ function evalGraph(g, idPre, dots, opts) {
 function matchReport(g) {
   var R = RESULT[g.result];
   var head = '<div class="mr-head">' +
-    '<div class="mr-res" style="--c:' + R.color + '">' + R.label.toUpperCase() + '</div>' +
+    '<div class="mr-res" style="--c:' + R.color + '">' + Object.keys(RESULT).map(function(k) { return '<span' + (k === g.result ? ' class="on"' : '') + '>' + RESULT[k].short.toUpperCase() + '</span>'; }).join('') + '</div>' +   // WIN / LOSE / DRAW — все в одной ячейке (ширина одна)
     '<div class="mr-sub"><b>' + howText(g) + '</b>' +
       '<span>' + KNIGHT[g.color] + ' ' + COLOR_WORD[g.color] + ' vs ' + esc(g.engine) + '</span>' +
       '<span>' + esc(g.date) + (g.start ? ', ' + g.start : '') + '</span>' +
@@ -4481,7 +4492,7 @@ function renderGames() {
       '<td>' + esc(g.date) + '</td>' +
       '<td>' + openingCell(g) + '</td>' +
       '<td class="td-dim">' + esc(g.engine) + '</td>' +
-      '<td><span class="badge" style="color:' + R.color + ';background:' + R.bg + '">' + R.short + '</span></td>' +
+      '<td class="td-res"><span class="badge res-badge" style="color:' + R.color + ';background:' + R.bg + '">' + R.letter + '</span></td>' +
       irCell(g.ir);
 
     var detail = document.createElement('tr');
@@ -4667,12 +4678,15 @@ function setRes(k, add) {
     actRes = actRes && actRes[k] && Object.keys(actRes).length === 1 ? null : (function() { var o = {}; o[k] = true; return o; })();
   }
   if (actRes && !hasKeys(actRes)) actRes = null;
+  markActRes();
+  renderActivity();
+}
+function markActRes() {   // легенда активности: выбранные результаты подсвечены, остальные приглушены
   document.querySelectorAll('.res-toggle').forEach(function(el) {
     var on = !!(actRes && actRes[el.getAttribute('data-res')]);
     el.classList.toggle('pinned', on);
     el.classList.toggle('dim', !!actRes && !on);
   });
-  renderActivity();
 }
 document.querySelectorAll('.res-toggle').forEach(function(el) {
   el.addEventListener('click', function(e) { e.stopPropagation(); toggleRes(el.getAttribute('data-res')); });
@@ -4711,6 +4725,7 @@ function activityBuckets() {
 var actBuckets = [];
 
 function renderActivity() {
+  saveChartSel();
   if (showRecords) { actBuckets = activityBuckets(); renderRecords(); renderActivityStats(); renderPeriodPick(); return; }
   var list = actBuckets = activityBuckets(), n = list.length;
   renderCmpBtn();
@@ -4871,6 +4886,43 @@ var selDays = {};   // индекс столбика → true
 // в режиме рекордов столбиков нет — выбор не действует
 function actSelCount() { return Object.keys(selDays).length; }
 function clearActSelection() { if (actSelCount() || aCmpMode) { selDays = {}; aCmpMode = null; aCmpSet = {}; renderActivity(); } }
+// шаг назад в выборе (Esc и клик по пустому месту): выбор для сравнения → просто выбор (отмеченные снимаются, выбранная партия / день остаются) → ничего
+function selStepBack() {
+  if (chartMode === 'activity') { if (aCmpMode === 'pick') { aCmpMode = null; aCmpSet = {}; renderActivity(); } else clearActSelection(); return; }
+  if (cmpMode === 'pick') { cmpMode = null; cmpSet = {}; renderWindow(); } else clearSelection();
+}
+/* ---------- клик по пустому месту — шаг назад в выборе партий («Показатели») / дней («Активность»), как в обычных программах ---------- */
+// «Живое» — всё, у чего есть своё действие: кнопки, поля, ссылки, role="button" / tabindex и всё с курсором-«рукой» или «?» (так нажимаемое
+// видит и человек); колонки и столбики гасят свой клик сами. Пусто — блок графика (кроме «Средних» и «Анализа») и фон страницы вокруг блоков.
+// В выборе для сравнения — как Esc: сначала выход из сравнения, потом снятие выбора (selStepBack). Не трогает: экран сравнения (после «Показать»),
+// другие блоки (карточки, таблица, фильтры, меню), «Рекорды», скрытый график, «Анализ», выделение текста мышью
+// и клик, который закрывает открытый список / меню / панель (его проверяем до того, как они закроются, — capture на window)
+var EMPTY_NOT = '.card, .pz-detail, .op-detail, .vd-detail, .table-wrap, .filters, .pager, .ai-menu, #mn, #tooltip, .plan-alert, .scroll-btn, .panel-stack, #anBox';
+var POPUP_OPEN = '.win-pick.open, .f-drop.open, #cf.open, .an-pick.open, #mn.open, #aiMenu.open, #sideRow.open, #sideRow.op-open, #sideRow.vd-open, .eye-out';
+var popupWasOpen = false;
+window.addEventListener('click', function() { popupWasOpen = !!document.querySelector(POPUP_OPEN) || anResetArmed; }, true);
+function clickIsEmpty(e) {
+  var t = e.target;
+  if (!t || !t.closest || popupWasOpen) return false;
+  if (!t.isConnected) return false;   // свой обработчик уже перерисовал то, по чему кликнули (винрейт ⇄ ELO и т. п.) — клик что-то сделал
+  if (window.getSelection && String(window.getSelection())) return false;   // тянул мышью — выделял текст
+  // путь клика — как был в момент нажатия (родителей перерисованного элемента по parentElement уже не найти)
+  var path = e.composedPath ? e.composedPath() : [];
+  for (var i = 0; i < path.length; i++) {
+    var el = path[i];
+    if (el === document.body || !el.tagName) break;
+    if (el.matches(EMPTY_NOT)) return false;
+    if (/^(BUTTON|A|INPUT|SELECT|TEXTAREA|LABEL|SUMMARY)$/.test(el.tagName) || el.getAttribute('role') === 'button' || el.hasAttribute('tabindex')) return false;
+    var c = el.isConnected ? getComputedStyle(el).cursor : '';
+    if (c === 'pointer' || c === 'help') return false;
+  }
+  return true;
+}
+document.addEventListener('click', function(e) {
+  if (hush.chart || showRecords || chartMode === 'analysis' || !clickIsEmpty(e)) return;
+  if ((chartMode === 'activity' ? aCmpMode : cmpMode) === 'view') return;   // экран сравнения — не трогаем
+  selStepBack();
+});
 
 /* ---------- сравнение дней (график активности): выбранные дни против отмеченных ---------- */
 var aCmpMode = null, aCmpSet = {};   // индексы столбиков
@@ -5115,7 +5167,7 @@ $('recScope').addEventListener('click', function(e) {
   var b = e.target.closest('button[data-scope]');
   if (!b) return;
   recScope = b.getAttribute('data-scope');
-  renderRecords();
+  renderRecords(); saveChartSel();
 });
 
 function renderRecords() {
@@ -5299,7 +5351,7 @@ function activityRecordsHtml() {
 }
 
 /* ---------- switch: показатели ⇄ активность ⇄ анализ ---------- */
-// кнопки «Анализ» и «Активность» включают свой режим; в нём кнопка становится зелёной «Показатели» — обратно
+// режим включается из кнопки-списка «Показатели / Активность / Анализ ▾» (renderModePick)
 var linkGames = {};   // партии, выбранные в «Показателях», — в «Активности» их дни обведены пунктиром
 function setMode(m) {
   if (m === 'metrics' && chartMode === 'activity') {
@@ -5319,11 +5371,8 @@ function setMode(m) {
   $('chartBox').classList.toggle('mode-activity', m === 'activity');
   $('chartBox').classList.toggle('mode-analysis', m === 'analysis');
   // кнопка включённого режима — зелёная «Показатели» (обратно), другая — своё название
-  $('activityBtn').textContent = m === 'activity' ? 'Показатели' : 'Активность';
-  $('analysisBtn').querySelector('.an-btn-t').textContent = m === 'analysis' ? 'Показатели' : 'Анализ';
-  if (!hush.mode && !hush.chart) $('analysisBtn').title = m === 'analysis' ? 'Вернуться к показателям' : 'Разбор партий на доске: ходы, зевки, график перевеса';
   if (typeof placeChartBtns === 'function') placeChartBtns();
-  if (typeof renderAnBadge === 'function') renderAnBadge();
+  renderModePick();
   // режим «Рекорды» сохраняется при переключении показатели ⇄ активность
   renderTitle();
   hideTooltip();
@@ -5331,18 +5380,42 @@ function setMode(m) {
   else if (m === 'analysis') renderAnalysis();
   else renderWindow();   // средние, подпись окна и график — режим дня мог включиться
 }
-$('analysisBtn').addEventListener('click', function(e) {
+/* ---------- режим графика: кнопка-список «Показатели / Активность / Анализ ▾» ---------- */
+var CHART_MODES = [{k: 'metrics', label: 'Показатели'}, {k: 'activity', label: 'Активность'},
+                   {k: 'analysis', label: 'Анализ', title: 'Разбор партий на доске: ходы, зевки, график перевеса'}];
+// «!» — свежие партии с зевками / матом (anFresh): в углу кнопки — только когда открыт «Анализ», у пункта «Анализ» в списке — всегда (справа);
+// «Анализ» недоступен в скрытом режиме и при скрытом графике (applyHush)
+function renderModePick() {
+  var anOff = hush.mode || hush.chart, fresh = anOff ? 0 : games.filter(anFresh).length, open = $('modePick').classList.contains('open');
+  var bang = 'Новые партии с зевками или матом за последние сутки: ' + fresh;
+  $('modePick').innerHTML = '<button class="mode-btn m-' + chartMode + '" type="button" aria-haspopup="listbox" aria-expanded="' + open + '" title="Режим графика">' +
+    '<span class="mode-t">' + CHART_MODES.map(function(m) { return '<span' + (m.k === chartMode ? ' class="on"' : '') + '>' + m.label + '<span class="caret">▾</span></span>'; }).join('') + '</span>' +
+    (fresh && chartMode === 'analysis' ? '<span class="an-new" title="' + bang + '">!</span>' : '') + '</button>' +
+    '<div class="win-menu m-' + chartMode + '" role="listbox">' + CHART_MODES.map(function(m) {
+      var off = m.k === 'analysis' && anOff;
+      return '<button class="win-opt m-' + m.k + (m.k === chartMode ? ' on' : '') + '" type="button" role="option" data-mode="' + m.k + '"' + (off ? ' disabled' : '') +
+        (m.title && !off ? ' title="' + m.title + '"' : '') + '>' + m.label + (m.k === 'analysis' && fresh ? anBang(bang) : '') + '</button>';
+    }).join('') + '</div>';
+}
+setInterval(renderModePick, 5 * 60e3);   // «!» гаснет сам через сутки после партии
+function setModeMenu(open) {
+  $('modePick').classList.toggle('open', open);
+  var t = $('modePick').querySelector('.mode-btn');
+  if (t) t.setAttribute('aria-expanded', String(open));
+}
+$('modePick').addEventListener('click', function(e) {
   e.stopPropagation();
-  setMode(chartMode === 'analysis' ? 'metrics' : 'analysis');
+  var opt = e.target.closest('.win-opt');
+  if (opt) { setModeMenu(false); if (!opt.disabled && opt.getAttribute('data-mode') !== chartMode) setMode(opt.getAttribute('data-mode')); return; }
+  if (e.target.closest('.mode-btn')) setModeMenu(!$('modePick').classList.contains('open'));
 });
+// клик в любом другом месте — закрыть (capture: кнопки вроде «Рекорды» гасят всплытие клика)
+document.addEventListener('click', function(e) { if (!e.target.closest('#modePick')) setModeMenu(false); }, true);
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') setModeMenu(false); });
 $('wrPrev').addEventListener('click', function(e) { e.stopPropagation(); shiftWin(1); });
 $('wrNext').addEventListener('click', function(e) { e.stopPropagation(); shiftWin(-1); });
 $('winRangeTxt').addEventListener('click', function(e) { e.stopPropagation(); if (winPage) shiftWin(-winPage); });
 $('dayClose').addEventListener('click', function(e) { e.stopPropagation(); exitDayView(); });
-$('activityBtn').addEventListener('click', function(e) {
-  e.stopPropagation();
-  setMode(chartMode === 'activity' ? 'metrics' : 'activity');
-});
 
 /* ---------- анализ партий: партии · ходы · моменты · доска · график перевеса ---------- */
 // Позиции считает chess.js (lib/chess.js — грузится при первом открытии режима), фигуры — assets/pieces (cburnett, как на Lichess).
@@ -5420,13 +5493,6 @@ function anFresh(g) {
   return f.bl || f.mate ? f : null;
 }
 function anBang(title) { return '<span class="an-bang" title="' + esc(title) + '">!</span>'; }
-// «!» в углу кнопки «Анализ»: есть свежие партии с зевками / матом (не в самом анализе — там кнопка «Показатели»; в скрытом режиме и при скрытом графике — нет)
-function renderAnBadge() {
-  var n = games.filter(anFresh).length, el = $('anNew');
-  el.hidden = !n || chartMode === 'analysis' || hush.mode || hush.chart;
-  el.title = n ? 'Новые партии с зевками или матом за последние сутки: ' + n : '';
-}
-setInterval(renderAnBadge, 5 * 60e3);   // «!» гаснет сам через сутки после партии
 // позиции партии после каждого полухода и сами ходы (from / to / san / captured…) — считаются один раз на партию
 var anPos = {id: null};
 function anPositions(g) {
@@ -7658,15 +7724,10 @@ $('vdCard').addEventListener('click', function() { toggleVerdict(); });
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape' || $('sideRow').classList.contains('vd-open')) return;
   if (chartMode === 'analysis') return;   // выбор и сравнение показателей / активности в анализе не видны — не трогаем
-  if (chartMode === 'activity') {
-    if (aCmpMode === 'view') { aCmpMode = 'pick'; renderActivity(); }
-    else if (aCmpMode === 'pick') { aCmpMode = null; aCmpSet = {}; renderActivity(); }
-    else clearActSelection();
-  }
-  else if (cmpMode === 'view') { cmpMode = 'pick'; renderWindow(); }
-  else if (cmpMode === 'pick') { cmpMode = null; cmpSet = {}; renderWindow(); }
-  else if (selCount()) clearSelection();
-  else if (dayView) exitDayView();
+  if (chartMode === 'activity' && aCmpMode === 'view') { aCmpMode = 'pick'; renderActivity(); }   // экран сравнения → к выбору
+  else if (chartMode === 'metrics' && cmpMode === 'view') { cmpMode = 'pick'; renderWindow(); }
+  else if (chartMode === 'metrics' && !cmpMode && !selCount() && dayView) exitDayView();
+  else selStepBack();
 });
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape' && $('sideRow').classList.contains('vd-open')) { if (!rdHelpClose()) toggleVerdict(false); }
@@ -10462,6 +10523,41 @@ document.addEventListener('keydown', function(e) {
   } else if (e.key === 'Escape') mnClose();
 });
 
+/* ---------- выбор на графике переживает обновление страницы (chartSel.v1) ---------- */
+// Тот же набор, что прячет и возвращает скрытый режим (snapHush): выбранные партии / дни, сравнение (выбор и окно), «Рекорды» («за период /
+// за всё время»), выделенный показатель, день из «Активности» (dayView), выбранный результат в легенде активности; плюс листание периода
+// и раскрытые типы зевков в сравнении. Сбрасывается только тем, что снимает сам выбор (Esc, клик по пустому месту, ✕, «Отмена»).
+// Дни «Активности» — по датам: номер столбика зависит от периода и сегодняшнего дня. Пропавшие партии / дни (фильтр, период) — пропускаются
+var CHART_SEL_KEY = 'chartSel.v1';
+function saveChartSel() {
+  if (hush.chart || hush.mode) return;   // график спрятан — его выбор в hushSnap, сохранённое не затираем
+  var B = actSelCount() || hasKeys(aCmpSet) ? activityBuckets() : [];
+  var days = function(set) { return Object.keys(set).map(function(i) { return B[i] ? isoDay(B[i].from) : null; }).filter(Boolean); };
+  var S = {sel: Object.keys(selCols), cmp: cmpMode, cmpSet: Object.keys(cmpSet), days: days(selDays), aCmp: aCmpMode, aCmpSet: days(aCmpSet),
+    pin: pinnedSeries, actRes: actRes, rec: showRecords, recScope: recScope, dayView: dayView, winPage: winPage, periodOffset: periodOffset, cmpBlOpen: cmpBlOpen};
+  try { localStorage.setItem(CHART_SEL_KEY, JSON.stringify(S)); } catch (e) {}
+}
+function restoreChartSel() {   // при загрузке, до первой отрисовки графика; график спрятан — applyHush сразу уберёт выбор в hushSnap и вернёт при показе
+  var S = null;
+  try { S = JSON.parse(localStorage.getItem(CHART_SEL_KEY) || 'null'); } catch (e) {}
+  if (!S) return;
+  winPage = Math.max(0, Math.min(winPages() - 1, +S.winPage || 0)); periodOffset = Math.min(0, +S.periodOffset || 0); dayView = S.dayView || null;
+  var inWin = {}; (hush.chart ? cgAll : windowGames()).forEach(function(g) { inWin[g.id] = true; });   // спрятанный график — окна партий нет
+  var ids = function(list) { var o = {}; (list || []).forEach(function(id) { if (inWin[id]) o[id] = true; }); return o; };
+  selCols = ids(S.sel); cmpSet = ids(S.cmpSet);
+  cmpMode = selCount() && (S.cmp === 'pick' || S.cmp === 'view') ? (S.cmp === 'view' && !cmpCount() ? 'pick' : S.cmp) : null;
+  if (!cmpMode) cmpSet = {};
+  var B = activityBuckets(), at = {};
+  B.forEach(function(b, i) { at[isoDay(b.from)] = i; });
+  var idx = function(list) { var o = {}; (list || []).forEach(function(d) { if (d in at) o[at[d]] = true; }); return o; };
+  selDays = idx(S.days); aCmpSet = idx(S.aCmpSet);
+  aCmpMode = actSelCount() && (S.aCmp === 'pick' || S.aCmp === 'view') ? (S.aCmp === 'view' && !hasKeys(aCmpSet) ? 'pick' : S.aCmp) : null;
+  if (!aCmpMode) aCmpSet = {};
+  pinnedSeries = S.pin || null; actRes = S.actRes && hasKeys(S.actRes) ? S.actRes : null; markActRes();
+  recScope = S.recScope === 'all' ? 'all' : 'period'; cmpBlOpen = !!S.cmpBlOpen;
+  if (S.rec) { showRecords = true; $('chartBox').classList.add('records-on'); $('recordsBtn').textContent = 'График'; }
+}
+
 /* ---------- скрытый режим: клик по аватарке → глаз; глаз закрыт — данные спрятаны ---------- */
 // что было выбрано / открыто в части перед скрытием — после показа возвращается как было
 var hushPrev = {head: false, chart: false, table: false}, hushSnap = {};
@@ -10477,10 +10573,7 @@ function restoreHush(k) {
   if (k === 'chart') {
     selCols = S.selCols; cmpMode = S.cmpMode; cmpSet = S.cmpSet; selDays = S.selDays; aCmpMode = S.aCmpMode; aCmpSet = S.aCmpSet;
     pinnedSeries = S.pinnedSeries; actRes = S.actRes; dayView = S.dayView;
-    document.querySelectorAll('.res-toggle').forEach(function(el) {
-      var on = !!(actRes && actRes[el.getAttribute('data-res')]);
-      el.classList.toggle('pinned', on); el.classList.toggle('dim', !!actRes && !on);
-    });
+    markActRes();
     if (S.showRecords) setRecords(true);
     if (S.cfOpen) setTimeout(function() { $('cf').querySelector('.f-btn').click(); }, 0);
   }
@@ -10537,14 +10630,12 @@ function applyHush() {
   if (!hush.chart && hushPrev.chart) restoreHush('chart');
   // скрытый режим или скрытый график (свой глаз): «Анализ» недоступен; открытый анализ сменяется показателями
   var anOff = hush.mode || hush.chart;
-  $('analysisBtn').disabled = anOff;
-  $('analysisBtn').title = anOff ? '' : chartMode === 'analysis' ? 'Вернуться к показателям' : 'Разбор партий на доске: ходы, зевки, график перевеса';
   // при выходе из скрытого режима анализ возвращается как был (партия, ход, линза, мастер — в an); запоминается и между перезагрузками
   if (anOff && chartMode === 'analysis') { anHushBack = true; setMode('metrics'); }
   else if (!anOff && anHushBack) { anHushBack = false; setMode('analysis'); }
   try { if (anHushBack) localStorage.setItem('anHushBack', '1'); else localStorage.removeItem('anHushBack'); } catch (e) {}
   placeChartBtns();   // глаз графика мог появиться / пропасть
-  renderAnBadge();
+  renderModePick();
   renderTitle();
   renderWindow();
   if (chartMode === 'activity') renderActivity();
@@ -10578,19 +10669,49 @@ document.querySelectorAll('.sect-eye').forEach(function(b) {
     setTimeout(function() { hush[k] = !hush[k]; saveHush(); applyHush(); }, 250);
   });
 });
-// кнопки справа над графиком: глаз у края (CSS), левее «Активность», ещё левее «Анализ» — ширина кнопок зависит от шрифта, пересчитываем
+// справа над графиком: глаз у края (CSS), левее — кнопка-список режима (ширина зависит от шрифта — пересчитываем); затем середина строки (placeMid)
 function placeChartBtns() {
-  var eye = $('eyeChart'), act = $('activityBtn'), an = $('analysisBtn');
-  // показать кнопки, когда они на месте и шрифт загружен (с ним меняется их ширина) — см. .btns-ready
-  var ready = function() { if (!document.fonts || document.fonts.status === 'loaded') act.parentNode.classList.add('btns-ready'); };
-  if (getComputedStyle(act).position !== 'absolute') { act.style.right = an.style.right = ''; ready(); return; }   // телефон: кнопки идут строкой
-  var W = act.parentNode.clientWidth;
-  act.style.right = (eye.offsetParent ? W - eye.offsetLeft + 8 : 14) + 'px';   // в скрытом режиме глаза нет — «Активность» у края
-  an.style.right = (W - act.offsetLeft + 8) + 'px';
+  var eye = $('eyeChart'), mp = $('modePick');
+  // показать кнопку, когда она на месте и шрифт загружен (с ним меняется ширина) — см. .btns-ready
+  var ready = function() { if (!document.fonts || document.fonts.status === 'loaded') mp.parentNode.classList.add('btns-ready'); };
+  if (getComputedStyle(mp).position !== 'absolute') { mp.style.right = ''; placeMid(); ready(); return; }   // телефон: кнопки идут строкой
+  var W = mp.parentNode.clientWidth;
+  mp.style.right = (eye.offsetParent ? W - eye.offsetLeft + 8 : 14) + 'px';   // в скрытом режиме глаза нет — кнопка у края
+  placeMid();
   ready();
 }
 window.addEventListener('resize', placeChartBtns);
+// Правило промежутка: середина строки над графиком (период, день, «за период / за всё время») стоит, как задано в CSS (по центру графика),
+// подсказка сравнения — по центру промежутка между кнопками; задевает кнопки слева («Рекорды», «Сравнить») или справа (режим) — сдвиг ровно до зазора MID_GAP;
+// не помещается и со сдвигом — .tight: у периода только даты, подсказка в две строки. Телефон — всё строкой, правило не нужно
+var MID_GAP = 8;
+function placeMid() {
+  var box = $('chartBox'), mids = [].slice.call(box.querySelectorAll(':scope > .act-range, :scope > .cmp-hint, :scope > .rec-scope'));
+  mids.forEach(function(el) { el.style.translate = ''; el.style.maxWidth = ''; el.classList.remove('tight'); });
+  if (getComputedStyle($('modePick')).position !== 'absolute') return;
+  var shown = function(el) { var cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && el.getBoundingClientRect().width > 0; };
+  var L = $('chart').getBoundingClientRect().left, R = $('modePick').getBoundingClientRect().left - MID_GAP;
+  [$('recordsBtn'), $('cmpBtn')].forEach(function(el) { if (shown(el)) L = Math.max(L, el.getBoundingClientRect().right); });
+  L += MID_GAP;
+  mids.forEach(function(el) {
+    if (!shown(el)) return;
+    var r = el.getBoundingClientRect();
+    if (r.width > R - L && !el.classList.contains('rec-scope')) { el.classList.add('tight'); el.style.maxWidth = Math.max(0, R - L) + 'px'; r = el.getBoundingClientRect(); }
+    // подсказка сравнения — по центру промежутка между кнопками; остальное (период, день, рекорды) — где стоит, сдвиг только если задевает
+    var dx = el.classList.contains('cmp-hint') ? (L + R) / 2 - (r.left + r.right) / 2 : r.left < L ? L - r.left : r.right > R ? R - r.right : 0;
+    if (dx) el.style.translate = dx + 'px 0';   // translate — сдвиг поверх своего положения, откуда бы оно ни отсчитывалось (left или right)
+  });
+}
+// запасной пересчёт: размеры кнопок и середины поменялись не через renderCmpBtn (период, рекорды, шрифт) — в следующем кадре
+if (window.ResizeObserver) {
+  var midRaf = 0, midRO = new ResizeObserver(function() { if (!midRaf) midRaf = requestAnimationFrame(function() { midRaf = 0; placeChartBtns(); }); });
+  ['chartBox', 'recordsBtn', 'cmpBtn', 'cmpHint', 'recScope', 'winRange', 'dayRange', 'modePick'].forEach(function(id) { midRO.observe($(id)); });
+  [].forEach.call($('chartBox').querySelectorAll(':scope > .act-range'), function(el) { midRO.observe(el); });
+}
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeChartBtns);
+// шрифт догружается частями (толщина 800 — когда понадобится): показать кнопку и после каждой догрузки, и в любом случае через 2 с
+if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', placeChartBtns);
+setTimeout(function() { $('chartBox').classList.add('btns-ready'); }, 2000);
 function setEyeOut(on) { $('avatar').parentNode.classList.toggle('eye-out', on); }
 $('avatar').addEventListener('click', function(e) {
   e.stopPropagation();
@@ -10649,6 +10770,7 @@ renderPuzzleCard();
 renderOpeningCard();
 renderVerdictCard();
 renderTitle();
+restoreChartSel();   // выбор на графике — как был до обновления страницы
 renderWindow();
 renderChartFilter();
 renderMetricInputs();
@@ -10658,6 +10780,7 @@ renderGames();
 if (chartMode !== 'metrics') setMode(chartMode);
 applyHush();
 placeChartBtns();
+
 // отрисовка удалась: план рабочий — запомнить его копию в браузере, снять флаг страховки
 if (PLAN_CHECK.ok && !PLAN_FORCED) { try { localStorage.setItem('planGood', JSON.stringify({plan: PLAN, at: new Date().toLocaleString('ru-RU'), ts: Date.now()})); } catch (e) {} }
 try { sessionStorage.removeItem('planForce'); } catch (e) {}

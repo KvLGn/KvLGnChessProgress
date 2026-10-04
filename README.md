@@ -202,7 +202,7 @@ window.PUZZLES = { rating, total, history: [{day, date, rating}], themeNames: {f
 | **🧩 Задачи** (фиолетовая) | рейтинг, «▲+N сегодня» (только в дни с задачами), мини-график, «Неделя N», карусель тренировок ✓/✗; клик — панель: режимы, темы | `renderPuzzleCard/Detail` |
 | **📖 Дебюты** (синяя) | изучаемый дебют («11 партий · 55% побед · на доске 4»), «Далее / В планах»; клик — панель (3е) | `renderOpeningCard/Detail` |
 | **🎯 Итоги** (индиго) | карусель «проседает → хорошо → что делать»; клик — панель на всю шапку (3а) | `buildVerdicts` |
-| **График показателей** | точность / фазы / зевки по партиям; «Средние за 5/10/20»; выбор колонок, сравнение, рекорды, листание периода (3б) | `renderChart` |
+| **График показателей** | точность / фазы / зевки по партиям; «Средние за 5/10/20»; выбор колонок, сравнение (строки: «Зевки» в режиме «i» и показатель, выделенный в «Средних», — первыми и жирными, `cmpHtml`, `cmpPinChanged`), рекорды, листание периода (3б); клик по пустому месту / Esc — шаг назад в выборе (`selStepBack`, `clickIsEmpty`) | `renderChart` |
 | **Активность** | столбики партий по дням: неделя / 2 недели / месяц / 3 месяца (3б) | `renderActivity` |
 | **Анализ** | третий режим блока графика: партии · ходы · моменты · доска · мастера (3в) | `renderAnalysis` |
 | **Таблица «Последние 30 партий»** | фильтры, дебют «Lichess / Мой план», раскрытая строка — отчёт о матче (3г) | `renderGames`, `matchReport` |
@@ -430,6 +430,7 @@ window.PUZZLES = { rating, total, history: [{day, date, rating}], themeNames: {f
 | `chart` / `tooltip` | `renderChart`, `tooltipHtml`, выбор колонок `selCols`, серии `hiddenSeries` |
 | `table filters` / `chart filter` / `table` | `filt`, `cfilt`, `MODE_GROUPS`, `renderGames`, `matchReport`, `evalGraph` |
 | `activity mode` / `records` / `switch` | `renderActivity`, `PERIODS`, `setRecords`, `setMode` (`chartMode`) |
+| режим графика, строка над графиком | кнопка-список «Показатели / Активность / Анализ ▾» — `CHART_MODES`, `renderModePick` (цвет — текущего режима, ширина — по самому длинному названию, «!» свежей партии), `setModeMenu`; `placeChartBtns` ставит её у глаза и вызывает `placeMid` — **правило промежутка**: середина строки (период, день, «за период / за всё время») стоит, как в CSS, подсказка сравнения — по центру промежутка между кнопками; задевая «Рекорды» / «Сравнить» или кнопку режима — сдвигается (`translate`) до зазора `MID_GAP`, не помещаясь — `.tight` (только даты / подсказка в две строки); пересчёт при изменении размеров — `ResizeObserver` |
 | `анализ партий` | `an`, `AN_LENSES`, `renderAnalysis`, `anUpdate`, `anOpen`, `anNeedChess`, `blPly` |
 | `карточка задач` / `дебюты` / `итоги` | `renderPuzzleCard`, `opStats`, `renderOpeningCard`, **`buildVerdicts`** |
 | `меню (☰)` | **`gsIndex`** (все пункты), `mnPlace`, `MN_GROUPS` |
@@ -438,7 +439,7 @@ window.PUZZLES = { rating, total, history: [{day, date, rating}], themeNames: {f
 | `go` | порядок первичной отрисовки, `renderPlanAlert` |
 
 ### Состояние в браузере (localStorage)
-`hush`, `tblOpen.v1` (раскрытые партии таблицы — номера, `tblOpenSave`), `tblFilt.v1` / `chartFilt.v1` (фильтры таблицы и графика — `filtSave` при перерисовке кнопок, `filtLoad` при загрузке), `wrMode`, `legWrMode` (под графиком: винрейт ⇄ ELO за период), `vdRadar.v1` («Итоги» → «Схема»), `avgWindow`, `hiddenSeries.v2`, `chartMode`, `activityPeriod`, `blHidden`, `anLens`, `anMaster.v2`, `anPlace.v1` (место разбора в «Анализе»: `{last, gid, at: {"id|линза": ход}}` — ходы до сброса ⟳ у «Партии», партия — пока не сыграна новая; `anPlaceOf` / `anPlaceSave`), `anHushBack`,
+`hush`, `tblOpen.v1` (раскрытые партии таблицы — номера, `tblOpenSave`), `tblFilt.v1` / `chartFilt.v1` (фильтры таблицы и графика — `filtSave` при перерисовке кнопок, `filtLoad` при загрузке), `wrMode`, `legWrMode` (под графиком: винрейт ⇄ ELO за период), `vdRadar.v1` («Итоги» → «Схема»), `avgWindow`, `hiddenSeries.v2`, `chartMode`, `activityPeriod`, `blHidden`, `chartSel.v1` (выбор на графике переживает обновление страницы: партии, дни по датам, сравнение, «Рекорды», выделенный показатель, «ДЕНЬ», листание — `saveChartSel` в `renderChart` / `renderActivity`, `restoreChartSel` перед первой отрисовкой; набор тот же, что у `snapHush`), `anLens`, `anMaster.v2`, `anPlace.v1` (место разбора в «Анализе»: `{last, gid, at: {"id|линза": ход}}` — ходы до сброса ⟳ у «Партии», партия — пока не сыграна новая; `anPlaceOf` / `anPlaceSave`), `anHushBack`,
 `tblOpNames` / `anOpNames`, `aiMode` / `aiKind` / `aiModel` / `aiLang`, `planGood` (последняя исправная копия плана, пишется после удачной отрисовки); sessionStorage: `planForce` (страница не отрисовалась с этим планом — перезагрузка на запасной копии).
 Меняешь смысл значения по умолчанию — меняй имя ключа (`.v3`), иначе у пользователя останется старое состояние.
 

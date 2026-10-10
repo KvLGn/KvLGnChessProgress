@@ -2106,6 +2106,25 @@
     body.m-on .chart-area { padding-left: 16px; padding-right: 10px; }
     body.m-on .panel-stack { order: 9; }
     body.m-on .stats-panel { border-bottom: none; border-top: 3px solid var(--divider); }
+    /* «Партии»: фильтр в 2 строки — справа от заголовка «11 из 11 · Сброс», ниже кнопки одной строкой (листается вбок); меню — снизу экрана над вкладками */
+    body.m-on .m-table { position: relative; }
+    body.m-on #filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 6px; margin: 0 0 12px; position: static; }
+    body.m-on #filters::-webkit-scrollbar { display: none; }
+    body.m-on #filters .f-chips { flex: none; gap: 6px; }
+    body.m-on #filters #fColor { padding-left: 6px; }
+    body.m-on #filters .f-chip, body.m-on #filters .f-btn { flex: none; padding: 4px 10px; font-size: 12.5px; white-space: nowrap; }
+    body.m-on #filters .f-summary { position: absolute; top: 0; right: 0; padding: 2px 2px 2px 8px; gap: 6px; }
+    body.m-on #filters #fCond { display: none; }
+    body.m-on #filters #fReset { padding: 4px 8px; }
+    body.m-on #filters > .f-drop > .f-menu { position: fixed; left: 8px; right: 8px; top: auto; bottom: calc(72px + env(safe-area-inset-bottom)); max-height: 60vh; overflow-y: auto; z-index: 60; }
+    /* отчёт о партии: «i» — справа от «зевков», её панель — сразу под счётчиками, над графиком */
+    body.m-on .mr-cnt .mr-i { top: 2px; left: calc(100% + 2px); transform: none; }
+    body.m-on .mr-gwrap { display: flex; flex-direction: column; }
+    body.m-on .mr-gwrap .mr-info { order: -1; margin: 0 0 12px; }
+    body.m-on #filters .f-count { border-left: 0; padding-left: 0; }   /* «Без фильтров» скрыто — черта слева лишняя */
+    body.m-on .mr-gwrap .mr-info { padding-right: 36px; }
+    body.m-on .mri-sec + .mri-sec { padding-left: 6px; }   /* разделы панели «i» — с одного края */
+    body.m-on #chartBox { scroll-margin-top: 84px; }   /* переход к графику / «Анализу» — верх блока под переключателем вкладки */
     body.m-on .eye-btn, body.m-on .sect-eye { display: none; }   /* скрытого режима на телефоне нет */
   }
 </style>
@@ -5495,6 +5514,12 @@ var M_ICON = {
 var mob = {tab: 'activity', activity: 'activity', analysis: 'board'}, mobBar = null, mobSw = null, mobChart = null;
 var mobOn = false, mobDesk = null, mobT = 0;   // mobDesk — как было на компьютере до телефонного вида (вернуть при расширении окна)
 try { var mobSaved = JSON.parse(localStorage.getItem('mTab.v1') || 'null'); if (mobSaved && M_TABS.some(function(t) { return t[0] === mobSaved.tab; })) mob = mobSaved; } catch (e) {}
+// телефон: переход к графику / «Анализу» / партии в таблице из другого раздела — сначала открыть его вкладку
+function mobileGo(tab, sub) {
+  if (!mobOn) return;
+  mob.tab = tab; if (sub) mob[tab] = sub;
+  mobileApply();
+}
 function mobileInit() {
   var secs = document.querySelectorAll('.main-container > .section');
   mobChart = secs[0]; mobChart.classList.add('m-chart'); secs[1].classList.add('m-table');
@@ -9800,7 +9825,7 @@ function gsNorm(t) { return String(t || '').toLowerCase().replace(/ё/g, 'е'); 
 
 function gsFlash(el) {
   if (!el) return;
-  el.scrollIntoView({behavior: 'smooth', block: 'center'});
+  el.scrollIntoView({behavior: 'smooth', block: mobOn ? 'start' : 'center'});   // телефон: к верху блока (под переключателем вкладки)
   if (el.id === 'filters') return;   // строку фильтров таблицы не подсвечиваем — только прокрутка
   el.classList.remove('gs-flash'); void el.offsetWidth; el.classList.add('gs-flash');
 }
@@ -9812,12 +9837,14 @@ function gsCloseSide() {
 }
 function gsChart(mode, records) {
   gsCloseSide();
+  mobileGo(mode === 'analysis' ? 'analysis' : 'activity', mode === 'analysis' ? 'board' : mode);   // телефон: вкладка графика / «Анализа»
   if (chartMode !== mode) setMode(mode);
   if (!!records !== showRecords) setRecords(!!records);
   gsFlash($('chartBox'));
 }
 // открыть партию в таблице: сбросить фильтры, перейти на её страницу, раскрыть строку
 function gsOpenGame(g) {
+  mobileGo('games');   // телефон: вкладка «Партии»
   var inTable = games.slice(-TABLE_N);
   if (inTable.indexOf(g) < 0) { window.open('https://lichess.org/' + g.id, '_blank'); return; }
   filt = {results: {}, colors: {}, openings: {}, ranges: {}};

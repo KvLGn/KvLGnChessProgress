@@ -2145,7 +2145,14 @@
     body.m-on .main-container { border-left: 0; border-right: 0; box-shadow: none; }
     body.m-on input, body.m-on textarea, body.m-on select { font-size: 16px; }
     /* «11 из 11 · Сброс» — фиксированной высоты, кнопки фильтра — ниже с зазором, не наезжают */
-    body.m-on #tableTitle { line-height: 36px; }   /* «Последние 30 партий» — по центру высоты «11 из 11 · Сброс» */
+    /* заголовки вкладок и блок «Фильтр» — по центру экрана; «Последние 30 партий» — чуть ниже */
+    body.m-on #tableTitle { display: grid; justify-items: center; margin-top: 10px; line-height: 36px; }
+    body.m-on #filters { justify-content: center; } body.m-on #filters:not(.m-fopen)::before { display: none; } body.m-on .tbl-head { justify-content: center; }
+    body.m-on .chart-head { justify-content: center; } body.m-on .chart-head .chart-title { text-align: center; justify-content: center; } body.m-on .chart-head .cf-summary { margin-left: auto; margin-right: auto; }
+    /* таблица: «Дебют» — по центру над «Все / Мой план / Lichess», «Результат» — не впритык к краю */
+    body.m-on .table-wrap thead th:nth-child(4) { text-align: center; } body.m-on .table-wrap thead th:nth-child(4) .th-seg { margin: 6px auto 0; }
+    body.m-on .table-wrap thead th:nth-child(6), body.m-on .table-wrap tr.game-row > td:nth-child(6) { padding-right: 10px; }
+    body.m-sub-radar .vdx-head .vdx-h { display: none; }   /* «Схема»: без слова «Итоги» сверху */
     body.m-on #filters .f-summary { height: 36px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; }
     body.m-on #filters #fReset { padding-top: 3px; padding-bottom: 3px; }
     body.m-on #filters { padding-top: 10px; }

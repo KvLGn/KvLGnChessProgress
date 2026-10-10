@@ -2041,6 +2041,73 @@
     .an-graph .mr-leg { display: none; }
     .an-box.an-wide .an-moves { grid-column: auto; }
   }
+  /* ---------- телефон: нижние вкладки «Партии · Активность · Анализ · Профиль» (mobileInit) — только узкий экран; body.m-on ставит JS ---------- */
+  .m-sw { display: none; }
+  @media (max-width: 760px) {
+    body.m-on { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+    .m-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; display: flex; background: rgba(22,25,34,0.97); border-top: 1px solid var(--border);
+      padding-bottom: env(safe-area-inset-bottom); backdrop-filter: blur(8px); }
+    .m-tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 0 9px; background: none; border: 0; color: var(--fg-mute);
+      font: 600 10.5px Inter, sans-serif; letter-spacing: 0.2px; cursor: pointer; position: relative; }
+    .m-tabs button svg { width: 22px; height: 22px; }
+    .m-tabs button.on { color: #22d3ee; }
+    .m-tabs .m-bang { position: absolute; top: 4px; left: calc(50% + 7px); width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid #f87171; color: #f87171;
+      background: #1a1d29; font: 800 9px/11px Inter, sans-serif; text-align: center; }   /* «!» свежей партии — на вкладке «Анализ» */
+    /* переключатель сверху вкладки: «Активность / Графики», «Партия / Схема» */
+    body.m-on .m-sw { display: flex; position: sticky; top: 0; z-index: 30; margin: 0 0 10px; padding: 8px 12px; background: var(--bg); }
+    .m-sw div { flex: 1; display: flex; gap: 3px; padding: 3px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; }
+    .m-sw button { flex: 1; padding: 9px 0; border: 0; border-radius: 7px; background: none; color: var(--fg-mute); font: 600 13px Inter, sans-serif; cursor: pointer; }
+    .m-sw button.on { background: var(--bg-card-hover); color: var(--fg); }
+    /* что видно во вкладке: блоки страницы помечены классами m-chart / m-table (mobileInit) */
+    body.m-on .profile-row, body.m-on .main-container > .section, body.m-on #footer { display: none; }
+    body.m-tab-games .main-container > .m-table { display: block; }
+    body.m-tab-activity .main-container > .m-chart, body.m-tab-analysis.m-sub-board .main-container > .m-chart { display: block; }
+    body.m-tab-profile .profile-row, body.m-tab-analysis.m-sub-radar .profile-row { display: flex; }
+    body.m-tab-analysis.m-sub-radar .profile-card, body.m-tab-analysis.m-sub-radar .profile-side > .links, body.m-tab-analysis.m-sub-radar #pzCard,
+    body.m-tab-analysis.m-sub-radar #opCard, body.m-tab-analysis.m-sub-radar #vdCard { display: none !important; }   /* «Схема» — только панель «Итогов» */
+    body.m-on #modePick { display: none; }   /* режим графика выбирают вкладки */
+    /* «Схема» на телефоне: одна колонка — схема, таблица, параметры; высота по содержимому */
+    body.m-tab-analysis.m-sub-radar #sideRow { display: none; }
+    body.m-on .vd-detail.vdx.rd-on { height: auto; max-height: none; margin: 0 0 12px; padding: 14px 14px 12px; }
+    body.m-on .vd-detail.vdx.rd-on .vd-close { display: none; }
+    body.m-on .rd.with-list { display: flex; flex-direction: column; gap: 18px; }
+    body.m-on .rd.with-list > .rd-left { order: 1; }
+    body.m-on .rd.with-list > .rd-right { order: 2; overflow: visible; padding-right: 0; }
+    body.m-on .rd.with-list > .rd-pop { order: 3; overflow: visible; border-right: 0; border-top: 1px solid rgba(46,50,68,0.7); padding: 14px 0 0; }
+    /* «Партии» на телефоне: таблица по ширине экрана — №, цвет, дата, дебют (в 2 строки), результат; соперник и ИР — в отчёте о партии */
+    body.m-on .table-wrap thead th:nth-child(5), body.m-on .table-wrap thead th:nth-child(7),
+    body.m-on .table-wrap tr.game-row > td:nth-child(5), body.m-on .table-wrap tr.game-row > td:nth-child(7) { display: none; }
+    body.m-on .table-wrap th, body.m-on .table-wrap tr.game-row > td { padding-left: 6px; padding-right: 6px; }
+    body.m-on .table-wrap tr.game-row > td:nth-child(4) { white-space: normal; font-size: 12.5px; line-height: 1.35; }
+    body.m-on .table-wrap thead th:nth-child(4) { white-space: normal; }
+    body.m-on .table-wrap thead th { font-size: 9.5px; letter-spacing: 0.4px; }
+    body.m-on .table-wrap thead th:nth-child(4) .th-seg { display: flex; width: max-content; margin: 6px 0 0; }
+    body.m-on .table-wrap thead th:nth-child(4) .th-seg button { padding: 2px 5px; white-space: nowrap; }
+    body.m-on .table-wrap thead th:nth-child(6) { letter-spacing: 0; text-align: center; }
+    body.m-on .table-wrap tr.game-row > td:nth-child(6) { text-align: center; }
+    body.m-on .table-wrap th, body.m-on .table-wrap tr.game-row > td { padding-left: 4px; padding-right: 4px; }
+    body.m-on .table-wrap thead th:nth-child(4) .th-seg button { font-size: 10px; padding: 2px 4px; }
+    body.m-on .mr .detail-links { flex-wrap: wrap; justify-content: flex-start; row-gap: 8px; }   /* ссылки отчёта — в 2 строки, не обрезаются */
+    body.m-on .mr-graph-h { flex-wrap: wrap; row-gap: 4px; }   /* «Перевес по ходу партии» и легенда */
+    /* выпадающие фильтры таблицы — на всю ширину блока фильтров, не за край экрана */
+    body.m-on .filters { position: relative; }
+    body.m-on .filters > .f-drop { position: static; }
+    body.m-on .filters > .f-drop > .f-menu { left: 0; right: 0; width: auto; max-width: none; }
+    /* «Анализ → Партия» на телефоне: партии — лента карточек вбок; под доской сразу ходы с кнопками ◀ ▶, ниже моменты */
+    body.m-on .an-list-in { display: flex; overflow-x: auto; overflow-y: hidden; max-height: none; border-top-width: 1px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+    body.m-on .an-g { flex: 0 0 64%; width: auto; scroll-snap-align: start; border-bottom: none; border-right: 1px solid rgba(46,50,68,0.6); }
+    body.m-on .an-g-op { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    body.m-on .an-moves { order: 2; } body.m-on .an-mom { order: 3; }
+    /* «Активность / Графики» на телефоне: график сразу под заголовком, целиком по ширине экрана (без прокрутки вбок); цифры — ниже */
+    body.m-on .chart-area > svg { min-width: 0; }
+    body.m-on .chart-area { overflow-x: visible; }
+    body.m-on .chart-area > svg text { font-size: 13px; }   /* график ужат в ~0.6 — подписи чуть крупнее, чтобы читались */
+    body.m-on .chart-area > svg { overflow: visible; }
+    body.m-on .chart-area { padding-left: 16px; padding-right: 10px; }
+    body.m-on .panel-stack { order: 9; }
+    body.m-on .stats-panel { border-bottom: none; border-top: 3px solid var(--divider); }
+    body.m-on .eye-btn, body.m-on .sect-eye { display: none; }   /* скрытого режима на телефоне нет */
+  }
 </style>
 </head>
 <body>
@@ -5412,6 +5479,77 @@ $('modePick').addEventListener('click', function(e) {
 // клик в любом другом месте — закрыть (capture: кнопки вроде «Рекорды» гасят всплытие клика)
 document.addEventListener('click', function(e) { if (!e.target.closest('#modePick')) setModeMenu(false); }, true);
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') setModeMenu(false); });
+
+/* ---------- телефон: нижние вкладки «Партии · Активность · Анализ · Профиль» ---------- */
+// Только узкий экран (MOBILE_MQ): на компьютере ничего не создаётся и не меняется. Вкладка показывает свой блок страницы (CSS по классам body.m-tab-…);
+// «Активность» и «Анализ» — с переключателем сверху: «Активность / Графики» (режим графика), «Партия / Схема» (доска или «Итоги» → «Схема»).
+// Первый раз — «Активность»; дальше помнится вкладка и её переключатель (mTab.v1)
+var MOBILE_MQ = window.matchMedia('(max-width: 760px)');
+var M_TABS = [['games', 'Партии'], ['activity', 'Активность'], ['analysis', 'Анализ'], ['profile', 'Профиль']];
+var M_SUBS = {activity: [['activity', 'Активность'], ['metrics', 'Графики']], analysis: [['board', 'Партия'], ['radar', 'Схема']]};
+var M_ICON = {
+  games: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
+  activity: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/></svg>',
+  analysis: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M4 12h16M12 4v16"/><path fill="currentColor" stroke="none" d="M4 4h8v8H4zM12 12h8v8h-8z" opacity="0.35"/></svg>',
+  profile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.8 4.2-5.6 7.5-5.6s6.3 1.8 7.5 5.6"/></svg>'};
+var mob = {tab: 'activity', activity: 'activity', analysis: 'board'}, mobBar = null, mobSw = null, mobChart = null;
+var mobOn = false, mobDesk = null, mobT = 0;   // mobDesk — как было на компьютере до телефонного вида (вернуть при расширении окна)
+try { var mobSaved = JSON.parse(localStorage.getItem('mTab.v1') || 'null'); if (mobSaved && M_TABS.some(function(t) { return t[0] === mobSaved.tab; })) mob = mobSaved; } catch (e) {}
+function mobileInit() {
+  var secs = document.querySelectorAll('.main-container > .section');
+  mobChart = secs[0]; mobChart.classList.add('m-chart'); secs[1].classList.add('m-table');
+  mobBar = document.createElement('nav'); mobBar.className = 'm-tabs';
+  mobSw = document.createElement('div'); mobSw.className = 'm-sw';
+  // вкладку применить после клика: иначе «клик мимо» на странице сразу закроет открытые ею «Итоги» («Схема»)
+  mobBar.addEventListener('click', function(e) { var b = e.target.closest('button'); if (!b) return; mob.tab = b.getAttribute('data-t'); setTimeout(function() { mobileApply(); window.scrollTo(0, 0); }, 0); });
+  mobSw.addEventListener('click', function(e) { var b = e.target.closest('button'); if (!b) return; mob[mob.tab] = b.getAttribute('data-s'); setTimeout(mobileApply, 0); });
+  // смена ширины — с задержкой: мгновенные (снимок страницы, поворот на ходу) не переключают вид
+  MOBILE_MQ.addEventListener('change', function() { clearTimeout(mobT); mobT = setTimeout(mobileApply, 250); });
+  mobileApply();
+}
+function mobileApply() {
+  var on = MOBILE_MQ.matches, body = document.body;
+  body.classList.toggle('m-on', on);
+  M_TABS.forEach(function(t) { body.classList.toggle('m-tab-' + t[0], on && mob.tab === t[0]); });
+  body.classList.toggle('m-sub-board', on && mob.tab === 'analysis' && mob.analysis === 'board');
+  body.classList.toggle('m-sub-radar', on && mob.tab === 'analysis' && mob.analysis === 'radar');
+  var row = $('sideRow');
+  if (!on) {   // компьютер: ни панели, ни переключателя; режим и «Итоги» — как были до телефонного вида
+    mobBar.remove(); mobSw.remove();
+    if (mobOn && mobDesk) {
+      if (chartMode !== mobDesk.mode) setMode(mobDesk.mode);
+      if (RD.on !== mobDesk.rd) { RD.on = mobDesk.rd; rdSave(); }
+      toggleVerdict(mobDesk.vd);
+      if (mobDesk.pz) togglePuzzleDetail(true); else if (mobDesk.op) toggleOpeningDetail(true);
+      if (mobDesk.hush) { hush = mobDesk.hush; saveHush(); applyHush(); }
+    }
+    mobOn = false; mobDesk = null;
+    return;
+  }
+  if (!mobOn) mobDesk = {mode: chartMode, rd: RD.on, vd: row.classList.contains('vd-open'), pz: row.classList.contains('open'), op: row.classList.contains('op-open')};
+  mobOn = true;
+  // скрытого режима на телефоне нет: глаза спрятаны (CSS), включённый — снимается (на компьютере вернётся)
+  if (hush.mode || hushAny()) {
+    if (!mobDesk.hush) mobDesk.hush = {head: hush.head, chart: hush.chart, table: hush.table, mode: hush.mode};
+    hush = {head: false, chart: false, table: false, mode: false}; saveHush(); setEyeOut(false); applyHush();
+  }
+  var fresh = !(hush.mode || hush.chart) && games.filter(anFresh).length;
+  mobBar.innerHTML = M_TABS.map(function(t) {
+    return '<button type="button" data-t="' + t[0] + '" class="' + (mob.tab === t[0] ? 'on' : '') + '">' + M_ICON[t[0]] + '<span>' + t[1] + '</span>' +
+      (t[0] === 'analysis' && fresh ? '<i class="m-bang">!</i>' : '') + '</button>';
+  }).join('');
+  if (!mobBar.parentNode) body.appendChild(mobBar);
+  var subs = M_SUBS[mob.tab];
+  if (subs) {
+    mobSw.innerHTML = '<div>' + subs.map(function(s) { return '<button type="button" data-s="' + s[0] + '" class="' + (mob[mob.tab] === s[0] ? 'on' : '') + '">' + s[1] + '</button>'; }).join('') + '</div>';
+    var before = mob.tab === 'analysis' && mob.analysis === 'radar' ? document.querySelector('.profile-row') : mobChart;
+    before.parentNode.insertBefore(mobSw, before);
+  } else mobSw.remove();
+  if (mob.tab === 'activity' && chartMode !== mob.activity) setMode(mob.activity);
+  if (mob.tab === 'analysis' && mob.analysis === 'board' && chartMode !== 'analysis') setMode('analysis');
+  if (mob.tab === 'analysis' && mob.analysis === 'radar') { if (!RD.on) { RD.on = true; rdSave(); } toggleVerdict(true); }
+  try { localStorage.setItem('mTab.v1', JSON.stringify(mob)); } catch (e) {}
+}
 $('wrPrev').addEventListener('click', function(e) { e.stopPropagation(); shiftWin(1); });
 $('wrNext').addEventListener('click', function(e) { e.stopPropagation(); shiftWin(-1); });
 $('winRangeTxt').addEventListener('click', function(e) { e.stopPropagation(); if (winPage) shiftWin(-winPage); });
@@ -10780,6 +10918,7 @@ renderGames();
 if (chartMode !== 'metrics') setMode(chartMode);
 applyHush();
 placeChartBtns();
+mobileInit();   // телефон: нижние вкладки (на компьютере ничего не делает)
 
 // отрисовка удалась: план рабочий — запомнить его копию в браузере, снять флаг страховки
 if (PLAN_CHECK.ok && !PLAN_FORCED) { try { localStorage.setItem('planGood', JSON.stringify({plan: PLAN, at: new Date().toLocaleString('ru-RU'), ts: Date.now()})); } catch (e) {} }

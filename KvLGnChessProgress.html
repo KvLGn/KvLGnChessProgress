@@ -2134,7 +2134,10 @@
     body.m-on .mri-sec + .mri-sec { padding-left: 6px; }   /* разделы панели «i» — с одного края */
     body.m-on #chartBox { scroll-margin-top: 84px; }   /* переход к графику / «Анализу» — верх блока под переключателем вкладки */
     /* iPhone: без увеличения по двойному касанию (кнопка «i» и др.) и при вводе в поле (шрифт полей — не меньше 16px) */
-    body.m-on, html:has(body.m-on) { touch-action: manipulation; }
+    body.m-on, html.m-on { touch-action: manipulation; }
+    /* фон страницы = фон блока, у блока нет боковых линий и свечения: при оттягивании страницы (iPhone) сверху и снизу нет края */
+    html.m-on { background: var(--bg); }
+    body.m-on .main-container { border-left: 0; border-right: 0; box-shadow: none; }
     body.m-on input, body.m-on textarea, body.m-on select { font-size: 16px; }
     /* «11 из 11 · Сброс» — фиксированной высоты, кнопки фильтра — ниже с зазором, не наезжают */
     body.m-on #tableTitle { line-height: 36px; }   /* «Последние 30 партий» — по центру высоты «11 из 11 · Сброс» */
@@ -5597,7 +5600,7 @@ function mobileInit() {
 }
 function mobileApply() {
   var on = MOBILE_MQ.matches, body = document.body;
-  body.classList.toggle('m-on', on);
+  body.classList.toggle('m-on', on); document.documentElement.classList.toggle('m-on', on);   // html — для фона страницы при оттягивании (iPhone)
   M_TABS.forEach(function(t) { body.classList.toggle('m-tab-' + t[0], on && mob.tab === t[0]); });
   body.classList.toggle('m-sub-board', on && mob.tab === 'analysis' && mob.analysis === 'board');
   body.classList.toggle('m-sub-radar', on && mob.tab === 'analysis' && mob.analysis === 'radar');

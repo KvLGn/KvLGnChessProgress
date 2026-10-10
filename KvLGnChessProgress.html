@@ -2122,15 +2122,12 @@
     body.m-on #filters #fColor { padding-left: 6px; }
     body.m-on #filters .f-chip, body.m-on #filters .f-btn { flex: none; padding: 4px 10px; font-size: 12.5px; white-space: nowrap; }
     body.m-on #filters .f-summary { position: static; order: -2; margin: 0; padding: 0 2px 0 0; gap: 6px; }   /* «▾ Фильтр | 11 из 11 | Сброс» — как у «Графиков», под заголовком */
-    body.m-on #filters::before { content: ''; order: -1; flex-basis: 100%; height: 0; }   /* кнопки фильтра — строкой ниже */
-    body.m-on #filters:not(.m-fopen) > :not(.f-summary) { display: none; }   /* свёрнут — только блок «Фильтр» */
-    body.m-on #filters.m-fopen { flex-wrap: wrap; overflow: visible; row-gap: 8px; }
     body.m-on .m-fbtn { height: 36px; padding: 0 12px; display: inline-flex; align-items: center; border-color: transparent; background: transparent; }
     body.m-on .m-fbtn .caret { margin: 0 6px 0 0; }
     body.m-on #filters.m-fopen .m-fbtn .caret { display: inline-block; transform: rotate(180deg); }
     body.m-on #filters #fCond { display: none; }
     body.m-on #filters #fReset { padding: 4px 8px; }
-    body.m-on #filters > .f-drop > .f-menu { position: fixed; left: 8px; right: 8px; top: auto; bottom: calc(72px + env(safe-area-inset-bottom)); max-height: 60vh; overflow-y: auto; z-index: 60; }
+    body.m-on #filters .f-drop > .f-menu { position: fixed; left: 8px; right: 8px; top: auto; bottom: calc(72px + env(safe-area-inset-bottom)); max-height: 60vh; overflow-y: auto; z-index: 60; }
     /* отчёт о партии: «i» — справа от «зевков», её панель — сразу под счётчиками, над графиком */
     body.m-on .mr-cnt .mr-i { top: 2px; left: calc(100% + 2px); transform: none; }
     body.m-on .mr-gwrap { display: flex; flex-direction: column; }
@@ -2146,8 +2143,22 @@
     body.m-on input, body.m-on textarea, body.m-on select { font-size: 16px; }
     /* «11 из 11 · Сброс» — фиксированной высоты, кнопки фильтра — ниже с зазором, не наезжают */
     /* заголовки вкладок и блок «Фильтр» — по центру экрана; «Последние 30 партий» — чуть ниже */
-    body.m-on #tableTitle { display: grid; justify-items: center; margin-top: 10px; line-height: 36px; }
-    body.m-on #filters { justify-content: center; } body.m-on #filters:not(.m-fopen)::before { display: none; } body.m-on .tbl-head { justify-content: center; }
+    body.m-on #tableTitle { display: grid; justify-items: center; margin-top: 24px; line-height: 36px; }
+    body.m-on #filters { justify-content: center; overflow: visible; } body.m-on .tbl-head { justify-content: center; }
+    /* фильтр таблицы — отдельным окном, как у графика: кнопки фильтра в .m-fpanel (переносит mobileApply), окно под блоком «Фильтр» поверх таблицы */
+    body.m-on .m-fpanel { display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 45; margin-top: 8px; padding: 12px; flex-wrap: wrap; gap: 8px;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    body.m-on #filters.m-fopen .m-fpanel { display: flex; }
+    body.m-on #filters { position: relative; flex-direction: column; align-items: center; }
+    body.m-on .m-fpanel .f-chips { flex-wrap: wrap; } body.m-on .m-fpanel #fColor { border-left: 0; padding-left: 0; }
+    /* окно «Дата» (в шапке таблицы) — снизу над вкладками, как меню фильтров, не за краем */
+    body.m-on .table-wrap #fDates > .f-menu { position: fixed; left: 8px; right: 8px; top: auto; bottom: calc(72px + env(safe-area-inset-bottom)); width: auto; max-height: 60vh; overflow-y: auto; z-index: 60; }
+    /* шапка таблицы: подписи на одном уровне (сверху), «№» вместо «№ партии» */
+    body.m-on .table-wrap thead th { vertical-align: top; }
+    body.m-on .table-wrap thead th:first-child { font-size: 0; } body.m-on .table-wrap thead th:first-child::before { content: "№"; font-size: 9.5px; }
+    body.m-on .table-wrap thead .th-btn { padding: 0; height: auto; border: 0; background: none; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; }
+    /* кнопка «↓ вниз» — над нижними вкладками, а не под ними */
+    body.m-on .scroll-btn:not(.up) { bottom: calc(64px + 14px + env(safe-area-inset-bottom)); }
     body.m-on .chart-head { justify-content: center; } body.m-on .chart-head .chart-title { text-align: center; justify-content: center; } body.m-on .chart-head .cf-summary { margin-left: auto; margin-right: auto; }
     /* таблица: «Дебют» — по центру над «Все / Мой план / Lichess», «Результат» — не впритык к краю */
     body.m-on .table-wrap thead th:nth-child(4) { text-align: center; } body.m-on .table-wrap thead th:nth-child(4) .th-seg { margin: 6px auto 0; }
@@ -4305,7 +4316,8 @@ function toggleDrop(id) {
   if (open && id === 'fDates') {
     renderTableDates();
     var r = el.querySelector('.f-btn').getBoundingClientRect(), mn = el.querySelector('.f-menu');
-    mn.style.top = (r.bottom + 6) + 'px'; mn.style.left = Math.max(8, Math.min(r.left - 8, window.innerWidth - 316)) + 'px';
+    if (mobOn) { mn.style.top = mn.style.left = ''; }   // телефон: окно снизу над вкладками (CSS)
+    else { mn.style.top = (r.bottom + 6) + 'px'; mn.style.left = Math.max(8, Math.min(r.left - 8, window.innerWidth - 316)) + 'px'; }
   }
 }
 function closeDrops() {
@@ -5648,11 +5660,16 @@ $('anBox').addEventListener('click', function(e) {
   if (g && !mobAnOpen) { e.stopPropagation(); mobAnList(true); return; }   // свёрнут — только раскрыть, не выбирать
   if (mobAnOpen && (g || !e.target.closest('.an-list'))) mobAnList(false);   // выбрали партию или нажали мимо списка — свернуть
 }, true);
-var mobFBtn = null;   // телефон: кнопка «Фильтр» таблицы — раскрывает кнопки фильтра (#filters.m-fopen)
+var mobFBtn = null, mobFPanel = null, M_FCHIPS = ['fResult', 'fColor', 'fOpening', 'fMode', 'fMetrics'];   // телефон: кнопка «Фильтр» таблицы — раскрывает кнопки фильтра (#filters.m-fopen)
 function mobileInit() {
   mobFBtn = document.createElement('button'); mobFBtn.type = 'button'; mobFBtn.className = 'f-btn m-fbtn';
   mobFBtn.addEventListener('click', function(e) { e.stopPropagation(); $('filters').classList.toggle('m-fopen'); });
   $('filters').querySelector('.f-summary').insertBefore(mobFBtn, $('fCond'));
+  mobFPanel = document.createElement('div'); mobFPanel.className = 'm-fpanel';
+  document.addEventListener('click', function(e) {   // касание мимо окна фильтра — закрыть (composedPath: кнопки перерисовываются)
+    if (!$('filters').classList.contains('m-fopen')) return;
+    var p = e.composedPath(); if (p.indexOf(mobFPanel) < 0 && p.indexOf(mobFBtn) < 0) $('filters').classList.remove('m-fopen');
+  });
   renderFilterButtons();
   var secs = document.querySelectorAll('.main-container > .section');
   mobChart = secs[0]; mobChart.classList.add('m-chart'); secs[1].classList.add('m-table');
@@ -5672,6 +5689,10 @@ function mobileApply() {
   body.classList.toggle('m-sub-board', on && mob.tab === 'analysis' && mob.analysis === 'board');
   body.classList.toggle('m-sub-radar', on && mob.tab === 'analysis' && mob.analysis === 'radar');
   var row = $('sideRow');
+  // кнопки фильтра таблицы: на телефоне — в окне .m-fpanel, на компьютере — на своём месте перед блоком «N из M»
+  var fsum = $('filters').querySelector('.f-summary');
+  if (on && !mobFPanel.parentNode) { M_FCHIPS.forEach(function(id) { mobFPanel.appendChild($(id)); }); $('filters').appendChild(mobFPanel); }
+  if (!on && mobFPanel.parentNode) { M_FCHIPS.forEach(function(id) { $('filters').insertBefore($(id), $('filters').querySelector('.f-eye')); }); mobFPanel.remove(); $('filters').classList.remove('m-fopen'); }
   if (!on) {   // компьютер: ни панели, ни переключателя; режим и «Итоги» — как были до телефонного вида
     mobBar.remove(); mobSw.remove();
     if (mobOn && mobDesk) {

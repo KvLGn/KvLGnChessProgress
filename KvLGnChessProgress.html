@@ -2093,11 +2093,18 @@
     body.m-on .filters { position: relative; }
     body.m-on .filters > .f-drop { position: static; }
     body.m-on .filters > .f-drop > .f-menu { left: 0; right: 0; width: auto; max-width: none; }
-    /* «Анализ → Партия» на телефоне: партии — лента карточек вбок; под доской сразу ходы с кнопками ◀ ▶, ниже моменты */
-    body.m-on .an-list-in { display: flex; overflow-x: auto; overflow-y: hidden; max-height: none; border-top-width: 1px; scroll-snap-type: x mandatory; scrollbar-width: none; }
-    body.m-on .an-g { flex: 0 0 64%; width: auto; scroll-snap-align: start; border-bottom: none; border-right: 1px solid rgba(46,50,68,0.6); }
+    /* «Анализ → Партия» на телефоне: партии — одна кнопка (выбранная партия ▾), список раскрывается вниз (#anBox.m-an-open, mobileInit);
+       под доской сразу ходы с кнопками ◀ ▶, ниже моменты */
+    body.m-on .an-list-in { max-height: none; border-top-width: 1px; }
+    body.m-on #anBox:not(.m-an-open) .an-g:not(.on) { display: none; }
+    body.m-on #anBox:not(.m-an-open) .an-g.on { position: relative; padding-right: 34px; }
+    body.m-on #anBox:not(.m-an-open) .an-g.on::after { content: '▾'; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--fg-dim); }
+    body.m-on #anBox.m-an-open .an-list-in { max-height: 55vh; overflow-y: auto; }
+    body.m-on .an-g-op { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     body.m-on .an-g-op { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     body.m-on .an-moves { order: 2; } body.m-on .an-mom { order: 3; }
+    /* ходы: у блока нет потолка высоты, у списка ходов — своя прокрутка (~8 строк): в «Мастерах» описание сверху больше не съедает ходы */
+    body.m-on .an-moves-in { max-height: none; } body.m-on .an-mvs { flex: none; max-height: 216px; }
     /* «Активность / Графики» на телефоне: цифры сверху, под ними график — целиком по ширине экрана (без прокрутки вбок) */
     body.m-on .chart-area > svg { min-width: 0; }
     body.m-on .chart-area { overflow-x: visible; }
@@ -5546,6 +5553,19 @@ function mobileGo(tab, sub) {
   mob.tab = tab; if (sub) mob[tab] = sub;
   mobileApply();
 }
+// телефон, «Анализ»: список партий свёрнут в кнопку — касание выбранной партии раскрывает список, выбор партии сворачивает
+var mobAnOpen = false;
+function mobAnList(open) {
+  mobAnOpen = open; $('anBox').classList.toggle('m-an-open', open);
+  var list = $('anBox').querySelector('.an-list-in');
+  if (open && list) anScrollTo(list, list.querySelector('.an-g.on'));
+}
+$('anBox').addEventListener('click', function(e) {
+  if (!mobOn) return;
+  var g = e.target.closest('.an-g');
+  if (g && !mobAnOpen) { e.stopPropagation(); mobAnList(true); return; }   // свёрнут — только раскрыть, не выбирать
+  if (mobAnOpen && (g || !e.target.closest('.an-list'))) mobAnList(false);   // выбрали партию или нажали мимо списка — свернуть
+}, true);
 function mobileInit() {
   var secs = document.querySelectorAll('.main-container > .section');
   mobChart = secs[0]; mobChart.classList.add('m-chart'); secs[1].classList.add('m-table');

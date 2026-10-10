@@ -2138,6 +2138,7 @@
     /* легенды под графиком — без сдвига вверх (он для компьютера), с переносом строк */
     body.m-on .legend .legend-item, body.m-on .legend-rule { top: 0; }
     body.m-on .bl-on .bl-legend { position: static; top: 0; flex-wrap: wrap; gap: 6px 8px; width: 100%; }
+    body.m-on .cmp-btn.cmp-off { opacity: 0.35; cursor: default; }   /* «Сравнить» без выбора — бледная, место держит */
     body.m-on .eye-btn, body.m-on .sect-eye { display: none; }   /* скрытого режима на телефоне нет */
   }
 </style>
@@ -2789,7 +2790,11 @@ function renderCmpBtn() {
   var b = $('cmpBtn'), h = $('cmpHint'), act = chartMode === 'activity';
   var mode = act ? aCmpMode : cmpMode, cnt = act ? aCmpCount() : cmpCount(), base = act ? actSelCount() : selCount();
   var show = !hush.chart && !showRecords && (base > 0 || mode);
-  b.style.display = show ? '' : 'none';
+  // телефон: кнопка всегда на месте под графиком (бледная, пока нечего сравнивать) — блок не растёт при выборе
+  var keep = mobOn && !show && !hush.chart && !showRecords;
+  b.style.display = show || keep ? '' : 'none';
+  b.disabled = keep; b.classList.toggle('cmp-off', keep);
+  if (keep) { b.textContent = 'Сравнить'; b.classList.remove('on'); }
   h.style.display = mode === 'pick' ? '' : 'none';
   $('chartBox').classList.toggle('cmp-picking', !!mode);   // в активности подсказка заменяет «Период»
   if (!show) { placeMid(); return; }
@@ -3806,6 +3811,7 @@ function placeTooltip(x, y) {
 var activeHit = null;
 function showTooltip(el, x, y) {
   if (hush.chart) return;   // график скрыт — подсказок нет (и с клавиатуры / касанием)
+  if (mobOn) return;   // телефон: карточки у пальца нет — закрывала «Сравнить» и залипала; цифры выбранного — в блоке над графиком
   if (activeHit) activeHit.classList.remove('active');
   activeHit = el;
   el.classList.add('active');

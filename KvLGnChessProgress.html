@@ -2176,7 +2176,8 @@
     body.m-tab-profile .profile-side .link { order: 4; width: 100%; margin-top: 8px; padding: 10px 14px 10px 10px; box-shadow: none; }
     body.m-tab-profile .profile-side .link .link-go { margin-left: auto; font-size: 13px; }
     body.m-tab-profile .profile-side #helpBtn { grid-column: 2; grid-row: 1; align-self: end; order: 0; width: auto; margin: 0 14px 14px 0; padding: 6px 12px 6px 6px; z-index: 2;
-      border-color: rgba(74,222,128,0.35); box-shadow: none; }
+      box-shadow: none; }
+    body.m-tab-profile #helpBtn:active, body.m-tab-profile #helpBtn:focus-visible { border-color: rgba(74,222,128,0.6); }   /* зелёная рамка — только при касании */
     body.m-tab-profile #helpBtn .link-sub { display: none; }
     body.m-tab-profile .profile-side::after { content: 'Полезные ссылки'; order: 3; margin: 22px 4px 2px; font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--fg-mute); }
     /* карточки: раскрытая — сразу под своей карточкой, сама карточка не пропадает; ✕ раскрытых «Задач / Дебютов» на телефоне не нужен (закрывает касание карточки) */
@@ -2184,6 +2185,16 @@
     body.m-on .side-row.vd-open .vd-card { opacity: 1; pointer-events: auto; }
     body.m-tab-profile .side-row { order: 1; } body.m-tab-profile .profile-row > #vdDetail { order: 2; grid-column: 1 / -1; margin-top: 12px; max-height: none; }   /* «Итоги» (#vdDetail живёт в .profile-row) — сразу под карточками во всю ширину */
     body.m-on .side-row .pzd-close { display: none; }
+    body.m-on .pz-detail, body.m-on .op-detail { min-height: 0; align-content: start; }   /* раскрытые «Задачи / Дебюты» — по содержимому, без пустоты */
+    /* «Итоги» в «Профиле»: без кнопки «Схема» (схема — во вкладке «Анализ»); списки без своей прокрутки — иначе iPhone «залипал» на них, и меньше пустоты между разделами */
+    body.m-tab-profile .vd-rd-btn { display: none; }
+    body.m-tab-profile .vdx-head { position: relative; padding-right: 36px; } body.m-tab-profile .vdx-head .vd-close { position: absolute; top: -4px; right: -6px; margin: 0; }   /* ✕ — в углу заголовка, без пустой строки */
+    body.m-on .vdx-list { overflow: visible; overscroll-behavior: auto; max-height: none; height: auto; }
+    body.m-on .vdx-cols { row-gap: 6px; }
+    /* «Справка»: «i» справа от заголовка; RU / EN — справа в строке «Для ИИ / Совет», «Сильная / Простая» — строкой ниже */
+    body.m-on .ai-head > b { order: 1; } body.m-on .ai-head > .ai-info { order: 2; margin-left: 8px; align-self: center; } body.m-on .ai-head > .ai-ctl { order: 3; }
+    body.m-on .ai-ctl > .ai-lang:has([data-lang]) { order: 3; margin-left: auto; }
+    body.m-on .ai-ctl > .ai-lang:has([data-model]) { order: 4; flex-basis: 100%; }
     /* меню ☰ на телефоне — на весь экран над вкладками: «Меню ✕», группы строкой (листается вбок), пункты выбранной группы списком */
     body.m-on .mn-panel { position: fixed; left: 0; right: 0; top: 0; bottom: calc(64px + env(safe-area-inset-bottom)); width: auto; height: auto; max-height: none;
       border: 0; border-radius: 0; z-index: 70; background: var(--bg); }
@@ -5676,6 +5687,7 @@ function mobileApply() {
   } else mobSw.remove();
   if (mob.tab === 'activity' && chartMode !== mob.activity) setMode(mob.activity);
   if (mob.tab === 'analysis' && mob.analysis === 'board' && chartMode !== 'analysis') setMode('analysis');
+  if (mob.tab === 'profile' && RD.on) { RD.on = false; rdSave(); toggleVerdict(false); }   // «Итоги» в «Профиле» — списком (схема — во вкладке «Анализ»)
   if (mob.tab === 'analysis' && mob.analysis === 'radar') { if (!RD.on) { RD.on = true; rdSave(); } toggleVerdict(true); }
   try { localStorage.setItem('mTab.v1', JSON.stringify(mob)); } catch (e) {}
 }

@@ -2125,6 +2125,13 @@
     body.m-on .mr-gwrap .mr-info { padding-right: 36px; }
     body.m-on .mri-sec + .mri-sec { padding-left: 6px; }   /* разделы панели «i» — с одного края */
     body.m-on #chartBox { scroll-margin-top: 84px; }   /* переход к графику / «Анализу» — верх блока под переключателем вкладки */
+    /* iPhone: без увеличения по двойному касанию (кнопка «i» и др.) и при вводе в поле (шрифт полей — не меньше 16px) */
+    body.m-on { touch-action: manipulation; }
+    body.m-on input, body.m-on textarea, body.m-on select { font-size: 16px; }
+    /* «11 из 11 · Сброс» — фиксированной высоты, кнопки фильтра — ниже с зазором, не наезжают */
+    body.m-on #filters .f-summary { height: 36px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; }
+    body.m-on #filters #fReset { padding-top: 3px; padding-bottom: 3px; }
+    body.m-on #filters { padding-top: 10px; }
     body.m-on .eye-btn, body.m-on .sect-eye { display: none; }   /* скрытого режима на телефоне нет */
   }
 </style>
@@ -4193,7 +4200,7 @@ function toggleDrop(id) {
   closeDrops();
   el.classList.toggle('open', open);
   el.querySelector('.f-btn').setAttribute('aria-expanded', String(open));
-  if (open && id === 'fOpening') { renderOpeningList(); el.querySelector('.f-search').focus(); }
+  if (open && id === 'fOpening') { renderOpeningList(); if (!mobOn) el.querySelector('.f-search').focus(); }   // телефон: без клавиатуры сразу
   if (open && id === 'fMode') el.querySelector('.md-body').innerHTML = modeColsHtml(filt.modes);
   if (open && id === 'fDates') {
     renderTableDates();

@@ -12,7 +12,7 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # закреплено: ubuntu-latest с 19.10.2026 переходит на Ubuntu 26 — менять осознанно
     steps:
       - uses: actions/checkout@v5
 

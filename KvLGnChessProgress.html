@@ -2124,7 +2124,7 @@
     body.m-on .mri-sec + .mri-sec { padding-left: 6px; }   /* разделы панели «i» — с одного края */
     body.m-on #chartBox { scroll-margin-top: 84px; }   /* переход к графику / «Анализу» — верх блока под переключателем вкладки */
     /* iPhone: без увеличения по двойному касанию (кнопка «i» и др.) и при вводе в поле (шрифт полей — не меньше 16px) */
-    body.m-on { touch-action: manipulation; }
+    body.m-on, html:has(body.m-on) { touch-action: manipulation; }
     body.m-on input, body.m-on textarea, body.m-on select { font-size: 16px; }
     /* «11 из 11 · Сброс» — фиксированной высоты, кнопки фильтра — ниже с зазором, не наезжают */
     body.m-on #filters .f-summary { height: 36px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; }
@@ -2138,7 +2138,7 @@
     /* легенды под графиком — без сдвига вверх (он для компьютера), с переносом строк */
     body.m-on .legend .legend-item, body.m-on .legend-rule { top: 0; }
     body.m-on .bl-on .bl-legend { position: static; top: 0; flex-wrap: wrap; gap: 6px 8px; width: 100%; }
-    body.m-on .cmp-btn.cmp-off { opacity: 0.35; cursor: default; }   /* «Сравнить» без выбора — бледная, место держит */
+    body.m-on .cmp-btn.cmp-off { visibility: hidden; }   /* «Сравнить» без выбора — не видна, но место держит: блок не прыгает */
     body.m-on .eye-btn, body.m-on .sect-eye { display: none; }   /* скрытого режима на телефоне нет */
   }
 </style>
@@ -2790,7 +2790,7 @@ function renderCmpBtn() {
   var b = $('cmpBtn'), h = $('cmpHint'), act = chartMode === 'activity';
   var mode = act ? aCmpMode : cmpMode, cnt = act ? aCmpCount() : cmpCount(), base = act ? actSelCount() : selCount();
   var show = !hush.chart && !showRecords && (base > 0 || mode);
-  // телефон: кнопка всегда на месте под графиком (бледная, пока нечего сравнивать) — блок не растёт при выборе
+  // телефон: место кнопки под графиком держится всегда (без выбора она невидима) — блок не растёт при выборе
   var keep = mobOn && !show && !hush.chart && !showRecords;
   b.style.display = show || keep ? '' : 'none';
   b.disabled = keep; b.classList.toggle('cmp-off', keep);
@@ -5531,7 +5531,7 @@ document.addEventListener('keydown', function(e) { if (e.key === 'Escape') setMo
 // Первый раз — «Активность»; дальше помнится вкладка и её переключатель (mTab.v1)
 var MOBILE_MQ = window.matchMedia('(max-width: 760px)');
 var M_TABS = [['games', 'Партии'], ['activity', 'Активность'], ['analysis', 'Анализ'], ['profile', 'Профиль']];
-var M_SUBS = {activity: [['activity', 'Активность'], ['metrics', 'Графики']], analysis: [['board', 'Партия'], ['radar', 'Схема']]};
+var M_SUBS = {activity: [['metrics', 'Графики'], ['activity', 'Активность']], analysis: [['board', 'Партия'], ['radar', 'Схема']]};
 var M_ICON = {
   games: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
   activity: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/></svg>',

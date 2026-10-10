@@ -2042,7 +2042,7 @@
     .an-box.an-wide .an-moves { grid-column: auto; }
   }
   /* ---------- телефон: нижние вкладки «Партии · Активность · Анализ · Профиль» (mobileInit) — только узкий экран; body.m-on ставит JS ---------- */
-  .m-sw { display: none; }
+  .m-sw, .m-fbtn { display: none; }   /* переключатель вкладки и кнопка «Фильтр» таблицы — только на телефоне */
   @media (max-width: 760px) {
     body.m-on { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
     body.m-on .main-container { margin-top: 0; margin-bottom: 0; border-radius: 0; padding-top: 12px; }   /* блок от самого верха экрана: без скруглений и полоски другого фона; заголовки — с отступом */
@@ -2121,7 +2121,13 @@
     body.m-on #filters .f-chips { flex: none; gap: 6px; }
     body.m-on #filters #fColor { padding-left: 6px; }
     body.m-on #filters .f-chip, body.m-on #filters .f-btn { flex: none; padding: 4px 10px; font-size: 12.5px; white-space: nowrap; }
-    body.m-on #filters .f-summary { position: absolute; top: 0; right: 0; padding: 2px 2px 2px 8px; gap: 6px; }
+    body.m-on #filters .f-summary { position: static; order: -2; margin: 0; padding: 0 2px 0 0; gap: 6px; }   /* «▾ Фильтр | 11 из 11 | Сброс» — как у «Графиков», под заголовком */
+    body.m-on #filters::before { content: ''; order: -1; flex-basis: 100%; height: 0; }   /* кнопки фильтра — строкой ниже */
+    body.m-on #filters:not(.m-fopen) > :not(.f-summary) { display: none; }   /* свёрнут — только блок «Фильтр» */
+    body.m-on #filters.m-fopen { flex-wrap: wrap; overflow: visible; row-gap: 8px; }
+    body.m-on .m-fbtn { height: 36px; padding: 0 12px; display: inline-flex; align-items: center; border-color: transparent; background: transparent; }
+    body.m-on .m-fbtn .caret { margin: 0 6px 0 0; }
+    body.m-on #filters.m-fopen .m-fbtn .caret { display: inline-block; transform: rotate(180deg); }
     body.m-on #filters #fCond { display: none; }
     body.m-on #filters #fReset { padding: 4px 8px; }
     body.m-on #filters > .f-drop > .f-menu { position: fixed; left: 8px; right: 8px; top: auto; bottom: calc(72px + env(safe-area-inset-bottom)); max-height: 60vh; overflow-y: auto; z-index: 60; }
@@ -2129,7 +2135,6 @@
     body.m-on .mr-cnt .mr-i { top: 2px; left: calc(100% + 2px); transform: none; }
     body.m-on .mr-gwrap { display: flex; flex-direction: column; }
     body.m-on .mr-gwrap .mr-info { order: -1; margin: 0 0 12px; }
-    body.m-on #filters .f-count { border-left: 0; padding-left: 0; }   /* «Без фильтров» скрыто — черта слева лишняя */
     body.m-on .mr-gwrap .mr-info { padding-right: 36px; }
     body.m-on .mri-sec + .mri-sec { padding-left: 6px; }   /* разделы панели «i» — с одного края */
     body.m-on #chartBox { scroll-margin-top: 84px; }   /* переход к графику / «Анализу» — верх блока под переключателем вкладки */
@@ -2190,7 +2195,8 @@
     body.m-tab-profile .vd-rd-btn { display: none; }
     body.m-tab-profile .vdx-head { position: relative; padding-right: 36px; } body.m-tab-profile .vdx-head .vd-close { position: absolute; top: -4px; right: -6px; margin: 0; }   /* ✕ — в углу заголовка, без пустой строки */
     body.m-on .vdx-list { overflow: visible; overscroll-behavior: auto; max-height: none; height: auto; }
-    body.m-on .vdx-cols { row-gap: 6px; }
+    body.m-on .vdx-cols { display: block; flex: none; } body.m-on .vdx-col { display: block; min-height: auto; margin-bottom: 22px; } body.m-on .vdx-col:last-child { margin-bottom: 0; }   /* разделы «Итогов» — друг под другом по высоте содержимого (не сжимаются и не налезают) */
+    body.m-on .vdx-list { flex: none; min-height: auto; }
     /* «Справка»: «i» справа от заголовка; RU / EN — справа в строке «Для ИИ / Совет», «Сильная / Простая» — строкой ниже */
     body.m-on .ai-head > b { order: 1; } body.m-on .ai-head > .ai-info { order: 2; margin-left: 8px; align-self: center; } body.m-on .ai-head > .ai-ctl { order: 3; }
     body.m-on .ai-ctl > .ai-lang:has([data-lang]) { order: 3; margin-left: auto; }
@@ -4348,6 +4354,7 @@ function renderFilterButtons() {
   $('filters').classList.toggle('any', any);
   var shown = filterGames(games).length;
   var cond = rc + names.length + mk + mc + dk;
+  if (mobFBtn) mobFBtn.innerHTML = '<span class="caret">▾</span>' + (cond ? '<span class="cf-cnt">' + cond + '</span>' : '') + 'Фильтр';   // телефон: одна кнопка «Фильтр» (число условий)
   $('fCond').innerHTML = cond ? '<span class="cf-cnt">' + cond + '</span>' + plural(cond, 'фильтр', 'фильтра', 'фильтров') : 'Без фильтров';
   var inTable = Math.min(shown, TABLE_N);
   $('fCount').innerHTML = '<b>' + shown + '</b> из ' + games.length;
@@ -5634,7 +5641,12 @@ $('anBox').addEventListener('click', function(e) {
   if (g && !mobAnOpen) { e.stopPropagation(); mobAnList(true); return; }   // свёрнут — только раскрыть, не выбирать
   if (mobAnOpen && (g || !e.target.closest('.an-list'))) mobAnList(false);   // выбрали партию или нажали мимо списка — свернуть
 }, true);
+var mobFBtn = null;   // телефон: кнопка «Фильтр» таблицы — раскрывает кнопки фильтра (#filters.m-fopen)
 function mobileInit() {
+  mobFBtn = document.createElement('button'); mobFBtn.type = 'button'; mobFBtn.className = 'f-btn m-fbtn';
+  mobFBtn.addEventListener('click', function(e) { e.stopPropagation(); $('filters').classList.toggle('m-fopen'); });
+  $('filters').querySelector('.f-summary').insertBefore(mobFBtn, $('fCond'));
+  renderFilterButtons();
   var secs = document.querySelectorAll('.main-container > .section');
   mobChart = secs[0]; mobChart.classList.add('m-chart'); secs[1].classList.add('m-table');
   mobBar = document.createElement('nav'); mobBar.className = 'm-tabs';

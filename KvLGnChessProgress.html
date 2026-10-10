@@ -2098,14 +2098,12 @@
     body.m-on .an-g { flex: 0 0 64%; width: auto; scroll-snap-align: start; border-bottom: none; border-right: 1px solid rgba(46,50,68,0.6); }
     body.m-on .an-g-op { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     body.m-on .an-moves { order: 2; } body.m-on .an-mom { order: 3; }
-    /* «Активность / Графики» на телефоне: график сразу под заголовком, целиком по ширине экрана (без прокрутки вбок); цифры — ниже */
+    /* «Активность / Графики» на телефоне: цифры сверху, под ними график — целиком по ширине экрана (без прокрутки вбок) */
     body.m-on .chart-area > svg { min-width: 0; }
     body.m-on .chart-area { overflow-x: visible; }
     body.m-on .chart-area > svg text { font-size: 13px; }   /* график ужат в ~0.6 — подписи чуть крупнее, чтобы читались */
     body.m-on .chart-area > svg { overflow: visible; }
     body.m-on .chart-area { padding-left: 16px; padding-right: 10px; }
-    body.m-on .panel-stack { order: 9; }
-    body.m-on .stats-panel { border-bottom: none; border-top: 3px solid var(--divider); }
     /* «Партии»: фильтр в 2 строки — справа от заголовка «11 из 11 · Сброс», ниже кнопки одной строкой (листается вбок); меню — снизу экрана над вкладками */
     body.m-on .m-table { position: relative; }
     body.m-on #filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 6px; margin: 0 0 12px; position: static; }
@@ -2132,6 +2130,14 @@
     body.m-on #filters .f-summary { height: 36px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; }
     body.m-on #filters #fReset { padding-top: 3px; padding-bottom: 3px; }
     body.m-on #filters { padding-top: 10px; }
+    /* «Активность / Графики»: «Сравнить» и подсказка сравнения — под графиком (график при выборе не прыгает), не за краем экрана */
+    body.m-on .cmp-btn { position: static; order: 4; margin: 10px auto 2px; padding: 0 12px; }
+    body.m-on .cmp-hint, body.m-on .chart-container.mode-activity .cmp-hint { position: static; transform: none; order: 4; flex-basis: 100%; height: auto; margin: 6px 12px 4px;
+      white-space: normal; justify-content: center; text-align: center; }
+    body.m-on .legend-rule { order: 5; margin-top: 10px; } body.m-on .legend { order: 6; }
+    /* легенды под графиком — без сдвига вверх (он для компьютера), с переносом строк */
+    body.m-on .legend .legend-item, body.m-on .legend-rule { top: 0; }
+    body.m-on .bl-on .bl-legend { position: static; top: 0; flex-wrap: wrap; gap: 6px 8px; width: 100%; }
     body.m-on .eye-btn, body.m-on .sect-eye { display: none; }   /* скрытого режима на телефоне нет */
   }
 </style>
@@ -5574,7 +5580,7 @@ function mobileApply() {
   }
   var fresh = !(hush.mode || hush.chart) && games.filter(anFresh).length;
   mobBar.innerHTML = M_TABS.map(function(t) {
-    return '<button type="button" data-t="' + t[0] + '" class="' + (mob.tab === t[0] ? 'on' : '') + '">' + M_ICON[t[0]] + '<span>' + t[1] + '</span>' +
+    return '<button type="button" data-t="' + t[0] + '" class="' + (mob.tab === t[0] ? 'on' : '') + '">' + M_ICON[t[0]] + '<span>' + (t[0] === 'activity' && mob.activity === 'metrics' ? 'Графики' : t[1]) + '</span>' +
       (t[0] === 'analysis' && fresh ? '<i class="m-bang">!</i>' : '') + '</button>';
   }).join('');
   if (!mobBar.parentNode) body.appendChild(mobBar);

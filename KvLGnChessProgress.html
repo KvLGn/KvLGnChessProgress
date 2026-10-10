@@ -2143,22 +2143,34 @@
     body.m-on input, body.m-on textarea, body.m-on select { font-size: 16px; }
     /* «11 из 11 · Сброс» — фиксированной высоты, кнопки фильтра — ниже с зазором, не наезжают */
     /* заголовки вкладок и блок «Фильтр» — по центру экрана; «Последние 30 партий» — чуть ниже */
-    body.m-on #tableTitle { display: grid; justify-items: center; margin-top: 24px; line-height: 36px; }
+    body.m-on #tableTitle { display: grid; justify-items: center; margin-top: 0; line-height: 30px; }
     body.m-on #filters { justify-content: center; overflow: visible; } body.m-on .tbl-head { justify-content: center; }
     /* фильтр таблицы — отдельным окном, как у графика: кнопки фильтра в .m-fpanel (переносит mobileApply), окно под блоком «Фильтр» поверх таблицы */
     body.m-on .m-fpanel { display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 45; margin-top: 8px; padding: 12px; flex-wrap: wrap; gap: 8px;
       background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     body.m-on #filters.m-fopen .m-fpanel { display: flex; }
     body.m-on #filters { position: relative; flex-direction: column; align-items: center; }
-    body.m-on .m-fpanel .f-chips { flex-wrap: wrap; } body.m-on .m-fpanel #fColor { border-left: 0; padding-left: 0; }
+    body.m-on .m-fpanel .f-chips { flex-wrap: wrap; } body.m-on #filters .m-fpanel #fColor { border-left: 0; padding-left: 0; }
+    /* окно фильтра — как у графика: разделы друг под другом, «Дебют / Режим / Показатели» раскрыты прямо в окне (без своих выпадающих кнопок) */
+    body.m-on #filters.m-fopen .m-fpanel { display: block; max-height: 65vh; overflow-y: auto; padding: 14px 16px; }
+    body.m-on .m-fpanel > * { margin-bottom: 14px; }
+    body.m-on .m-fpanel #fResult::before, body.m-on .m-fpanel #fColor::before, body.m-on .m-fpanel #fOpening::before, body.m-on .m-fpanel #fMetrics::before {
+      display: block; flex-basis: 100%; margin: 0 2px 6px; font-size: 10px; color: var(--fg-mute); text-transform: uppercase; letter-spacing: 0.5px; }
+    body.m-on .m-fpanel #fResult::before { content: "Результат"; } body.m-on .m-fpanel #fColor::before { content: "Цвет"; }
+    body.m-on .m-fpanel #fOpening::before { content: "Дебют"; } body.m-on .m-fpanel #fMetrics::before { content: "Показатели"; }
+    body.m-on #filters .m-fpanel .f-drop > .f-btn { display: none; }
+    body.m-on #filters .m-fpanel .f-drop > .f-menu { display: block; position: static; width: auto; max-width: none; max-height: none; overflow: visible; margin: 0; padding: 0;
+      border: 0; border-radius: 0; box-shadow: none; background: none; }
+    body.m-on .m-fpanel .f-foot { display: none; }   /* сброс — общей кнопкой «Сброс» */
     /* окно «Дата» (в шапке таблицы) — снизу над вкладками, как меню фильтров, не за краем */
-    body.m-on .table-wrap #fDates > .f-menu { position: fixed; left: 8px; right: 8px; top: auto; bottom: calc(72px + env(safe-area-inset-bottom)); width: auto; max-height: 60vh; overflow-y: auto; z-index: 60; }
+    body.m-on .table-wrap #fDates > .f-menu { position: fixed; left: 8px; right: 8px; bottom: auto; width: auto; max-height: 60vh; overflow-y: auto; z-index: 60; }
     /* шапка таблицы: подписи на одном уровне (сверху), «№» вместо «№ партии» */
     body.m-on .table-wrap thead th { vertical-align: top; }
     body.m-on .table-wrap thead th:first-child { font-size: 0; } body.m-on .table-wrap thead th:first-child::before { content: "№"; font-size: 9.5px; }
     body.m-on .table-wrap thead .th-btn { padding: 0; height: auto; border: 0; background: none; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; }
     /* кнопка «↓ вниз» — над нижними вкладками, а не под ними */
-    body.m-on .scroll-btn:not(.up) { bottom: calc(64px + 14px + env(safe-area-inset-bottom)); }
+    body.m-on .scroll-btn { display: none !important; }   /* кнопок «↑ / ↓» на телефоне нет */
+    body.m-on .rd-legend { top: 0; margin: 16px 0 10px; }   /* «Схема»: подписи цветов ниже схемы, в потоке — сколько бы их ни было, не налезают */
     body.m-on .chart-head { justify-content: center; } body.m-on .chart-head .chart-title { text-align: center; justify-content: center; } body.m-on .chart-head .cf-summary { margin-left: auto; margin-right: auto; }
     /* таблица: «Дебют» — по центру над «Все / Мой план / Lichess», «Результат» — не впритык к краю */
     body.m-on .table-wrap thead th:nth-child(4) { text-align: center; } body.m-on .table-wrap thead th:nth-child(4) .th-seg { margin: 6px auto 0; }
@@ -2166,7 +2178,7 @@
     body.m-sub-radar .vdx-head .vdx-h { display: none; }   /* «Схема»: без слова «Итоги» сверху */
     body.m-on #filters .f-summary { height: 36px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; }
     body.m-on #filters #fReset { padding-top: 3px; padding-bottom: 3px; }
-    body.m-on #filters { padding-top: 10px; }
+    body.m-on #filters { padding-top: 4px; }
     /* «Активность / Графики»: «Сравнить» и подсказка сравнения — под графиком (график при выборе не прыгает), не за краем экрана */
     body.m-on .cmp-btn { position: static; order: 4; margin: 10px auto 2px; padding: 0 12px; }
     body.m-on .cmp-hint, body.m-on .chart-container.mode-activity .cmp-hint { position: static; transform: none; order: 4; flex-basis: 100%; height: auto; margin: 6px 12px 4px;
@@ -4316,7 +4328,7 @@ function toggleDrop(id) {
   if (open && id === 'fDates') {
     renderTableDates();
     var r = el.querySelector('.f-btn').getBoundingClientRect(), mn = el.querySelector('.f-menu');
-    if (mobOn) { mn.style.top = mn.style.left = ''; }   // телефон: окно снизу над вкладками (CSS)
+    if (mobOn) { mn.style.top = (r.bottom + 6) + 'px'; mn.style.left = ''; }   // телефон: под кнопкой «Дата», во всю ширину (CSS)
     else { mn.style.top = (r.bottom + 6) + 'px'; mn.style.left = Math.max(8, Math.min(r.left - 8, window.innerWidth - 316)) + 'px'; }
   }
 }
@@ -4384,7 +4396,7 @@ function renderFilterButtons() {
 function renderFilterBar() {
   renderResultChips();
   renderColorChips();
-  if ($('fOpening').classList.contains('open')) renderOpeningList();
+  if ($('fOpening').classList.contains('open') || mobOn) renderOpeningList();   // телефон: список дебютов раскрыт в окне фильтра
   renderFilterButtons();
 }
 
@@ -5663,7 +5675,10 @@ $('anBox').addEventListener('click', function(e) {
 var mobFBtn = null, mobFPanel = null, M_FCHIPS = ['fResult', 'fColor', 'fOpening', 'fMode', 'fMetrics'];   // телефон: кнопка «Фильтр» таблицы — раскрывает кнопки фильтра (#filters.m-fopen)
 function mobileInit() {
   mobFBtn = document.createElement('button'); mobFBtn.type = 'button'; mobFBtn.className = 'f-btn m-fbtn';
-  mobFBtn.addEventListener('click', function(e) { e.stopPropagation(); $('filters').classList.toggle('m-fopen'); });
+  mobFBtn.addEventListener('click', function(e) {
+    e.stopPropagation(); closeDrops();
+    if ($('filters').classList.toggle('m-fopen')) { renderOpeningList(); $('fMode').querySelector('.md-body').innerHTML = modeColsHtml(filt.modes); }   // разделы окна — свежие
+  });
   $('filters').querySelector('.f-summary').insertBefore(mobFBtn, $('fCond'));
   mobFPanel = document.createElement('div'); mobFPanel.className = 'm-fpanel';
   document.addEventListener('click', function(e) {   // касание мимо окна фильтра — закрыть (composedPath: кнопки перерисовываются)

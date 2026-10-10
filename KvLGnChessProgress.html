@@ -4535,6 +4535,7 @@ var tableFullH = 0;
 function keepTableHeight(rowsShown) {
   var wrap = document.querySelector('.table-wrap');
   wrap.style.minHeight = '';
+  if (mobOn) return;   // телефон: высоту не держим — запомненная с открытым отчётом оставляла пустоту под таблицей
   var full = Math.min(PER_PAGE, games.length);
   if (rowsShown >= full && wrap.offsetHeight > tableFullH) tableFullH = wrap.offsetHeight;
   if (!tableFullH) return;
@@ -4550,7 +4551,13 @@ function remeasureTable() {
   renderGames();
 }
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasureTable);
-window.addEventListener('resize', function() { clearTimeout(window._tblT); window._tblT = setTimeout(remeasureTable, 200); });
+// телефон: меняется только высота (адресная строка iPhone прячется при прокрутке) — не перерисовывать, иначе закроются отчёт и панель «i»
+var tblW = window.innerWidth;
+window.addEventListener('resize', function() {
+  var same = window.innerWidth === tblW; tblW = window.innerWidth;
+  if (mobOn && same) return;
+  clearTimeout(window._tblT); window._tblT = setTimeout(remeasureTable, 200);
+});
 
 // раскрытые партии таблицы запоминаются между перезагрузками (localStorage tblOpen.v1 — номера партий)
 var tblOpen = (function() { try { var a = JSON.parse(localStorage.getItem('tblOpen.v1') || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } })();

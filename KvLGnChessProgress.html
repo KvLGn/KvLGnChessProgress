@@ -2078,8 +2078,7 @@
     body.m-on .rd.with-list > .rd-right { order: 2; overflow: visible; padding-right: 0; }
     body.m-on .rd.with-list > .rd-pop { order: 3; overflow: visible; border-right: 0; border-top: 1px solid rgba(46,50,68,0.7); padding: 14px 0 0; }
     /* «Партии» на телефоне: таблица по ширине экрана — №, цвет, дата, дебют (в 2 строки), результат; соперник и ИР — в отчёте о партии */
-    body.m-on .table-wrap thead th:nth-child(5), body.m-on .table-wrap thead th:nth-child(7),
-    body.m-on .table-wrap tr.game-row > td:nth-child(5), body.m-on .table-wrap tr.game-row > td:nth-child(7) { display: none; }
+    body.m-on .table-wrap thead th:nth-child(5), body.m-on .table-wrap tr.game-row > td:nth-child(5) { display: none; }
     body.m-on .table-wrap th, body.m-on .table-wrap tr.game-row > td { padding-left: 6px; padding-right: 6px; }
     body.m-on .table-wrap tr.game-row > td:nth-child(4) { white-space: normal; font-size: 12.5px; line-height: 1.35; }
     body.m-on .table-wrap thead th:nth-child(4) { white-space: normal; }
@@ -2181,7 +2180,11 @@
     body.m-on .table-wrap thead th:nth-child(4).m-seg-open .th-seg { display: flex; }
     body.m-on .table-wrap thead th:nth-child(4) .th-seg button { font-size: 11px; padding: 6px 9px; }
     body.m-on .table-wrap { overflow: visible; }   /* окошко «Все / Мой план / Lichess» не обрезается рамкой таблицы */
-    body.m-on .table-wrap thead th:nth-child(6), body.m-on .table-wrap tr.game-row > td:nth-child(6) { padding-right: 10px; }
+    body.m-on .table-wrap thead th:nth-child(6), body.m-on .table-wrap tr.game-row > td:nth-child(6) { padding-right: 2px; }
+    /* «ИР» — узким столбцом сразу справа от кружка результата; ширина постоянная (пустой — тоже), «—» нерейтинговых не показываем */
+    body.m-on .table-wrap thead th:nth-child(7), body.m-on .table-wrap tr.game-row > td:nth-child(7) { width: 36px; min-width: 36px; max-width: 36px; padding: 0 4px 0 2px; text-align: left; font-size: 11px; white-space: nowrap; }
+    body.m-on .table-wrap tr.game-row > td:nth-child(7):not([style*=font-weight]) { color: transparent !important; }
+    body.m-on .table-wrap thead th:nth-child(7) { font-size: 9.5px; }
     body.m-sub-radar .vdx-head .vdx-h { display: none; }   /* «Схема»: без слова «Итоги» сверху */
     body.m-on #filters .f-summary { height: 36px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; }
     body.m-on #filters #fReset { padding-top: 3px; padding-bottom: 3px; }

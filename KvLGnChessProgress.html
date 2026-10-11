@@ -2187,7 +2187,11 @@
     body.m-on #filters #fReset { padding-top: 3px; padding-bottom: 3px; }
     body.m-on #filters { padding-top: 4px; }
     /* «Активность / Графики»: «Сравнить» и подсказка сравнения — под графиком (график при выборе не прыгает), не за краем экрана */
-    body.m-on .cmp-btn { position: static; order: 4; margin: 10px auto 2px; padding: 0 12px; }
+    body.m-on .cmp-btn { position: static; order: 4; margin: 10px auto 2px 5px; padding: 0 12px; }
+    /* «Рекорды» — внизу рядом со «Сравнить» (пара по центру), сверху графика — только период со стрелками по центру */
+    body.m-on .chart-container .records-btn { order: 4; margin: 10px 5px 2px auto; }
+    body.m-on .chart-container.records-on .records-btn { order: 2; margin: 10px 5px 0 auto; }   /* в «Рекордах» — сверху рядом с «за период / за всё время» (выйти, не листая вниз) */
+    body.m-on .chart-container.records-on .rec-scope { margin-left: 5px; }
     body.m-on .cmp-hint, body.m-on .chart-container.mode-activity .cmp-hint { position: static; transform: none; order: 4; flex-basis: 100%; height: auto; margin: 6px 12px 4px;
       white-space: normal; justify-content: center; text-align: center; }
     body.m-on .legend-rule { order: 5; margin-top: 10px; } body.m-on .legend { order: 6; }

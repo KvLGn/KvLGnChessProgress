@@ -2165,15 +2165,22 @@
     /* окно «Дата» (в шапке таблицы) — снизу над вкладками, как меню фильтров, не за краем */
     body.m-on .table-wrap #fDates > .f-menu { position: fixed; left: 8px; right: 8px; bottom: auto; width: auto; max-height: 60vh; overflow-y: auto; z-index: 60; }
     /* шапка таблицы: подписи на одном уровне (сверху), «№» вместо «№ партии» */
-    body.m-on .table-wrap thead th { vertical-align: top; }
-    body.m-on .table-wrap thead th:first-child { font-size: 0; } body.m-on .table-wrap thead th:first-child::before { content: "№"; font-size: 9.5px; }
+    body.m-on .table-wrap thead th { vertical-align: middle; white-space: nowrap; height: 42px; padding-top: 0; padding-bottom: 0; }   /* шапка: подписи в одну строку на одной высоте */
+    body.m-on .table-wrap thead th:first-child { font-size: 0; } body.m-on .table-wrap thead th:first-child::before { content: "№"; font-size: 9.5px; padding-left: 12px; }   /* над номером, а не над стрелкой ▸ */
     body.m-on .table-wrap thead .th-btn { padding: 0; height: auto; border: 0; background: none; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; }
     /* кнопка «↓ вниз» — над нижними вкладками, а не под ними */
     body.m-on .scroll-btn { display: none !important; }   /* кнопок «↑ / ↓» на телефоне нет */
     body.m-on .rd-legend { top: 0; margin: 16px 0 10px; }   /* «Схема»: подписи цветов ниже схемы, в потоке — сколько бы их ни было, не налезают */
     body.m-on .chart-head { justify-content: center; } body.m-on .chart-head .chart-title { text-align: center; justify-content: center; } body.m-on .chart-head .cf-summary { margin-left: auto; margin-right: auto; }
     /* таблица: «Дебют» — по центру над «Все / Мой план / Lichess», «Результат» — не впритык к краю */
-    body.m-on .table-wrap thead th:nth-child(4) { text-align: center; } body.m-on .table-wrap thead th:nth-child(4) .th-seg { margin: 6px auto 0; }
+    /* «Дебют ▾» — над названиями (слева), касание открывает «Все / Мой план / Lichess» окошком под шапкой (th.m-seg-open, mobileInit) */
+    body.m-on .table-wrap thead th:nth-child(4) { text-align: left; position: relative; cursor: pointer; }
+    body.m-on .table-wrap thead th:nth-child(4)::after { content: " ▾"; font-size: 9px; }
+    body.m-on .table-wrap thead th:nth-child(4) .th-seg { display: none; position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%); z-index: 20; margin: 0;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.5); }
+    body.m-on .table-wrap thead th:nth-child(4).m-seg-open .th-seg { display: flex; }
+    body.m-on .table-wrap thead th:nth-child(4) .th-seg button { font-size: 11px; padding: 6px 9px; }
+    body.m-on .table-wrap { overflow: visible; }   /* окошко «Все / Мой план / Lichess» не обрезается рамкой таблицы */
     body.m-on .table-wrap thead th:nth-child(6), body.m-on .table-wrap tr.game-row > td:nth-child(6) { padding-right: 10px; }
     body.m-sub-radar .vdx-head .vdx-h { display: none; }   /* «Схема»: без слова «Итоги» сверху */
     body.m-on #filters .f-summary { height: 36px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; }
@@ -5674,6 +5681,13 @@ $('anBox').addEventListener('click', function(e) {
 }, true);
 var mobFBtn = null, mobFPanel = null, M_FCHIPS = ['fResult', 'fColor', 'fOpening', 'fMode', 'fMetrics'];   // телефон: кнопка «Фильтр» таблицы — раскрывает кнопки фильтра (#filters.m-fopen)
 function mobileInit() {
+  var opTh = $('tblOpSeg').parentNode;   // телефон: «Дебют ▾» в шапке открывает / закрывает выбор названий
+  opTh.addEventListener('click', function(e) {   // capture: выбор в окошке закрывает его (сам выбор обрабатывает #tblOpSeg)
+    if (!mobOn) return;
+    if (e.target.closest('#tblOpSeg')) { if (e.target.closest('button')) setTimeout(function() { opTh.classList.remove('m-seg-open'); }, 150); return; }
+    e.stopPropagation(); opTh.classList.toggle('m-seg-open');
+  }, true);
+  document.addEventListener('click', function() { opTh.classList.remove('m-seg-open'); });
   mobFBtn = document.createElement('button'); mobFBtn.type = 'button'; mobFBtn.className = 'f-btn m-fbtn';
   mobFBtn.addEventListener('click', function(e) {
     e.stopPropagation(); closeDrops();
